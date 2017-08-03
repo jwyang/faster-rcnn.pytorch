@@ -4,6 +4,6 @@ This is the code for image graph detection. It connect the object detection, att
 
 ### TODO list
 
-- [] Try Pytorch faster RCNN code[https://github.com/longcw/faster_rcnn_pytorch], and ensure it works.
-- [] Data preparation for Visual Genome Dataset.
-- [] Train extended faster RCNN model on Visual Genome Dataset.
+- [ ] Try Pytorch faster RCNN code[https://github.com/longcw/faster_rcnn_pytorch], and ensure it works.
+- [ ] Data preparation for Visual Genome Dataset.
+- [ ] Train extended faster RCNN model on Visual Genome Dataset.
