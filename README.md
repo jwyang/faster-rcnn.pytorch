@@ -13,3 +13,5 @@ This is the code for image graph detection. It conducts the object detection, at
 ### Implementation TODO list
 
 - [ ] Re-implement the RoIDataLayer using python multi-thread API.
+- [ ] faster_rcnn.py: classes loading from external file. 
+- [ ] 
