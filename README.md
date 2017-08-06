@@ -8,3 +8,8 @@ This is the code for image graph detection. It conducts the object detection, at
 - [ ] Go through Pytorch faster RCNN code and get familiar with it.
 - [ ] Data preparation for Visual Genome Dataset.
 - [ ] Train extended faster RCNN model on Visual Genome Dataset.
+
+
+### Implementation TODO list
+
+- [ ] Re-implement the RoIDataLayer using python multi-thread API.
