@@ -81,5 +81,3 @@ if [ ! -f ${NET_FINAL}.index ]; then
             TRAIN.STEPSIZE ${STEPSIZE} ${EXTRA_ARGS}
     fi
 fi
-
-./experiments/scripts/test_faster_rcnn.sh $@

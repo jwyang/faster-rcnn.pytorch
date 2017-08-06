@@ -10,6 +10,12 @@ This is the code for image graph detection. It conducts the object detection, at
 
 2. Data Loader Class (collect training data in parallel)
 
+3. Implementation TODO list
+
+- [ ] Re-implement the RoIDataLayer using python multi-thread API.
+- [ ] faster_rcnn.py: classes loading from external file. 
+- [ ] network.py is not necessary.
+
 #### Faster-RCNN
 
 1. Pretrained Bottom Network (e.g., AlexNet, VGG, ResNet, etc.) 
@@ -39,24 +45,15 @@ This is the code for image graph detection. It conducts the object detection, at
 - Loss_Cls, SoftmaxWithLoss, classification loss between CLS_score and ground truth labels
 - Loss_bbox, SmoothL1Loss, regression loss between bbox_pred and ground truth bboxes
 
-#### Graph Detection Network
+5. Implementation TODO List
 
-1. Attribute Classifcation Network
+- [x] NMS
+- [ ] RPN
+- [ ] Faster_RCNN
 
-2. Relation Classification Network
+#### Attribute Classifcation Network
 
-### TODO list
+#### Relation Classification Network
 
-- [x] Try Pytorch faster RCNN [code](https://github.com/longcw/faster_rcnn_pytorch), and ensure it works.
-- [ ] Go through Pytorch faster RCNN code and get familiar with it.
-- [ ] Data preparation for Visual Genome Dataset.
-- [ ] Train extended faster RCNN model on Visual Genome Dataset.
-
-
-### Implementation TODO list
-
-- [ ] Re-implement the RoIDataLayer using python multi-thread API.
-- [ ] faster_rcnn.py: classes loading from external file. 
-- [ ] network.py is not necessary.
 
 

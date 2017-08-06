@@ -1,0 +1,18 @@
++ echo Logging output to 'experiments/logs/res101[0]_voc_2007_trainval__res101[0].txt.2017-08-06_16-41-19'
+Logging output to experiments/logs/res101[0]_voc_2007_trainval__res101[0].txt.2017-08-06_16-41-19
++ set +x
++ '[' '!' -f 'output/res101[0]/voc_2007_trainval/default/res101[0]_faster_rcnn_iter_70000.ckpt.index' ']'
++ [[ ! -z '' ]]
++ CUDA_VISIBLE_DEVICES=0
++ time python ./tools/trainval_net.py --weight 'data/imagenet_weights/res101[0].ckpt' --imdb voc_2007_trainval --imdbval voc_2007_test --iters 70000 --cfg 'experiments/cfgs/res101[0].yml' --net 'res101[0]' --set ANCHOR_SCALES '[8,16,32]' ANCHOR_RATIOS '[0.5,1,2]' TRAIN.STEPSIZE '[50000]'
+Called with args:
+Namespace(cfg_file='experiments/cfgs/res101[0].yml', imdb_name='voc_2007_trainval', imdbval_name='voc_2007_test', max_iters=70000, net='res101[0]', set_cfgs=['ANCHOR_SCALES', '[8,16,32]', 'ANCHOR_RATIOS', '[0.5,1,2]', 'TRAIN.STEPSIZE', '[50000]'], tag=None, weight='data/imagenet_weights/res101[0].ckpt')
+Traceback (most recent call last):
+  File "./tools/trainval_net.py", line 108, in <module>
+    cfg_from_file(args.cfg_file)
+  File "/home/jiasen/code/graphdetection/tools/../lib/model/config.py", line 360, in cfg_from_file
+    with open(filename, 'r') as f:
+IOError: [Errno 2] No such file or directory: 'experiments/cfgs/res101[0].yml'
+Command exited with non-zero status 1
+2.29user 9.39system 0:01.10elapsed 1054%CPU (0avgtext+0avgdata 149352maxresident)k
+0inputs+32outputs (0major+27438minor)pagefaults 0swaps

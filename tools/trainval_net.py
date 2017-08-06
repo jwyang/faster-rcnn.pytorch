@@ -9,13 +9,16 @@ from __future__ import print_function
 
 import _init_paths
 import os
+import sys
 import torch
-import numpy as numpy
+import numpy as np
 import argparse
 import pprint
+import pdb
 
 from model.config import cfg, cfg_from_file, cfg_from_list, get_output_dir, get_output_tb_dir
-from datasets.factory import get_imdb
+from model.RoILoader import RoIDataLayer
+
 
 def parse_args():
   """
@@ -46,6 +49,10 @@ def parse_args():
   parser.add_argument('--set', dest='set_cfgs',
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
+  parser.add_argument('--worker', dest='worker',
+                      help='number of worker loading data', 
+                      default=0, type=int)
+
 
   if len(sys.argv) == 1:
     parser.print_help()
@@ -53,32 +60,6 @@ def parse_args():
 
   args = parser.parse_args()
   return args
-
-
-def combined_roidb(imdb_names):
-  """
-  Combine multiple roidbs
-  """
-
-  def get_roidb(imdb_name):
-    imdb = get_imdb(imdb_name)
-    print('Loaded dataset `{:s}` for training'.format(imdb.name))
-    imdb.set_proposal_method(cfg.TRAIN.PROPOSAL_METHOD)
-    print('Set proposal method: {:s}'.format(cfg.TRAIN.PROPOSAL_METHOD))
-    roidb = get_training_roidb(imdb)
-    return roidb
-
-  roidbs = [get_roidb(s) for s in imdb_names.split('+')]
-  roidb = roidbs[0]
-  if len(roidbs) > 1:
-    for r in roidbs[1:]:
-      roidb.extend(r)
-    tmp = get_imdb(imdb_names.split('+')[1])
-    imdb = datasets.imdb.imdb(imdb_names, tmp.classes)
-  else:
-    imdb = get_imdb(imdb_names)
-  return imdb, roidb
-
 
 if __name__ == '__main__':
   args = parse_args()
@@ -95,8 +76,14 @@ if __name__ == '__main__':
   pprint.pprint(cfg)
 
   np.random.seed(cfg.RNG_SEED)
-
-  # train set
-  imdb, roidb = combined_roidb(args.imdb_name)
-  print('{:d} roidb entries'.format(len(roidb)))
   
+  ######################################
+  # Data Loader
+  ######################################  
+
+  dataset = RoIDataLayer(args.imdb_name)
+
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.TRAIN.BATCH_SIZE,
+                                         shuffle=True, num_workers=args.worker)
+
+  pdb.set_trace()
