@@ -20,15 +20,15 @@ This is the code for image graph detection. It conducts the object detection, at
 - RPN_ReLU, ReLU, one more relu layer on feature map
 - RPN_Cls_Score, Conv, o18-f1-p0-s1, 18 = 2(bg/fg) * 9(anchors), get region proposal classifcation scores
 - RPN_Bbox_Pred, Conv, o36-f1-po-s1, 36 = 4(coordinates) * 9(anchors), get region proposal coordinates
-- RPN_Data, /*Python*/, get rpn_labels_gt, rpn_bboxes_gt based on ground truth annotations
+- RPN_Data, **Python**, get rpn_labels_gt, rpn_bboxes_gt based on ground truth annotations
 - RPN_Loss_Cls, SoftmaxWithLoass, classifcation loss between rpn_cls_score and rpn_labels_gt
 - RPN_Loss_Bbox, SmoothL1Loss, regression loss between rpn_bbox_pred and prn_bboxes_gt
 
 3. ROI (Region of Interest)
 
 - RPN_Cls_Prob, Softmax, get rpn_cls_prob given rpn_cls_score
-- Proposal, /*Python*/, return top proposals based on the rpn_cls_prob and anchors
-- ROI-Data, /*Python*/, compare proposals and ground truth bboxes
+- Proposal, **Python**, return top proposals based on the rpn_cls_prob and anchors
+- ROI-Data, **Python**, compare proposals and ground truth bboxes
 
 4. RCNN (Region Convolutional Neural Network)
 
