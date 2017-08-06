@@ -9,13 +9,16 @@ from __future__ import print_function
 
 import _init_paths
 import os
+import sys
 import torch
-import numpy as numpy
+import numpy as np
 import argparse
 import pprint
+import pdb
 
 from model.config import cfg, cfg_from_file, cfg_from_list, get_output_dir, get_output_tb_dir
 from datasets.factory import get_imdb
+import roi_data_layer.roidb as rdl_roidb
 
 def parse_args():
   """
@@ -47,6 +50,8 @@ def parse_args():
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
 
+
+
   if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
@@ -54,6 +59,18 @@ def parse_args():
   args = parser.parse_args()
   return args
 
+def get_training_roidb(imdb):
+  """Returns a roidb (Region of Interest database) for use in training."""
+  if cfg.TRAIN.USE_FLIPPED:
+    print('Appending horizontally-flipped training examples...')
+    imdb.append_flipped_images()
+    print('done')
+
+  print('Preparing training data...')
+  rdl_roidb.prepare_roidb(imdb)
+  print('done')
+
+  return imdb.roidb
 
 def combined_roidb(imdb_names):
   """
@@ -99,4 +116,4 @@ if __name__ == '__main__':
   # train set
   imdb, roidb = combined_roidb(args.imdb_name)
   print('{:d} roidb entries'.format(len(roidb)))
-  
+

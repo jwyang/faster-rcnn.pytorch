@@ -1,0 +1,18 @@
++ echo Logging output to experiments/logs/resnet101_voc_2007_trainval__resnet101.txt.2017-08-06_16-30-37
+Logging output to experiments/logs/resnet101_voc_2007_trainval__resnet101.txt.2017-08-06_16-30-37
++ set +x
++ '[' '!' -f output/resnet101/voc_2007_trainval/default/resnet101_faster_rcnn_iter_70000.ckpt.index ']'
++ [[ ! -z '' ]]
++ CUDA_VISIBLE_DEVICES=0
++ time python ./tools/trainval_net.py --weight data/imagenet_weights/resnet101.ckpt --imdb voc_2007_trainval --imdbval voc_2007_test --iters 70000 --cfg experiments/cfgs/resnet101.yml --net resnet101 --set ANCHOR_SCALES '[8,16,32]' ANCHOR_RATIOS '[0.5,1,2]' TRAIN.STEPSIZE '[50000]'
+Called with args:
+Namespace(cfg_file='experiments/cfgs/resnet101.yml', imdb_name='voc_2007_trainval', imdbval_name='voc_2007_test', max_iters=70000, net='resnet101', set_cfgs=['ANCHOR_SCALES', '[8,16,32]', 'ANCHOR_RATIOS', '[0.5,1,2]', 'TRAIN.STEPSIZE', '[50000]'], tag=None, weight='data/imagenet_weights/resnet101.ckpt')
+Traceback (most recent call last):
+  File "./tools/trainval_net.py", line 91, in <module>
+    cfg_from_file(args.cfg_file)
+  File "/home/jiasen/code/graphdetection/tools/../lib/model/config.py", line 360, in cfg_from_file
+    with open(filename, 'r') as f:
+IOError: [Errno 2] No such file or directory: 'experiments/cfgs/resnet101.yml'
+Command exited with non-zero status 1
+1.89user 7.46system 0:01.10elapsed 848%CPU (0avgtext+0avgdata 147860maxresident)k
+0inputs+32outputs (0major+27396minor)pagefaults 0swaps

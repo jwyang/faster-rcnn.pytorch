@@ -1,0 +1,18 @@
++ echo Logging output to 'experiments/logs/res101_voc_2007_trainval_[0]_res101.txt.2017-08-06_16-41-15'
+Logging output to experiments/logs/res101_voc_2007_trainval_[0]_res101.txt.2017-08-06_16-41-15
++ set +x
++ '[' '!' -f 'output/res101/voc_2007_trainval/[0]/res101_faster_rcnn_iter_70000.ckpt.index' ']'
++ [[ ! -z [0] ]]
++ CUDA_VISIBLE_DEVICES=0
++ time python ./tools/trainval_net.py --weight data/imagenet_weights/res101.ckpt --imdb voc_2007_trainval --imdbval voc_2007_test --iters 70000 --cfg experiments/cfgs/res101.yml --tag '[0]' --net res101 --set ANCHOR_SCALES '[8,16,32]' ANCHOR_RATIOS '[0.5,1,2]' TRAIN.STEPSIZE '[50000]' '[0]'
+Called with args:
+Namespace(cfg_file='experiments/cfgs/res101.yml', imdb_name='voc_2007_trainval', imdbval_name='voc_2007_test', max_iters=70000, net='res101', set_cfgs=['ANCHOR_SCALES', '[8,16,32]', 'ANCHOR_RATIOS', '[0.5,1,2]', 'TRAIN.STEPSIZE', '[50000]', '[0]'], tag='[0]', weight='data/imagenet_weights/res101.ckpt')
+Traceback (most recent call last):
+  File "./tools/trainval_net.py", line 110, in <module>
+    cfg_from_list(args.set_cfgs)
+  File "/home/jiasen/code/graphdetection/tools/../lib/model/config.py", line 369, in cfg_from_list
+    assert len(cfg_list) % 2 == 0
+AssertionError
+Command exited with non-zero status 1
+1.84user 6.86system 0:01.06elapsed 820%CPU (0avgtext+0avgdata 149636maxresident)k
+0inputs+32outputs (0major+27447minor)pagefaults 0swaps
