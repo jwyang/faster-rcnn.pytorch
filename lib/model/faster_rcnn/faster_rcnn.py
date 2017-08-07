@@ -36,13 +36,13 @@ class _fasterRCNN(nn.Module):
 
         # define base model, e.g., VGG16, ResNet, etc.
         if baseModel == "vgg16":
-            pretrained_model = models.vgg16()
+            pretrained_model = models.vgg16(pretrained=True)
             self.RCNN_base_model = nn.Sequential(*list(pretrained_model.features.children())[:-1])
 
         virtual_input = torch.randn(1, 3, 224, 224)
         out = self.RCNN_base_model(Variable(virtual_input))
         self.dout_base_model = out.size(1)
-        pdb.set_trace()
+
         # define rpn
         self.RCNN_rpn = _RPN(out.size(1))
 

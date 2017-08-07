@@ -24,6 +24,8 @@ class _AnchorTargetLayer(nn.Module):
         labels and bounding-box regression targets.
     """
     def _init__(self, feat_stride, scales):
+        super(_AnchorTargetLayer, self).__init__()
+
         self._feat_stride = feat_stride
         self._scales = scales
         anchor_scales = scales

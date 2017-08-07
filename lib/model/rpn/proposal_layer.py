@@ -26,6 +26,8 @@ class _ProposalLayer(nn.Module):
     """
 
     def __init__(self, feat_stride, scales):
+        super(_ProposalLayer, self).__init__()
+        
         self._feat_stride = feat_stride
         anchor_scales = scales
         self._anchors = generate_anchors(scales=np.array(anchor_scales))

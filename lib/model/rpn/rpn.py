@@ -3,19 +3,20 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
+from model.utils.config import cfg
 from proposal_layer import _ProposalLayer
 from anchor_target_layer import _AnchorTargetLayer
 
+import pdb
+
 class _RPN(nn.Module):
     """ region proposal network """
-    _feat_stride = [16, ]        # TODO: figure out what this means
-    _anchor_scales = [8, 16, 32]  # TODO: compare this to offcial pycaffe code
     def __init__(self, din):
         super(_RPN, self).__init__()
         self.din = din or 512  # get depth of input feature map, e.g., 512
         self.anchor_scales = cfg.ANCHOR_SCALES
         self.feat_stride = cfg.FEAT_STRIDE
-        
+
         # define the convrelu layers processing input feature map
         self.RPN_ConvReLU = nn.Sequential(
                         nn.Conv2d(self.din, 512, 3, 1, 1, bias=True),
@@ -24,17 +25,19 @@ class _RPN(nn.Module):
 
         # define bg/fg classifcation score layer
         self.nc_score_out = len(self.anchor_scales) * 3 * 2 # 2(bg/fg) * 9 (anchors)
-        self.RPN_cls_score = Conv2d(512, self.nc_score_out, 1, 1, 1, 0)
+        self.RPN_cls_score = nn.Conv2d(512, self.nc_score_out, 1, 1, 1, 0)
 
         # define anchor box offset prediction layer
         self.nc_bbox_out = len(self.anchor_scales) * 3 * 4 # 4(coords) * 9 (anchors)
-        self.RPN_bbox_pred = Conv2d(512, self.nc_bbox_out, 1, 1, 1, 0)
+        self.RPN_bbox_pred = nn.Conv2d(512, self.nc_bbox_out, 1, 1, 1, 0)
 
         # define proposal layer
-        self.RPN_proposal = _ProposalLayer(self._feat_stride, self.anchor_scales)
+        self.RPN_proposal = _ProposalLayer(self.feat_stride, self.anchor_scales)
+
+        pdb.set_trace()
 
         # define anchor target layer
-        self.RPN_anchor_target = _AnchorTargetLayer(self._feat_stride, self._anchor_scales)
+        self.RPN_anchor_target = _AnchorTargetLayer(self.feat_stride, self.anchor_scales)
 
         # define classifcation loss bwtween cls_score and ground truth labels
         self.loss_cls = 0
