@@ -24,12 +24,9 @@ class _ProposalLayer(nn.Module):
     transformations to a set of regular boxes (called "anchors").
     """
 
-    def __init__(self, bottom, top):
-        # parse the layer parameter string, which must be valid YAML
-        layer_params = yaml.load(self.param_str_)
-
-        self._feat_stride = layer_params['feat_stride']
-        anchor_scales = layer_params.get('scales', (8, 16, 32))
+    def __init__(self, feat_stride, scales):
+        self._feat_stride = feat_stride
+        anchor_scales = scales
         self._anchors = generate_anchors(scales=np.array(anchor_scales))
         self._num_anchors = self._anchors.shape[0]
 
@@ -41,13 +38,13 @@ class _ProposalLayer(nn.Module):
         # rois blob: holds R regions of interest, each is a 5-tuple
         # (n, x1, y1, x2, y2) specifying an image batch index n and a
         # rectangle (x1, y1, x2, y2)
-        top[0].reshape(1, 5)
+        # top[0].reshape(1, 5)
+        #
+        # # scores blob: holds scores for R regions of interest
+        # if len(top) > 1:
+        #     top[1].reshape(1, 1, 1, 1)
 
-        # scores blob: holds scores for R regions of interest
-        if len(top) > 1:
-            top[1].reshape(1, 1, 1, 1)
-
-    def forward(self, bottom, top):
+    def forward(self, input):
         # Algorithm:
         #
         # for each (H, W) location i
@@ -61,10 +58,11 @@ class _ProposalLayer(nn.Module):
         # take after_nms_topN proposals after NMS
         # return the top proposals (-> RoIs top, scores top)
 
-        assert bottom[0].data.shape[0] == 1, \
-            'Only single item batches are supported'
+        rpn_cls_prob = input[0]
+        rpn_bbox_pred = input[1]
+        im_info = input[2]
+        cfg_key = input[3]
 
-        cfg_key = str(self.phase) # either 'TRAIN' or 'TEST'
         pre_nms_topN  = cfg[cfg_key].RPN_PRE_NMS_TOP_N
         post_nms_topN = cfg[cfg_key].RPN_POST_NMS_TOP_N
         nms_thresh    = cfg[cfg_key].RPN_NMS_THRESH
