@@ -10,12 +10,6 @@ This is the code for image graph detection. It conducts the object detection, at
 
 2. Data Loader Class (collect training data in parallel)
 
-3. Implementation TODO list
-
-- [ ] Re-implement the RoIDataLayer using python multi-thread API.
-- [ ] faster_rcnn.py: classes loading from external file. 
-- [ ] network.py is not necessary.
-
 #### Faster-RCNN
 
 1. Pretrained Bottom Network (e.g., AlexNet, VGG, ResNet, etc.) 
