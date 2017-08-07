@@ -35,13 +35,6 @@ class _VGG16(nn.Module):
                                    Conv2d(512, 512, 3, same_padding=True, bn=bn))
 
     def forward(self, im_data):
-        # im_data, im_scales = get_blobs(image)
-        # im_info = np.array(
-        #     [[im_data.shape[1], im_data.shape[2], im_scales[0]]],
-        #     dtype=np.float32)
-        # data = Variable(torch.from_numpy(im_data)).cuda()
-        # x = data.permute(0, 3, 1, 2)
-
         x = self.conv1(im_data)
         x = self.conv2(x)
         x = self.conv3(x)
@@ -60,26 +53,6 @@ class _VGG16(nn.Module):
             if ptype == 'weights':
                 param = param.permute(3, 2, 0, 1)
             val.copy_(param)
-
-    # def load_from_npy_file(self, fname):
-    #     own_dict = self.state_dict()
-    #     params = np.load(fname).item()
-    #     for name, val in own_dict.items():
-    #         # # print name
-    #         # # print val.size()
-    #         # # print param.size()
-    #         # if name.find('bn.') >= 0:
-    #         #     continue
-    #
-    #         i, j = int(name[4]), int(name[6]) + 1
-    #         ptype = 'weights' if name[-1] == 't' else 'biases'
-    #         key = 'conv{}_{}'.format(i, j)
-    #         param = torch.from_numpy(params[key][ptype])
-    #
-    #         if ptype == 'weights':
-    #             param = param.permute(3, 2, 0, 1)
-    #
-    #         val.copy_(param)
 
 
 if __name__ == '__main__':

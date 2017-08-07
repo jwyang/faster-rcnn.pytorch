@@ -1,4 +1,4 @@
-EXP_DIR: res50
+EXP_DIR: mobile
 TRAIN:
   HAS_RPN: True
   IMS_PER_BATCH: 1
@@ -9,9 +9,8 @@ TRAIN:
   BG_THRESH_LO: 0.0
   DISPLAY: 20
   BATCH_SIZE: 256
-  WEIGHT_DECAY: 0.0001
   DOUBLE_BIAS: False
-  SNAPSHOT_PREFIX: res50_faster_rcnn
+  SNAPSHOT_PREFIX: mobile_faster_rcnn
 TEST:
   HAS_RPN: True
 POOLING_MODE: crop

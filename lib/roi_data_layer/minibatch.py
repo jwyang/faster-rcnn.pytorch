@@ -13,7 +13,7 @@ from __future__ import print_function
 import numpy as np
 import numpy.random as npr
 import cv2
-from model.config import cfg
+from model.utils.config import cfg
 from utils.blob import prep_im_for_blob, im_list_to_blob
 
 def get_minibatch(roidb, num_classes):
