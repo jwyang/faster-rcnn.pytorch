@@ -9,7 +9,7 @@ from __future__ import print_function
 
 from datasets.imdb import imdb
 import datasets.ds_utils as ds_utils
-from model.config import cfg
+from model.utils.config import cfg
 import os.path as osp
 import sys
 import os

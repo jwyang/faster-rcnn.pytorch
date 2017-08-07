@@ -20,7 +20,7 @@ import pickle
 import subprocess
 import uuid
 from .voc_eval import voc_eval
-from model.config import cfg
+from model.utils.config import cfg
 
 
 class pascal_voc(imdb):
@@ -30,6 +30,8 @@ class pascal_voc(imdb):
     self._image_set = image_set
     self._devkit_path = self._get_default_path() if devkit_path is None \
       else devkit_path
+
+    
     self._data_path = os.path.join(self._devkit_path, 'VOC' + self._year)
     self._classes = ('__background__',  # always index 0
                      'aeroplane', 'bicycle', 'bird', 'boat',
@@ -81,6 +83,7 @@ class pascal_voc(imdb):
     # self._devkit_path + /VOCdevkit2007/VOC2007/ImageSets/Main/val.txt
     image_set_file = os.path.join(self._data_path, 'ImageSets', 'Main',
                                   self._image_set + '.txt')
+    
     assert os.path.exists(image_set_file), \
       'Path does not exist: {}'.format(image_set_file)
     with open(image_set_file) as f:
