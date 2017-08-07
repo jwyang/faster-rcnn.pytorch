@@ -1,28 +1,48 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
+import torchvision.models as models
 
-from base_model.vgg16 import _VGG16
-from rpn.rpn import _RPN
-from roi_pooling.modules.roi_pool import _RoIPooling
-from proposal_target_layer import _ProposalTargetLayer
+from torch.autograd import Variable
+import numpy as np
+
 from model.utils.config import cfg
+from model.base_model.vgg16 import _VGG16
+from model.rpn.rpn import _RPN
+from model.roi_pooling.modules.roi_pool import _RoIPooling
+from model.rpn.proposal_target_layer import _ProposalTargetLayer
+
+import pdb
 
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
-    def __init__(self, baseModel, classes, ngpu=1, debug=False):
+    n_classes = 21
+    classes = np.asarray(['__background__',
+                       'aeroplane', 'bicycle', 'bird', 'boat',
+                       'bottle', 'bus', 'car', 'cat', 'chair',
+                       'cow', 'diningtable', 'dog', 'horse',
+                       'motorbike', 'person', 'pottedplant',
+                       'sheep', 'sofa', 'train', 'tvmonitor'])
+    PIXEL_MEANS = np.array([[[102.9801, 115.9465, 122.7717]]])
+    SCALES = (600,)
+    MAX_SIZE = 1000
+
+    def __init__(self, baseModel, classes=None, debug=False):
         super(_fasterRCNN, self).__init__()
 
-        self.classes = classes
-        self.n_classes = len(classes)
+        if classes is not None:
+            self.classes = classes
+            self.n_classes = len(classes)
 
         # define base model, e.g., VGG16, ResNet, etc.
-        self.RCNN_base_model = getattr(nn, baseModel)()
-        virtual_input = torch.randn(ngpu, 3, 224, 224)
-        out = self.RCNN_base_model(virtual_input)
-        self.dout_base_model = out.size(1)
+        if baseModel == "vgg16":
+            pretrained_model = models.vgg16()
+            self.RCNN_base_model = nn.Sequential(*list(pretrained_model.features.children())[:-1])
 
+        virtual_input = torch.randn(1, 3, 224, 224)
+        out = self.RCNN_base_model(Variable(virtual_input))
+        self.dout_base_model = out.size(1)
+        pdb.set_trace()
         # define rpn
         self.RCNN_rpn = _RPN(out.size(1))
 

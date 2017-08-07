@@ -13,7 +13,9 @@ class _RPN(nn.Module):
     def __init__(self, din):
         super(_RPN, self).__init__()
         self.din = din or 512  # get depth of input feature map, e.g., 512
-
+        self.anchor_scales = cfg.ANCHOR_SCALES
+        self.feat_stride = cfg.FEAT_STRIDE
+        
         # define the convrelu layers processing input feature map
         self.RPN_ConvReLU = nn.Sequential(
                         nn.Conv2d(self.din, 512, 3, 1, 1, bias=True),

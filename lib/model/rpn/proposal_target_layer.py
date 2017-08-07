@@ -4,8 +4,12 @@
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Ross Girshick and Sean Bell
 # --------------------------------------------------------
+# --------------------------------------------------------
+# Reorganized and modified by Jianwei Yang and Jiasen Lu
+# --------------------------------------------------------
 
 import torch
+import torch.nn as nn
 import numpy as np
 import numpy.random as npr
 from ..utils.config import cfg

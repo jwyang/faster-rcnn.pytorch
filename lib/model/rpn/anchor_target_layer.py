@@ -11,10 +11,10 @@
 import torch
 import torch.nn as nn
 
-from config import cfg
+from model.utils.config import cfg
 from generate_anchors import generate_anchors
 from bbox_transform import bbox_transform
-from ..utils.cython_bbox import bbox_overlaps, bbox_intersections
+from model.utils.cython_bbox import bbox_overlaps, bbox_intersections
 
 DEBUG = False
 
