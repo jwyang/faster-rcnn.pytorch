@@ -48,7 +48,7 @@ This is the code for image graph detection. It conducts the object detection, at
 5. Implementation TODO List
 
 - [x] NMS
-- [ ] RPN
+- [x] RPN
 - [ ] Faster_RCNN
 
 #### Attribute Classifcation Network
