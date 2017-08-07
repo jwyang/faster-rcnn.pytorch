@@ -4,11 +4,11 @@ This is the code for image graph detection. It conducts the object detection, at
 
 ### Modules
 
-#### DataLoader
+#### Prepare Data
 
-1. Data Preparation Class (load data from given datasets)
+put VOCdevkit2007 under data folder. 
 
-2. Data Loader Class (collect training data in parallel)
+To run: ``./experiments/scripts/train_faster_rcnn.sh 0 pascal_voc res101''
 
 #### Faster-RCNN
 
