@@ -34,7 +34,7 @@ class _RPN(nn.Module):
         # define proposal layer
         self.RPN_proposal = _ProposalLayer(self.feat_stride, self.anchor_scales)
 
-        pdb.set_trace()
+        # pdb.set_trace()
 
         # define anchor target layer
         self.RPN_anchor_target = _AnchorTargetLayer(self.feat_stride, self.anchor_scales)

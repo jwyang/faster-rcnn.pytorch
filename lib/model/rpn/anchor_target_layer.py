@@ -10,6 +10,7 @@
 
 import torch
 import torch.nn as nn
+import numpy as np
 
 from model.utils.config import cfg
 from generate_anchors import generate_anchors
@@ -23,7 +24,7 @@ class _AnchorTargetLayer(nn.Module):
         Assign anchors to ground-truth targets. Produces anchor classification
         labels and bounding-box regression targets.
     """
-    def _init__(self, feat_stride, scales):
+    def __init__(self, feat_stride, scales):
         super(_AnchorTargetLayer, self).__init__()
 
         self._feat_stride = feat_stride
