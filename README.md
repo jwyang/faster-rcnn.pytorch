@@ -49,7 +49,7 @@ This is the code for image graph detection. It conducts the object detection, at
 
 - [x] NMS
 - [x] RPN
-- [ ] Faster_RCNN
+- [x] Faster_RCNN
 
 #### Attribute Classifcation Network
 
