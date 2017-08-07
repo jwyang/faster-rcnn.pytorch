@@ -49,7 +49,6 @@ class _fasterRCNN(nn.Module):
         # define proposal layer for target
         self.RPN_proposal_target = _ProposalTargetLayer(self.n_classes)
 
-
         self.RCNN_roi_pool = _RoIPooling(7, 7, 1.0/16)
 
         self.RCNN_top_model = nn.Sequential(
@@ -59,8 +58,10 @@ class _fasterRCNN(nn.Module):
             nn.Linear(4096, 4096)
         )
 
-        self.RCNN_cls_score = nn.Linear(4096, self.n_classes, relu=False)
-        self.RCNN_bbox_pred = nn.Linear(4096, self.n_classes * 4, relu=False)
+        self.RCNN_cls_score = nn.Linear(4096, self.n_classes)
+        self.RCNN_bbox_pred = nn.Linear(4096, self.n_classes * 4)
+
+        pdb.set_trace()
 
         # loss
         self.RCNN_loss_cls = 0
