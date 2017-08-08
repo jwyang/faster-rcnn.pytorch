@@ -15,6 +15,7 @@ import numpy.random as npr
 from ..utils.config import cfg
 from bbox_transform import bbox_transform
 from ..utils.cython_bbox import bbox_overlaps
+import pdb
 
 DEBUG = False
 
@@ -25,6 +26,7 @@ class _ProposalTargetLayer(nn.Module):
     """
 
     def __init__(self, nclasses):
+        super(_ProposalTargetLayer, self).__init__()
         self._num_classes = nclasses
 
     def forward(self, all_rois, gt_boxes):
@@ -37,14 +39,18 @@ class _ProposalTargetLayer(nn.Module):
         # gt_boxes = bottom[1].data
 
         # Include ground-truth boxes in the set of candidate rois
-        zeros = np.zeros((gt_boxes.shape[0], 1), dtype=gt_boxes.dtype)
-        all_rois = np.vstack(
-            (all_rois, np.hstack((zeros, gt_boxes[:, :-1])))
+        all_rois_np = all_rois.numpy()
+        gt_boxes_np = gt_boxes.data.numpy()
+
+        zeros = np.zeros((gt_boxes_np.shape[0], 1), dtype=gt_boxes_np.dtype)
+        all_rois_np = np.vstack(
+            (all_rois_np, np.hstack((zeros, gt_boxes_np[:, :-1])))
         )
 
         # Sanity check: single batch only
-        assert np.all(all_rois[:, 0] == 0), \
-                'Only single item batches are supported'
+        # TODO: determined by GPU number
+        # assert np.all(all_rois[:, 0] == 0), \
+        #         'Only single item batches are supported'
 
         num_images = 1
         rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
@@ -53,7 +59,7 @@ class _ProposalTargetLayer(nn.Module):
         # Sample rois with classification labels and bounding box regression
         # targets
         labels, rois, bbox_targets, bbox_inside_weights = _sample_rois(
-            all_rois, gt_boxes, fg_rois_per_image,
+            all_rois_np, gt_boxes_np, fg_rois_per_image,
             rois_per_image, self._num_classes)
 
         if DEBUG:
@@ -66,11 +72,12 @@ class _ProposalTargetLayer(nn.Module):
             print 'num bg avg: {}'.format(self._bg_num / self._count)
             print 'ratio: {:.3f}'.format(float(self._fg_num) / float(self._bg_num))
 
-        rois = rois.reshape(-1, 5)
-        labels = labels.reshape(-1, 1)
-        bbox_targets = bbox_targets.reshape(-1, _num_classes * 4)
-        bbox_inside_weights = bbox_inside_weights.reshape(-1, _num_classes * 4)
-        bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
+        rois = torch.from_numpy(rois.reshape(-1, 5))
+        labels = torch.from_numpy(labels.reshape(-1, 1))
+        bbox_targets = torch.from_numpy(bbox_targets.reshape(-1, self._num_classes * 4))
+        bbox_inside_weights = torch.from_numpy(bbox_inside_weights.reshape(-1, self._num_classes * 4))
+        bbox_outside_weights = (bbox_inside_weights > 0).float()
+        # torch.from_numpy(np.array(bbox_inside_weights > 0).astype(np.float32))
 
         return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights
 
@@ -101,7 +108,7 @@ def _get_bbox_regression_labels(bbox_target_data, num_classes):
     inds = np.where(clss > 0)[0]
     for ind in inds:
         cls = clss[ind]
-        start = 4 * cls
+        start = int(4 * cls)
         end = start + 4
         bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
         bbox_inside_weights[ind, start:end] = cfg.TRAIN.BBOX_INSIDE_WEIGHTS

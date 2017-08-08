@@ -244,7 +244,7 @@ class _AnchorTargetLayer(nn.Module):
             .reshape((1, height, width, A * 4)).transpose(0, 3, 1, 2)
         assert bbox_outside_weights.shape[2] == height
         assert bbox_outside_weights.shape[3] == width
-        outputs.append(bbox_outside_weights)
+        outputs.append(torch.from_numpy(bbox_outside_weights))
         # top[3].reshape(*bbox_outside_weights.shape)
         # top[3].data[...] = bbox_outside_weights
 

@@ -76,29 +76,34 @@ class _RPN(nn.Module):
         cfg_key = 'TRAIN' if self.training else 'TEST'
         rois = self.RPN_proposal((rpn_cls_prob, rpn_bbox_pred,
                                  im_info, cfg_key))
-        pdb.set_trace()
+
         # generating training labels and build the rpn loss
         if self.training:
             assert gt_bboxes is not None
             rpn_data = self.RPN_anchor_target((rpn_cls_score, gt_bboxes, im_info))
-            pdb.set_trace()
+
             # compute classification loss
             rpn_cls_score = rpn_cls_score_reshape.permute(0, 2, 3, 1).contiguous().view(-1, 2)
             rpn_label = rpn_data[0].view(-1)
 
             rpn_keep = rpn_label.ne(-1).nonzero().squeeze()
-            rpn_cls_score = torch.index_select(rpn_cls_score, 0, rpn_keep)
+            rpn_keep_v = Variable(rpn_keep)
+            rpn_cls_score = torch.index_select(rpn_cls_score, 0, rpn_keep_v)
             rpn_label = torch.index_select(rpn_label, 0, rpn_keep)
+            rpn_label_v = Variable(rpn_label.long())
 
-            fg_cnt = torch.sum(rpn_label.data.ne(0))
+            fg_cnt = torch.sum(rpn_label_v.data.ne(0))
 
-            self.rpn_loss_cls = F.cross_entropy(rpn_cls_score, rpn_label)
+            self.rpn_loss_cls = F.cross_entropy(rpn_cls_score, rpn_label_v)
 
             # compute bbox regression loss
             rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights = rpn_data[1:]
             rpn_bbox_targets = torch.mul(rpn_bbox_targets, rpn_bbox_inside_weights)
-            rpn_bbox_pred = torch.mul(rpn_bbox_pred, rpn_bbox_inside_weights)
+            rpn_bbox_inside_weights_v = Variable(rpn_bbox_inside_weights)
 
-            self.rpn_loss_box = F.smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets, size_average=False) / (fg_cnt + 1e-4)
+            rpn_bbox_pred = torch.mul(rpn_bbox_pred, rpn_bbox_inside_weights_v)
+
+            rpn_bbox_targets_v = Variable(rpn_bbox_targets)
+            self.rpn_loss_box = F.smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets_v, size_average=False) / (fg_cnt + 1e-4)
 
         return rois
