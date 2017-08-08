@@ -40,7 +40,7 @@ class _ProposalLayer(nn.Module):
         # lazily initlize the variable here. 
         self.shift_x = torch.FloatTensor(1)
         self.shift_y = torch.FloatTensor(1)
-
+        self.batch_inds = torch.FloatTensor(1)
         if DEBUG:
             print 'feat_stride: {}'.format(self._feat_stride)
             print 'anchors:'
@@ -194,8 +194,9 @@ class _ProposalLayer(nn.Module):
         # blob = np.hstack((batch_inds, proposals.astype(np.float32, copy=False)))
         # top[0].reshape(*(blob.shape))
         # top[0].data[...] = blob
-        batch_inds = torch.FloatTensor(proposals.size(0), 1).zero_()
-        output = torch.cat((batch_inds, proposals), 1)
+        
+        self.batch_inds.resize_(proposals.size(0), 1).zero_()
+        output = torch.cat((self.batch_inds, proposals), 1)
 
         # [Optional] output scores blob
         # if len(top) > 1:

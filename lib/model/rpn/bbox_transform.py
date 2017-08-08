@@ -50,15 +50,21 @@ def bbox_transform_inv(boxes, deltas):
     pred_w = np.exp(dw) * widths[:, np.newaxis]
     pred_h = np.exp(dh) * heights[:, np.newaxis]
 
-    pred_boxes = torch.Tensor(deltas)
+    #pred_boxes = torch.Tensor(deltas)
     # x1
-    pred_boxes[:, 0::4] = pred_ctr_x - 0.5 * pred_w
+    #pred_boxes[:, 0::4] = pred_ctr_x - 0.5 * pred_w
     # y1
-    pred_boxes[:, 1::4] = pred_ctr_y - 0.5 * pred_h
+    #pred_boxes[:, 1::4] = pred_ctr_y - 0.5 * pred_h
     # x2
-    pred_boxes[:, 2::4] = pred_ctr_x + 0.5 * pred_w
+    #pred_boxes[:, 2::4] = pred_ctr_x + 0.5 * pred_w
     # y2
-    pred_boxes[:, 3::4] = pred_ctr_y + 0.5 * pred_h
+    #pred_boxes[:, 3::4] = pred_ctr_y + 0.5 * pred_h
+
+    # avoid re-initialize the memory here. 
+    pred_boxes = torch.stack([pred_ctr_x - 0.5 * pred_w, 
+                        pred_ctr_y - 0.5 * pred_h, 
+                        pred_ctr_x + 0.5 * pred_w, 
+                        pred_ctr_y + 0.5 * pred_h],1).view(-1,4) 
 
     return pred_boxes
 
