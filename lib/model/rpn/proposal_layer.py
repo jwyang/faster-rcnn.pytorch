@@ -32,8 +32,14 @@ class _ProposalLayer(nn.Module):
 
         self._feat_stride = feat_stride
         anchor_scales = scales
+
+        # TODO: float here should adapted based on cpu or gpu?
         self._anchors = torch.from_numpy(generate_anchors(scales=np.array(anchor_scales))).float()
         self._num_anchors = self._anchors.size(0)
+
+        # lazily initlize the variable here. 
+        self.shift_x = torch.FloatTensor(1)
+        self.shift_y = torch.FloatTensor(1)
 
         if DEBUG:
             print 'feat_stride: {}'.format(self._feat_stride)
@@ -78,7 +84,6 @@ class _ProposalLayer(nn.Module):
         scores = input[0].data[:, self._num_anchors:, :, :]
         bbox_deltas = input[1].data
         im_info = input[2].data[0, :]
-
         if DEBUG:
             print 'im_size: ({}, {})'.format(im_info[0], im_info[1])
             print 'scale: {}'.format(im_info[2])
@@ -89,13 +94,28 @@ class _ProposalLayer(nn.Module):
         if DEBUG:
             print 'score map size: {}'.format(scores.shape)
 
+
         # Enumerate all shifts
-        shift_x = np.arange(0, width) * self._feat_stride
-        shift_y = np.arange(0, height) * self._feat_stride
-        shift_x, shift_y = np.meshgrid(shift_x, shift_y)
-        shifts = torch.from_numpy(np.vstack((shift_x.ravel(), shift_y.ravel(),
-                                  shift_x.ravel(), shift_y.ravel())).transpose())
-        shifts = shifts.contiguous().float()
+        # -- numpy version -----
+        
+        #shift_x = np.arange(0, width) * self._feat_stride
+        #shift_y = np.arange(0, height) * self._feat_stride
+        #shift_x, shift_y = np.meshgrid(shift_x, shift_y)
+        #shifts = torch.from_numpy(np.vstack((shift_x.ravel(), shift_y.ravel(),
+        #                          shift_x.ravel(), shift_y.ravel())).transpose())
+        #shifts = shifts.contiguous().float()
+        
+        # -- torch version ----- 
+        torch.arange(0, width, out=self.shift_x)
+        self.shift_x = self.shift_x * self._feat_stride # Check: feat_stride only has one value.
+        torch.arange(0, height, out=self.shift_y)
+        self.shift_y = self.shift_y * self._feat_stride # Check: feat_stride only has one value.        
+        
+        shifts = torch.stack([self.shift_x.repeat(height), 
+                self.shift_y.repeat(width,1).t().contiguous().view(-1), 
+                self.shift_x.repeat(height), 
+                self.shift_y.repeat(width,1).t().contiguous().view(-1)],1)
+
         # Enumerate all shifted anchors:
         #
         # add A anchors (1, A, 4) to
@@ -105,7 +125,8 @@ class _ProposalLayer(nn.Module):
         A = self._num_anchors
         K = shifts.size(0)
 
-        anchors = self._anchors.view(1, A, 4) + shifts.view(1, K, 4).permute(1, 0, 2).contiguous()
+        # anchors = self._anchors.view(1, A, 4) + shifts.view(1, K, 4).permute(1, 0, 2).contiguous()
+        anchors = self._anchors.view(1, A, 4) + shifts.view(K, 1, 4)
         anchors = anchors.view(K * A, 4)
 
         # Transpose and reshape predicted bbox transformations to get them

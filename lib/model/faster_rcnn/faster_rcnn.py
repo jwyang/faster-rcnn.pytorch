@@ -47,7 +47,7 @@ class _fasterRCNN(nn.Module):
         # define proposal layer for target
         self.RPN_proposal_target = _ProposalTargetLayer(self.n_classes)
 
-        self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/cfg.FEAT_STRIDE)
+        self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
 
         self.RCNN_top_model = nn.Sequential(
             nn.Linear(self.dout_base_model*cfg.POOLING_SIZE*cfg.POOLING_SIZE, 4096),

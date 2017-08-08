@@ -6,6 +6,7 @@
 # --------------------------------------------------------
 
 import numpy as np
+import pdb
 
 # Verify that we compute the same anchors as Shaoqing's matlab implementation:
 #

@@ -11,11 +11,11 @@ import pdb
 
 class _RPN(nn.Module):
     """ region proposal network """
-    def __init__(self, din):
+    def __init__(self, din=512):
         super(_RPN, self).__init__()
-        self.din = din or 512  # get depth of input feature map, e.g., 512
+        self.din = din  # get depth of input feature map, e.g., 512
         self.anchor_scales = cfg.ANCHOR_SCALES
-        self.feat_stride = cfg.FEAT_STRIDE
+        self.feat_stride = cfg.FEAT_STRIDE[0]
 
         # define the convrelu layers processing input feature map
         self.RPN_ConvReLU = nn.Sequential(
@@ -64,7 +64,7 @@ class _RPN(nn.Module):
         rpn_conv1 = self.RPN_ConvReLU(input)
         # get rpn classification score
         rpn_cls_score = self.RPN_cls_score(rpn_conv1)
-        # TODO: an error here
+
         rpn_cls_score_reshape = self.reshape(rpn_cls_score, 2)
         rpn_cls_prob_reshape = F.softmax(rpn_cls_score_reshape)
         rpn_cls_prob = self.reshape(rpn_cls_prob_reshape, self.nc_score_out)
