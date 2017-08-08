@@ -104,9 +104,8 @@ class _ProposalLayer(nn.Module):
         # reshape to (K*A, 4) shifted anchors
         A = self._num_anchors
         K = shifts.size(0)
-        pdb.set_trace()
-        anchors = self._anchors.view(1, A, 4) + shifts.view(1, K, 4).permute(1, 0, 2).contiguous()
 
+        anchors = self._anchors.view(1, A, 4) + shifts.view(1, K, 4).permute(1, 0, 2).contiguous()
         anchors = anchors.view(K * A, 4)
 
         # Transpose and reshape predicted bbox transformations to get them
@@ -134,44 +133,55 @@ class _ProposalLayer(nn.Module):
 
         # 2. clip predicted boxes to image
         proposals = clip_boxes(proposals, im_info[:2])
-        pdb.set_trace()
 
         # 3. remove predicted boxes with either height or width < threshold
         # (NOTE: convert min_size to input image scale stored in im_info[2])
-        keep = _filter_boxes(proposals, min_size * im_info[2])
-        proposals = proposals[keep, :]
-        scores = scores[keep]
-        pdb.set_trace()
+        keep = _filter_boxes(proposals, min_size * im_info[2]).squeeze()
+        keep_idx = torch.nonzero(keep).squeeze()
+        proposals = proposals[keep_idx, :]
+        scores = scores[keep_idx, :]
 
         # 4. sort all (proposal, score) pairs by score from highest to lowest
         # 5. take top pre_nms_topN (e.g. 6000)
-        order = scores.ravel().argsort()[::-1]
+        _, order = torch.sort(scores, 0, True)
+        order = order.squeeze()
+        # order = scores.ravel().argsort()[::-1]
         if pre_nms_topN > 0:
             order = order[:pre_nms_topN]
         proposals = proposals[order, :]
-        scores = scores[order]
+        scores = scores[order, :]
 
         # 6. apply nms (e.g. threshold = 0.7)
         # 7. take after_nms_topN (e.g. 300)
         # 8. return the top proposals (-> RoIs top)
-        keep = nms(np.hstack((proposals, scores)), nms_thresh)
+
+        # TODO:jwyang:Compile nms for pytorch, and replace the original one
+        # TODO:jwyang:NMS is slow, make it faster !!!!!
+        proposals_np = proposals.numpy()
+        scores_np = scores.numpy()
+        keep_np = nms(np.hstack((proposals_np, scores_np)), nms_thresh)
+        keep = torch.from_numpy(np.asarray(keep_np))
+
         if post_nms_topN > 0:
             keep = keep[:post_nms_topN]
         proposals = proposals[keep, :]
-        scores = scores[keep]
+        scores = scores[keep, :]
 
         # Output rois blob
         # Our RPN implementation only supports a single input image, so all
         # batch inds are 0
-        batch_inds = np.zeros((proposals.shape[0], 1), dtype=np.float32)
-        blob = np.hstack((batch_inds, proposals.astype(np.float32, copy=False)))
-        top[0].reshape(*(blob.shape))
-        top[0].data[...] = blob
+        # blob = np.hstack((batch_inds, proposals.astype(np.float32, copy=False)))
+        # top[0].reshape(*(blob.shape))
+        # top[0].data[...] = blob
+        batch_inds = torch.FloatTensor(proposals.size(0), 1).zero_()
+        output = torch.cat((batch_inds, proposals), 1)
 
         # [Optional] output scores blob
-        if len(top) > 1:
-            top[1].reshape(*(scores.shape))
-            top[1].data[...] = scores
+        # if len(top) > 1:
+        #     top[1].reshape(*(scores.shape))
+        #     top[1].data[...] = scores
+
+        return output
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
@@ -185,5 +195,5 @@ def _filter_boxes(boxes, min_size):
     """Remove all boxes with any side smaller than min_size."""
     ws = boxes[:, 2] - boxes[:, 0] + 1
     hs = boxes[:, 3] - boxes[:, 1] + 1
-    keep = np.where((ws >= min_size) & (hs >= min_size))[0]
+    keep = ((ws >= min_size) & (hs >= min_size))
     return keep

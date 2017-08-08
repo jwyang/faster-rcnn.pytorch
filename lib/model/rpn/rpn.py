@@ -34,8 +34,6 @@ class _RPN(nn.Module):
         # define proposal layer
         self.RPN_proposal = _ProposalLayer(self.feat_stride, self.anchor_scales)
 
-        # pdb.set_trace()
-
         # define anchor target layer
         self.RPN_anchor_target = _AnchorTargetLayer(self.feat_stride, self.anchor_scales)
 
@@ -66,6 +64,7 @@ class _RPN(nn.Module):
         rpn_conv1 = self.RPN_ConvReLU(input)
         # get rpn classification score
         rpn_cls_score = self.RPN_cls_score(rpn_conv1)
+        # TODO: an error here
         rpn_cls_score_reshape = self.reshape(rpn_cls_score, 2)
         rpn_cls_prob_reshape = F.softmax(rpn_cls_score_reshape)
         rpn_cls_prob = self.reshape(rpn_cls_prob_reshape, self.nc_score_out)
@@ -80,14 +79,14 @@ class _RPN(nn.Module):
         pdb.set_trace()
         # generating training labels and build the rpn loss
         if self.training:
-            assert gt_boxes is not None
-            rpn_data = self.RPN_anchor_target(rpn_cls_score, gt_bboxes, im_info)
-
+            assert gt_bboxes is not None
+            rpn_data = self.RPN_anchor_target((rpn_cls_score, gt_bboxes, im_info))
+            pdb.set_trace()
             # compute classification loss
             rpn_cls_score = rpn_cls_score_reshape.permute(0, 2, 3, 1).contiguous().view(-1, 2)
             rpn_label = rpn_data[0].view(-1)
 
-            rpn_keep = rpn_label.data.ne(-1).nonzero().squeeze()
+            rpn_keep = rpn_label.ne(-1).nonzero().squeeze()
             rpn_cls_score = torch.index_select(rpn_cls_score, 0, rpn_keep)
             rpn_label = torch.index_select(rpn_label, 0, rpn_keep)
 

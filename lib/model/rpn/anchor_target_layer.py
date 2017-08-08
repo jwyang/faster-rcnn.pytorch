@@ -11,11 +11,14 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import numpy.random as npr
 
 from model.utils.config import cfg
 from generate_anchors import generate_anchors
 from bbox_transform import bbox_transform
 from model.utils.cython_bbox import bbox_overlaps, bbox_intersections
+
+import pdb
 
 DEBUG = False
 
@@ -59,23 +62,24 @@ class _AnchorTargetLayer(nn.Module):
         #   apply predicted bbox deltas at cell i to each of the 9 anchors
         # filter out-of-image anchors
         # measure GT overlap
-
         rpn_cls_score = input[0]
         gt_boxes = input[1]
-        im_info = input[3][0]
+        im_info = input[2][0]
+        im_info_np = im_info.data.numpy()
 
-        assert bottom[0].data.shape[0] == 1, \
-            'Only single item batches are supported'
+        # TODO this should be equal to GPU number
+        # assert input[0].size(1) == 1, \
+        #     'Only single item batches are supported'
 
         # map of shape (..., H, W)
-        height, width = rpn_cls_score.shape[2:4]
+        height, width = rpn_cls_score.size(2), rpn_cls_score.size(3)
 
         if DEBUG:
             print ''
             print 'im_size: ({}, {})'.format(im_info[0], im_info[1])
             print 'scale: {}'.format(im_info[2])
             print 'height, width: ({}, {})'.format(height, width)
-            print 'rpn: gt_boxes.shape', gt_boxes.shape
+            print 'rpn: gt_boxes.size()', gt_boxes.size()
             print 'rpn: gt_boxes', gt_boxes
 
         # 1. Generate proposals from bbox deltas and shifted anchors
@@ -94,13 +98,12 @@ class _AnchorTargetLayer(nn.Module):
                        shifts.reshape((1, K, 4)).transpose((1, 0, 2)))
         all_anchors = all_anchors.reshape((K * A, 4))
         total_anchors = int(K * A)
-
         # only keep anchors inside the image
         inds_inside = np.where(
             (all_anchors[:, 0] >= -self._allowed_border) &
             (all_anchors[:, 1] >= -self._allowed_border) &
-            (all_anchors[:, 2] < im_info[1] + self._allowed_border) &  # width
-            (all_anchors[:, 3] < im_info[0] + self._allowed_border)    # height
+            (all_anchors[:, 2] < im_info_np[1] + self._allowed_border) &  # width
+            (all_anchors[:, 3] < im_info_np[0] + self._allowed_border)    # height
         )[0]
 
         if DEBUG:
@@ -118,9 +121,11 @@ class _AnchorTargetLayer(nn.Module):
 
         # overlaps between the anchors and the gt boxes
         # overlaps (ex, gt)
+        gt_boxes_np = gt_boxes.data.numpy()
         overlaps = bbox_overlaps(
             np.ascontiguousarray(anchors, dtype=np.float),
-            np.ascontiguousarray(gt_boxes, dtype=np.float))
+            np.ascontiguousarray(gt_boxes_np, dtype=np.float))
+
         argmax_overlaps = overlaps.argmax(axis=1)
         max_overlaps = overlaps[np.arange(len(inds_inside)), argmax_overlaps]
         gt_argmax_overlaps = overlaps.argmax(axis=0)
@@ -143,7 +148,6 @@ class _AnchorTargetLayer(nn.Module):
             labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
         # TODO: Check the differences between pytorch and pycaffe code here
-
         # subsample positive labels if we have too many
         num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
         fg_inds = np.where(labels == 1)[0]
@@ -163,7 +167,7 @@ class _AnchorTargetLayer(nn.Module):
                 #len(bg_inds), len(disable_inds), np.sum(labels == 0))
 
         bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)
-        bbox_targets = _compute_targets(anchors, gt_boxes[argmax_overlaps, :])
+        bbox_targets = _compute_targets(anchors, gt_boxes_np[argmax_overlaps, :])
 
         bbox_inside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)
         bbox_inside_weights[labels == 1, :] = np.array(cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS)
@@ -211,33 +215,40 @@ class _AnchorTargetLayer(nn.Module):
             print 'rpn: num_positive avg', self._fg_sum / self._count
             print 'rpn: num_negative avg', self._bg_sum / self._count
 
+        outputs = []
         # labels
         labels = labels.reshape((1, height, width, A)).transpose(0, 3, 1, 2)
         labels = labels.reshape((1, 1, A * height, width))
-        top[0].reshape(*labels.shape)
-        top[0].data[...] = labels
+        outputs.append(torch.from_numpy(labels))
+        # top[0].reshape(*labels.shape)
+        # top[0].data[...] = labels
 
         # bbox_targets
         bbox_targets = bbox_targets \
             .reshape((1, height, width, A * 4)).transpose(0, 3, 1, 2)
-        top[1].reshape(*bbox_targets.shape)
-        top[1].data[...] = bbox_targets
+        outputs.append(torch.from_numpy(bbox_targets))
+        # top[1].reshape(*bbox_targets.shape)
+        # top[1].data[...] = bbox_targets
 
         # bbox_inside_weights
         bbox_inside_weights = bbox_inside_weights \
             .reshape((1, height, width, A * 4)).transpose(0, 3, 1, 2)
         assert bbox_inside_weights.shape[2] == height
         assert bbox_inside_weights.shape[3] == width
-        top[2].reshape(*bbox_inside_weights.shape)
-        top[2].data[...] = bbox_inside_weights
+        outputs.append(torch.from_numpy(bbox_inside_weights))
+        # top[2].reshape(*bbox_inside_weights.shape)
+        # top[2].data[...] = bbox_inside_weights
 
         # bbox_outside_weights
         bbox_outside_weights = bbox_outside_weights \
             .reshape((1, height, width, A * 4)).transpose(0, 3, 1, 2)
         assert bbox_outside_weights.shape[2] == height
         assert bbox_outside_weights.shape[3] == width
-        top[3].reshape(*bbox_outside_weights.shape)
-        top[3].data[...] = bbox_outside_weights
+        outputs.append(bbox_outside_weights)
+        # top[3].reshape(*bbox_outside_weights.shape)
+        # top[3].data[...] = bbox_outside_weights
+
+        return outputs
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
