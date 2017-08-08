@@ -7,7 +7,6 @@ from torch.autograd import Variable
 import numpy as np
 
 from model.utils.config import cfg
-from model.base_model.vgg16 import _VGG16
 from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
 from model.rpn.proposal_target_layer import _ProposalTargetLayer
@@ -16,18 +15,7 @@ import pdb
 
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
-    n_classes = 21
-    classes = np.asarray(['__background__',
-                       'aeroplane', 'bicycle', 'bird', 'boat',
-                       'bottle', 'bus', 'car', 'cat', 'chair',
-                       'cow', 'diningtable', 'dog', 'horse',
-                       'motorbike', 'person', 'pottedplant',
-                       'sheep', 'sofa', 'train', 'tvmonitor'])
-    PIXEL_MEANS = np.array([[[102.9801, 115.9465, 122.7717]]])
-    SCALES = (600,)
-    MAX_SIZE = 1000
-
-    def __init__(self, baseModel, classes=None, debug=False):
+    def __init__(self, baseModel, classes, debug=False):
         super(_fasterRCNN, self).__init__()
 
         if classes is not None:
@@ -38,21 +26,31 @@ class _fasterRCNN(nn.Module):
         if baseModel == "vgg16":
             pretrained_model = models.vgg16(pretrained=True)
             self.RCNN_base_model = nn.Sequential(*list(pretrained_model.features.children())[:-1])
+            self.dout_base_model = 512
+        elif baseModel == "res50":
+            pretrained_model = models.resnet50(pretrained=True)
+            self.RCNN_base_model = nn.Sequential(*list(pretrained_model.children())[:-2])
+            self.dout_base_model = 2048
+        elif baseModel == "res101":
+            pretrained_model = models.resnet50(pretrained=True)
+            self.RCNN_base_model = nn.Sequential(*list(pretrained_model.children())[:-2])
+            self.dout_base_model = 2048
+        else:
+            raise RuntimeError('baseModel is not included.')
 
-        virtual_input = torch.randn(1, 3, 224, 224)
-        out = self.RCNN_base_model(Variable(virtual_input))
-        self.dout_base_model = out.size(1)
-
+        #virtual_input = torch.randn(1, 3, 224, 224)
+        #out = self.RCNN_base_model(Variable(virtual_input))
+        #self.dout_base_model = out.size(1)
         # define rpn
-        self.RCNN_rpn = _RPN(out.size(1))
+        self.RCNN_rpn = _RPN(self.dout_base_model)
 
         # define proposal layer for target
         self.RPN_proposal_target = _ProposalTargetLayer(self.n_classes)
 
-        self.RCNN_roi_pool = _RoIPooling(7, 7, 1.0/16)
+        self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/cfg.FEAT_STRIDE)
 
         self.RCNN_top_model = nn.Sequential(
-            nn.Linear(512 * 7 * 7, 4096),
+            nn.Linear(self.dout_base_model*cfg.POOLING_SIZE*cfg.POOLING_SIZE, 4096),
             nn.ReLU(True),
             nn.Dropout(0.5),
             nn.Linear(4096, 4096)
