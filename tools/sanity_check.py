@@ -1,5 +1,5 @@
 # --------------------------------------------------------
-# Tensorflow Faster R-CNN
+# Multi-GPU Pytorch Faster R-CNN
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Jiasen Lu, Jianwei Yang, based on code from Ross Girshick
 # --------------------------------------------------------
@@ -11,16 +11,17 @@ import _init_paths
 import os
 import sys
 import torch
-from torch.autograd import Variable
 import numpy as np
 import argparse
 import pprint
 import pdb
 
-from roi_data_layer.roidb import combined_roidb
-from roi_data_layer.layer import RoIDataLayer
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
-from model.faster_rcnn.faster_rcnn import _fasterRCNN
+from roi_data_layer.roidb import combined_roidb
+#from model.faster_rcnn.faster_rcnn import faster_rcnn
+from roi_data_layer.layer import RoIDataLayer
+
+# from model.faster_rcnn.faster_rcnn import _fasterRCNN
 
 def parse_args():
   """
@@ -85,16 +86,10 @@ if __name__ == '__main__':
   train_loader = RoIDataLayer(roidb, imdb.num_classes)
 
   # initilize the network here.
-  fasterRCNN = _fasterRCNN("vgg16")
+  fasterRCNN = _fasterRCNN('VGG16')
 
   # training
   for i in range(10):
     blobs = train_loader.forward()
-    im_data = Variable(torch.from_numpy(blobs['data']))
-    im_info = Variable(torch.from_numpy(blobs['im_info']))
-    gt_boxes = Variable(torch.from_numpy(blobs['gt_boxes']))
-    # gt_ishard = blobs['gt_ishard']
-    # dontcare_areas = blobs['dontcare_areas']
-    out = fasterRCNN(im_data, im_info, gt_boxes)
 
     pdb.set_trace()
