@@ -6,6 +6,7 @@
 # --------------------------------------------------------
 
 import numpy as np
+import pdb
 
 def bbox_transform(ex_rois, gt_rois):
     ex_widths = ex_rois[:, 2] - ex_rois[:, 0] + 1.0
@@ -31,6 +32,7 @@ def bbox_transform_inv(boxes, deltas):
     if boxes.shape[0] == 0:
         return np.zeros((0, deltas.shape[1]), dtype=deltas.dtype)
 
+    pdb.set_trace()
     boxes = boxes.astype(deltas.dtype, copy=False)
 
     widths = boxes[:, 2] - boxes[:, 0] + 1.0

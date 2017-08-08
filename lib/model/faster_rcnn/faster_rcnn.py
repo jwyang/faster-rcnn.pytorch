@@ -61,8 +61,6 @@ class _fasterRCNN(nn.Module):
         self.RCNN_cls_score = nn.Linear(4096, self.n_classes)
         self.RCNN_bbox_pred = nn.Linear(4096, self.n_classes * 4)
 
-        pdb.set_trace()
-
         # loss
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
@@ -73,10 +71,12 @@ class _fasterRCNN(nn.Module):
     def forward(self, im_data, im_info, gt_boxes=None):
 
         # feed image data to base model to obtain base feature map
+        im_data = im_data.permute(0, 3, 1, 2)
         base_feat = self.RCNN_base_model(im_data)
 
         # feed base feature map tp RPN to obtain rois
         rois = self.RCNN_rpn(base_feat, im_info, gt_boxes)
+        pdb.set_trace()
 
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
@@ -91,7 +91,7 @@ class _fasterRCNN(nn.Module):
         x = self.RCNN_top_model(pooled_feat_v)
 
         # compute classifcation loss
-        cls_score = self.RCNN_cls_score(x)
+        cls_score = self.RCNNd_cls_score(x)
         cls_prob = F.softmax(cls_score)
 
         # compute regression loss

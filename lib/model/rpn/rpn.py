@@ -25,11 +25,11 @@ class _RPN(nn.Module):
 
         # define bg/fg classifcation score layer
         self.nc_score_out = len(self.anchor_scales) * 3 * 2 # 2(bg/fg) * 9 (anchors)
-        self.RPN_cls_score = nn.Conv2d(512, self.nc_score_out, 1, 1, 1, 0)
+        self.RPN_cls_score = nn.Conv2d(512, self.nc_score_out, 1, 1, 0)
 
         # define anchor box offset prediction layer
         self.nc_bbox_out = len(self.anchor_scales) * 3 * 4 # 4(coords) * 9 (anchors)
-        self.RPN_bbox_pred = nn.Conv2d(512, self.nc_bbox_out, 1, 1, 1, 0)
+        self.RPN_bbox_pred = nn.Conv2d(512, self.nc_bbox_out, 1, 1, 0)
 
         # define proposal layer
         self.RPN_proposal = _ProposalLayer(self.feat_stride, self.anchor_scales)
@@ -64,7 +64,6 @@ class _RPN(nn.Module):
 
         # return feature map after convrelu layer
         rpn_conv1 = self.RPN_ConvReLU(input)
-
         # get rpn classification score
         rpn_cls_score = self.RPN_cls_score(rpn_conv1)
         rpn_cls_score_reshape = self.reshape(rpn_cls_score, 2)
@@ -78,7 +77,7 @@ class _RPN(nn.Module):
         cfg_key = 'TRAIN' if self.training else 'TEST'
         rois = self.RPN_proposal((rpn_cls_prob, rpn_bbox_pred,
                                  im_info, cfg_key))
-
+        pdb.set_trace()
         # generating training labels and build the rpn loss
         if self.training:
             assert gt_boxes is not None

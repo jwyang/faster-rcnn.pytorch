@@ -17,6 +17,8 @@ from generate_anchors import generate_anchors
 from bbox_transform import bbox_transform_inv, clip_boxes
 from model.nms.nms_wrapper import nms
 
+import pdb
+
 DEBUG = False
 
 class _ProposalLayer(nn.Module):
@@ -27,11 +29,11 @@ class _ProposalLayer(nn.Module):
 
     def __init__(self, feat_stride, scales):
         super(_ProposalLayer, self).__init__()
-        
+
         self._feat_stride = feat_stride
         anchor_scales = scales
-        self._anchors = generate_anchors(scales=np.array(anchor_scales))
-        self._num_anchors = self._anchors.shape[0]
+        self._anchors = torch.from_numpy(generate_anchors(scales=np.array(anchor_scales))).float()
+        self._num_anchors = self._anchors.size(0)
 
         if DEBUG:
             print 'feat_stride: {}'.format(self._feat_stride)
@@ -73,16 +75,16 @@ class _ProposalLayer(nn.Module):
 
         # the first set of _num_anchors channels are bg probs
         # the second set are the fg probs, which we want
-        scores = bottom[0].data[:, self._num_anchors:, :, :]
-        bbox_deltas = bottom[1].data
-        im_info = bottom[2].data[0, :]
+        scores = input[0].data[:, self._num_anchors:, :, :]
+        bbox_deltas = input[1].data
+        im_info = input[2].data[0, :]
 
         if DEBUG:
             print 'im_size: ({}, {})'.format(im_info[0], im_info[1])
             print 'scale: {}'.format(im_info[2])
 
         # 1. Generate proposals from bbox deltas and shifted anchors
-        height, width = scores.shape[-2:]
+        height, width = scores.size(2), scores.size(3)
 
         if DEBUG:
             print 'score map size: {}'.format(scores.shape)
@@ -91,9 +93,9 @@ class _ProposalLayer(nn.Module):
         shift_x = np.arange(0, width) * self._feat_stride
         shift_y = np.arange(0, height) * self._feat_stride
         shift_x, shift_y = np.meshgrid(shift_x, shift_y)
-        shifts = np.vstack((shift_x.ravel(), shift_y.ravel(),
-                            shift_x.ravel(), shift_y.ravel())).transpose()
-
+        shifts = torch.from_numpy(np.vstack((shift_x.ravel(), shift_y.ravel(),
+                                  shift_x.ravel(), shift_y.ravel())).transpose())
+        shifts = shifts.contiguous().float()
         # Enumerate all shifted anchors:
         #
         # add A anchors (1, A, 4) to
@@ -101,10 +103,11 @@ class _ProposalLayer(nn.Module):
         # shift anchors (K, A, 4)
         # reshape to (K*A, 4) shifted anchors
         A = self._num_anchors
-        K = shifts.shape[0]
-        anchors = self._anchors.reshape((1, A, 4)) + \
-                  shifts.reshape((1, K, 4)).transpose((1, 0, 2))
-        anchors = anchors.reshape((K * A, 4))
+        K = shifts.size(0)
+        pdb.set_trace()
+        anchors = self._anchors.view(1, A, 4) + shifts.view(1, K, 4).permute(1, 0, 2).contiguous()
+
+        anchors = anchors.view(K * A, 4)
 
         # Transpose and reshape predicted bbox transformations to get them
         # into the same order as the anchors:
@@ -113,26 +116,32 @@ class _ProposalLayer(nn.Module):
         # transpose to (1, H, W, 4 * A)
         # reshape to (1 * H * W * A, 4) where rows are ordered by (h, w, a)
         # in slowest to fastest order
-        bbox_deltas = bbox_deltas.transpose((0, 2, 3, 1)).reshape((-1, 4))
+        # bbox_deltas = bbox_deltas.transpose((0, 2, 3, 1)).reshape((-1, 4))
+        bbox_deltas = bbox_deltas.permute(0, 2, 3, 1).contiguous()
+        bbox_deltas = bbox_deltas.view(-1, 4)
 
         # Same story for the scores:
         #
         # scores are (1, A, H, W) format
         # transpose to (1, H, W, A)
         # reshape to (1 * H * W * A, 1) where rows are ordered by (h, w, a)
-        scores = scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
+        # scores = scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
+        scores = scores.permute(0, 2, 3, 1).contiguous()
+        scores = scores.view(-1, 1)
 
         # Convert anchors into proposals via bbox transformations
         proposals = bbox_transform_inv(anchors, bbox_deltas)
 
         # 2. clip predicted boxes to image
         proposals = clip_boxes(proposals, im_info[:2])
+        pdb.set_trace()
 
         # 3. remove predicted boxes with either height or width < threshold
         # (NOTE: convert min_size to input image scale stored in im_info[2])
         keep = _filter_boxes(proposals, min_size * im_info[2])
         proposals = proposals[keep, :]
         scores = scores[keep]
+        pdb.set_trace()
 
         # 4. sort all (proposal, score) pairs by score from highest to lowest
         # 5. take top pre_nms_topN (e.g. 6000)
