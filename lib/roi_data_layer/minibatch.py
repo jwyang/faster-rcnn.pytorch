@@ -56,6 +56,7 @@ def _get_image_blob(roidb, scale_inds):
   scales.
   """
   num_images = len(roidb)
+
   processed_ims = []
   im_scales = []
   for i in range(num_images):

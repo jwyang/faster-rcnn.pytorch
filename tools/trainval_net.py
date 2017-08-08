@@ -80,7 +80,11 @@ if __name__ == '__main__':
   np.random.seed(cfg.RNG_SEED)
 
   # train set
-  imdb, roidb = combined_roidb(args.imdb_name)
+
+  # -- Note: Use validation set and disable the flipped to enable faster loading.
+  cfg.TRAIN.USE_FLIPPED = False  
+  imdb, roidb = combined_roidb(args.imdbval_name)
+  
   print('{:d} roidb entries'.format(len(roidb)))
   train_loader = RoIDataLayer(roidb, imdb.num_classes)
 
