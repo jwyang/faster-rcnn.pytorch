@@ -89,7 +89,7 @@ if __name__ == '__main__':
   train_loader = RoIDataLayer(roidb, imdb.num_classes)
 
   # initilize the network here.
-  fasterRCNN = _fasterRCNN("vgg16")
+  fasterRCNN = _fasterRCNN(args.net, imdb.classes)
 
   # training
   for i in range(10):
@@ -99,6 +99,9 @@ if __name__ == '__main__':
     gt_boxes = Variable(torch.from_numpy(blobs['gt_boxes']))
     # gt_ishard = blobs['gt_ishard']
     # dontcare_areas = blobs['dontcare_areas']
+    if gt_boxes.size(0) == 1:
+      continue
+
     out = fasterRCNN(im_data, im_info, gt_boxes)
 
     pdb.set_trace()
