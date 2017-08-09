@@ -162,8 +162,7 @@ class _AnchorTargetLayer(nn.Module):
         max_overlaps, argmax_overlaps = torch.max(overlaps, 1)
         gt_max_overlaps, _ = torch.max(overlaps, 0)
         
-        keep = ((overlaps[:,0] == gt_max_overlaps[0]) |  
-                (overlaps[:,1] == gt_max_overlaps[1]))
+        keep = torch.sum(overlaps.eq(gt_max_overlaps.expand_as(overlaps)), 1)
 
         gt_argmax_overlaps = torch.nonzero(keep).squeeze()
 
