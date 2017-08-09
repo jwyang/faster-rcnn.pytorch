@@ -4,6 +4,10 @@
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Ross Girshick
 # --------------------------------------------------------
+# --------------------------------------------------------
+# Reorganized and modified by Jianwei Yang and Jiasen Lu
+# --------------------------------------------------------
+
 import torch
 import numpy as np
 import pdb
@@ -21,17 +25,18 @@ def bbox_transform(ex_rois, gt_rois):
 
     targets_dx = (gt_ctr_x - ex_ctr_x) / ex_widths
     targets_dy = (gt_ctr_y - ex_ctr_y) / ex_heights
-    targets_dw = np.log(gt_widths / ex_widths)
-    targets_dh = np.log(gt_heights / ex_heights)
+    targets_dw = torch.log(gt_widths / ex_widths)
+    targets_dh = torch.log(gt_heights / ex_heights)
 
-    targets = np.vstack(
-        (targets_dx, targets_dy, targets_dw, targets_dh)).transpose()
+    targets = torch.stack(
+        (targets_dx, targets_dy, targets_dw, targets_dh),1)
+    
     return targets
 
 def bbox_transform_inv(boxes, deltas):
-    if boxes.shape[0] == 0:
-        return np.zeros((0, deltas.shape[1]), dtype=deltas.dtype)
-
+    if boxes.size(0) == 0:
+        #return np.zeros((0, deltas.shape[1]), dtype=deltas.dtype)
+        return torch.Tensor((0, deltas.size(1))).zero_()
     # pdb.set_trace()
     # boxes = boxes.astype(deltas.dtype, copy=False)
 

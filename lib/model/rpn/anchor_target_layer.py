@@ -57,6 +57,8 @@ class _AnchorTargetLayer(nn.Module):
         self.shift_y = torch.FloatTensor(1)
         self.labels = torch.FloatTensor(1)
         self.randperm = torch.LongTensor(1)
+        self.bbox_inside_weights = torch.FloatTensor(1)
+        self.bbox_outside_weights = torch.FloatTensor(1)
 
     def forward(self, input):
         # Algorithm:
@@ -141,7 +143,7 @@ class _AnchorTargetLayer(nn.Module):
 
         # overlaps between the anchors and the gt boxes
         # overlaps (ex, gt)
-        # gt_boxes_np = gt_boxes.numpy()
+        gt_boxes_np = gt_boxes.numpy()
         # overlaps = bbox_overlaps(
         #    np.ascontiguousarray(anchors.numpy(), dtype=np.float),
         #    np.ascontiguousarray(gt_boxes_np, dtype=np.float))
@@ -157,7 +159,7 @@ class _AnchorTargetLayer(nn.Module):
 
         #_, argmax_overlaps1 = overlaps1.max(1)
         #max_overlaps = overlaps1[np.arange(len(inds_inside)), argmax_overlaps1]
-        max_overlaps, _ = torch.max(overlaps, 1)
+        max_overlaps, argmax_overlaps = torch.max(overlaps, 1)
         gt_max_overlaps, _ = torch.max(overlaps, 0)
         
         keep = ((overlaps[:,0] == gt_max_overlaps[0]) |  
@@ -199,7 +201,7 @@ class _AnchorTargetLayer(nn.Module):
 
         # subsample negative labels if we have too many
         
-        # num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
+        num_bg = cfg.TRAIN.RPN_BATCHSIZE - (self.labels == 1).sum()
         # bg_inds = np.where(labels == 0)[0]
         # if len(bg_inds) > num_bg:
         #    disable_inds = npr.choice(
@@ -213,33 +215,55 @@ class _AnchorTargetLayer(nn.Module):
             torch.randperm(bg_inds.size(0), out=self.randperm)
             disable_inds = bg_inds[self.randperm[:bg_inds.size(0)-num_bg]]
             self.labels[disable_inds] = -1
+
+        #bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)
+        #bbox_targets = _compute_targets(anchors.numpy(), gt_boxes_np[argmax_overlaps.numpy(), :])
+
+        bbox_targets = _compute_targets(anchors, gt_boxes[argmax_overlaps, :])
+
+        # assign the bbox inside weights.
+        #bbox_inside_weights = np.zeros((len(inds_inside.numpy()), 4), dtype=np.float32)
+        #bbox_inside_weights[self.labels.numpy() == 1, :] = np.array(cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS)
+
+        # TODO: the RPN_BBOX_INSIDE_WEIGHTS is [1, 1, 1, 1], use 1 to assign all the weight.
+        # Is this fine ?          
+        self.bbox_inside_weights.resize_(inds_inside.size(0), 4).zero_()
+        self.bbox_inside_weights[torch.nonzero(self.labels==1).squeeze(),:] = \
+                            cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS[0]
         
 
-        pdb.set_trace()
-
-
-
-        bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)
-        bbox_targets = _compute_targets(anchors, gt_boxes_np[argmax_overlaps, :])
-
-        bbox_inside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)
-        bbox_inside_weights[labels == 1, :] = np.array(cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS)
-
-        bbox_outside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)
+        self.bbox_outside_weights.resize_(inds_inside.size(0), 4).zero_()
         if cfg.TRAIN.RPN_POSITIVE_WEIGHT < 0:
             # uniform weighting of examples (given non-uniform sampling)
-            num_examples = np.sum(labels >= 0)
-            positive_weights = np.ones((1, 4)) * 1.0 / num_examples
-            negative_weights = np.ones((1, 4)) * 1.0 / num_examples
+            num_examples = (self.labels > 0).sum()
+            positive_weights = 1.0 / num_examples
+            negative_weights = 1.0 / num_examples
         else:
             assert ((cfg.TRAIN.RPN_POSITIVE_WEIGHT > 0) &
-                    (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))
-            positive_weights = (cfg.TRAIN.RPN_POSITIVE_WEIGHT /
-                                np.sum(labels == 1))
-            negative_weights = ((1.0 - cfg.TRAIN.RPN_POSITIVE_WEIGHT) /
-                                np.sum(labels == 0))
-        bbox_outside_weights[labels == 1, :] = positive_weights
-        bbox_outside_weights[labels == 0, :] = negative_weights
+                    (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))            
+
+            positive_weights = cfg.TRAIN.RPN_POSITIVE_WEIGHT / (self.labels == 1).sum()
+            negative_weights = (1.0 - cfg.TRAIN.RPN_POSITIVE_WEIGHT) / (self.labels == 0).sum()
+
+        self.bbox_outside_weights[torch.nonzero(self.labels==1).squeeze()] = positive_weights
+        self.bbox_outside_weights[torch.nonzero(self.labels==0).squeeze()] = negative_weights
+
+
+        #bbox_outside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)
+        #if cfg.TRAIN.RPN_POSITIVE_WEIGHT < 0:
+            # uniform weighting of examples (given non-uniform sampling)
+        #    num_examples = np.sum(labels >= 0)
+        #    positive_weights = np.ones((1, 4)) * 1.0 / num_examples
+        #    negative_weights = np.ones((1, 4)) * 1.0 / num_examples
+        #else:
+        #    assert ((cfg.TRAIN.RPN_POSITIVE_WEIGHT > 0) &
+        #            (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))
+        #    positive_weights = (cfg.TRAIN.RPN_POSITIVE_WEIGHT /
+        #                        np.sum(labels == 1))
+        #    negative_weights = ((1.0 - cfg.TRAIN.RPN_POSITIVE_WEIGHT) /
+        #                        np.sum(labels == 0))
+        #bbox_outside_weights[labels == 1, :] = positive_weights
+        #bbox_outside_weights[labels == 0, :] = negative_weights
 
         if DEBUG:
             self._sums += bbox_targets[labels == 1, :].sum(axis=0)
@@ -252,11 +276,10 @@ class _AnchorTargetLayer(nn.Module):
             print 'stdevs:'
             print stds
 
-        # map up to original set of anchors
-        labels = _unmap(labels, total_anchors, inds_inside, fill=-1)
+        self.labels = _unmap(self.labels, total_anchors, inds_inside, fill=-1)
         bbox_targets = _unmap(bbox_targets, total_anchors, inds_inside, fill=0)
-        bbox_inside_weights = _unmap(bbox_inside_weights, total_anchors, inds_inside, fill=0)
-        bbox_outside_weights = _unmap(bbox_outside_weights, total_anchors, inds_inside, fill=0)
+        self.bbox_inside_weights = _unmap(self.bbox_inside_weights, total_anchors, inds_inside, fill=0)
+        self.bbox_outside_weights = _unmap(self.bbox_outside_weights, total_anchors, inds_inside, fill=0)
 
         if DEBUG:
             print 'rpn: max max_overlap', np.max(max_overlaps)
@@ -270,36 +293,51 @@ class _AnchorTargetLayer(nn.Module):
 
         outputs = []
         # labels
-        labels = labels.reshape((1, height, width, A)).transpose(0, 3, 1, 2)
-        labels = labels.reshape((1, 1, A * height, width))
-        outputs.append(torch.from_numpy(labels))
+        # labels = labels.reshape((1, height, width, A)).transpose(0, 3, 1, 2)
+        # labels = labels.reshape((1, 1, A * height, width))
+        # outputs.append(torch.from_numpy(labels))
         # top[0].reshape(*labels.shape)
         # top[0].data[...] = labels
 
+        self.labels = self.labels.view(1, height, width, A).permute(0,3,1,2).contiguous()
+        self.labels = self.labels.view(1, 1, A * height, width)
+        outputs.append(self.labels)
+
         # bbox_targets
-        bbox_targets = bbox_targets \
-            .reshape((1, height, width, A * 4)).transpose(0, 3, 1, 2)
-        outputs.append(torch.from_numpy(bbox_targets))
+        # bbox_targets = bbox_targets \
+        #    .reshape((1, height, width, A * 4)).transpose(0, 3, 1, 2)
+        # outputs.append(torch.from_numpy(bbox_targets))
         # top[1].reshape(*bbox_targets.shape)
         # top[1].data[...] = bbox_targets
+        bbox_targets = bbox_targets.view(1, height, width, A*4).permute(0,3,1,2).contiguous()
+        outputs.append(bbox_targets)
+
 
         # bbox_inside_weights
-        bbox_inside_weights = bbox_inside_weights \
-            .reshape((1, height, width, A * 4)).transpose(0, 3, 1, 2)
-        assert bbox_inside_weights.shape[2] == height
-        assert bbox_inside_weights.shape[3] == width
-        outputs.append(torch.from_numpy(bbox_inside_weights))
+        # bbox_inside_weights = bbox_inside_weights \
+        #     .reshape((1, height, width, A * 4)).transpose(0, 3, 1, 2)
+        # assert bbox_inside_weights.shape[2] == height
+        # assert bbox_inside_weights.shape[3] == width
+        # outputs.append(torch.from_numpy(bbox_inside_weights))
         # top[2].reshape(*bbox_inside_weights.shape)
         # top[2].data[...] = bbox_inside_weights
 
+        self.bbox_inside_weights = self.bbox_inside_weights.view(1, height, width, A*4)\
+                            .permute(0,3,1,2).contiguous()
+        outputs.append(self.bbox_inside_weights)
+
         # bbox_outside_weights
-        bbox_outside_weights = bbox_outside_weights \
-            .reshape((1, height, width, A * 4)).transpose(0, 3, 1, 2)
-        assert bbox_outside_weights.shape[2] == height
-        assert bbox_outside_weights.shape[3] == width
-        outputs.append(torch.from_numpy(bbox_outside_weights))
+        # bbox_outside_weights = bbox_outside_weights \
+        #     .reshape((1, height, width, A * 4)).transpose(0, 3, 1, 2)
+        # assert bbox_outside_weights.shape[2] == height
+        # assert bbox_outside_weights.shape[3] == width
+        # outputs.append(torch.from_numpy(bbox_outside_weights))
         # top[3].reshape(*bbox_outside_weights.shape)
         # top[3].data[...] = bbox_outside_weights
+
+        self.bbox_outside_weights = self.bbox_outside_weights.view(1, height, width, A*4)\
+                                .permute(0,3,1,2).contiguous()
+        outputs.append(self.bbox_outside_weights)
 
         return outputs
 
@@ -312,25 +350,37 @@ class _AnchorTargetLayer(nn.Module):
         pass
 
 
+# def _unmap(data, count, inds, fill=0):
+#     """ Unmap a subset of item (data) back to the original set of items (of
+#     size count) """
+
+#     if len(data.shape) == 1:
+#         ret = np.empty((count, ), dtype=np.float32)
+#         ret.fill(fill)
+#         ret[inds] = data
+#     else:
+#         pdb.set_trace()
+#         ret = np.empty((count, ) + data.shape[1:], dtype=np.float32)
+#         ret.fill(fill)
+#         ret[inds, :] = data
+#     return ret
+
 def _unmap(data, count, inds, fill=0):
     """ Unmap a subset of item (data) back to the original set of items (of
     size count) """
-    if len(data.shape) == 1:
-        ret = np.empty((count, ), dtype=np.float32)
-        ret.fill(fill)
+    if data.dim() == 1:
+        ret = torch.Tensor(count).fill_(fill).type_as(data)
         ret[inds] = data
     else:
-        ret = np.empty((count, ) + data.shape[1:], dtype=np.float32)
-        ret.fill(fill)
-        ret[inds, :] = data
+        ret = torch.Tensor(count, data.size(1)).fill_(fill).type_as(data)
+        ret[inds,:] = data
     return ret
-
 
 def _compute_targets(ex_rois, gt_rois):
     """Compute bounding-box regression targets for an image."""
 
-    assert ex_rois.shape[0] == gt_rois.shape[0]
-    assert ex_rois.shape[1] == 4
-    assert gt_rois.shape[1] == 5
+    assert ex_rois.size(0) == gt_rois.size(0)
+    assert ex_rois.size(1) == 4
+    assert gt_rois.size(1) == 5
 
-    return bbox_transform(ex_rois, gt_rois[:, :4]).astype(np.float32, copy=False)
+    return bbox_transform(ex_rois, gt_rois[:, :4])
