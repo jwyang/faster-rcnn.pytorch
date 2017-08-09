@@ -41,12 +41,6 @@ To run:
 - Loss_Cls, SoftmaxWithLoss, classification loss between CLS_score and ground truth labels
 - Loss_bbox, SmoothL1Loss, regression loss between bbox_pred and ground truth bboxes
 
-5. Implementation TODO List
-
-- [x] NMS
-- [x] RPN
-- [x] Faster_RCNN
-
 #### Attribute Classifcation Network
 
 #### Relation Classification Network
