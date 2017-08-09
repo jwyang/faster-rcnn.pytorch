@@ -15,7 +15,7 @@ import numpy.random as npr
 
 from model.utils.config import cfg
 from generate_anchors import generate_anchors
-from bbox_transform import bbox_transform
+from bbox_transform import bbox_transform, clip_boxes, bbox_overlaps1
 from model.utils.cython_bbox import bbox_overlaps, bbox_intersections
 
 import pdb
@@ -33,8 +33,8 @@ class _AnchorTargetLayer(nn.Module):
         self._feat_stride = feat_stride
         self._scales = scales
         anchor_scales = scales
-        self._anchors = generate_anchors(scales=np.array(anchor_scales))
-        self._num_anchors = self._anchors.shape[0]
+        self._anchors = torch.from_numpy(generate_anchors(scales=np.array(anchor_scales))).float()
+        self._num_anchors = self._anchors.size(0)
 
         if DEBUG:
             print 'anchors:'
@@ -53,6 +53,10 @@ class _AnchorTargetLayer(nn.Module):
 
         # allow boxes to sit over the edge by a small amount
         self._allowed_border = 0  # default is 0
+        self.shift_x = torch.FloatTensor(1)
+        self.shift_y = torch.FloatTensor(1)
+        self.labels = torch.FloatTensor(1)
+        self.randperm = torch.LongTensor(1)
 
     def forward(self, input):
         # Algorithm:
@@ -63,7 +67,7 @@ class _AnchorTargetLayer(nn.Module):
         # filter out-of-image anchors
         # measure GT overlap
         rpn_cls_score = input[0]
-        gt_boxes = input[1]
+        gt_boxes = input[1].data
         im_info = input[2][0]
         im_info_np = im_info.data.numpy()
 
@@ -83,88 +87,137 @@ class _AnchorTargetLayer(nn.Module):
             print 'rpn: gt_boxes', gt_boxes
 
         # 1. Generate proposals from bbox deltas and shifted anchors
-        shift_x = np.arange(0, width) * self._feat_stride
-        shift_y = np.arange(0, height) * self._feat_stride
-        shift_x, shift_y = np.meshgrid(shift_x, shift_y)
-        shifts = np.vstack((shift_x.ravel(), shift_y.ravel(),
-                            shift_x.ravel(), shift_y.ravel())).transpose()
+        # shift_x = np.arange(0, width) * self._feat_stride
+        # shift_y = np.arange(0, height) * self._feat_stride
+        # shift_x, shift_y = np.meshgrid(shift_x, shift_y)
+        # shifts = np.vstack((shift_x.ravel(), shift_y.ravel(),
+        #                    shift_x.ravel(), shift_y.ravel())).transpose()
+        
+        # -- torch version ----- 
+        torch.arange(0, width, out=self.shift_x)
+        self.shift_x = self.shift_x * self._feat_stride # Check: feat_stride only has one value.
+        torch.arange(0, height, out=self.shift_y)
+        self.shift_y = self.shift_y * self._feat_stride # Check: feat_stride only has one value.        
+        
+        shifts = torch.stack([self.shift_x.repeat(height), 
+                self.shift_y.repeat(width,1).t().contiguous().view(-1), 
+                self.shift_x.repeat(height), 
+                self.shift_y.repeat(width,1).t().contiguous().view(-1)],1)
+
         # add A anchors (1, A, 4) to
         # cell K shifts (K, 1, 4) to get
         # shift anchors (K, A, 4)
         # reshape to (K*A, 4) shifted anchors
         A = self._num_anchors
-        K = shifts.shape[0]
-        all_anchors = (self._anchors.reshape((1, A, 4)) +
-                       shifts.reshape((1, K, 4)).transpose((1, 0, 2)))
-        all_anchors = all_anchors.reshape((K * A, 4))
+        K = shifts.size(0)
+
+        all_anchors = self._anchors.view(1, A, 4) + shifts.view(K, 1, 4)
+        all_anchors = all_anchors.view(K * A, 4)
+
         total_anchors = int(K * A)
-        # only keep anchors inside the image
-        inds_inside = np.where(
-            (all_anchors[:, 0] >= -self._allowed_border) &
-            (all_anchors[:, 1] >= -self._allowed_border) &
-            (all_anchors[:, 2] < im_info_np[1] + self._allowed_border) &  # width
-            (all_anchors[:, 3] < im_info_np[0] + self._allowed_border)    # height
-        )[0]
+
+        keep = ((all_anchors[:, 0] >= -self._allowed_border) &
+                (all_anchors[:, 1] >= -self._allowed_border) &
+                (all_anchors[:, 2] < im_info_np[1] + self._allowed_border) &
+                (all_anchors[:, 3] < im_info_np[0] + self._allowed_border))
+        inds_inside = torch.nonzero(keep).squeeze()
 
         if DEBUG:
             print 'total_anchors', total_anchors
-            print 'inds_inside', len(inds_inside)
+            print 'inds_inside', inds_inside.size()
 
         # keep only inside anchors
         anchors = all_anchors[inds_inside, :]
         if DEBUG:
-            print 'anchors.shape', anchors.shape
+            print 'anchors.size', anchors.size()
 
         # label: 1 is positive, 0 is negative, -1 is dont care
-        labels = np.empty((len(inds_inside), ), dtype=np.float32)
-        labels.fill(-1)
+        self.labels.resize_(inds_inside.size(0)).fill_(-1)
+
+
+        #labels = np.empty((len(inds_inside), ), dtype=np.float32)
+        #labels.fill(-1)
+
 
         # overlaps between the anchors and the gt boxes
         # overlaps (ex, gt)
-        gt_boxes_np = gt_boxes.data.numpy()
-        overlaps = bbox_overlaps(
-            np.ascontiguousarray(anchors, dtype=np.float),
-            np.ascontiguousarray(gt_boxes_np, dtype=np.float))
+        # gt_boxes_np = gt_boxes.numpy()
+        # overlaps = bbox_overlaps(
+        #    np.ascontiguousarray(anchors.numpy(), dtype=np.float),
+        #    np.ascontiguousarray(gt_boxes_np, dtype=np.float))
 
-        argmax_overlaps = overlaps.argmax(axis=1)
-        max_overlaps = overlaps[np.arange(len(inds_inside)), argmax_overlaps]
-        gt_argmax_overlaps = overlaps.argmax(axis=0)
-        gt_max_overlaps = overlaps[gt_argmax_overlaps,
-                                   np.arange(overlaps.shape[1])]
-        gt_argmax_overlaps = np.where(overlaps == gt_max_overlaps)[0]
+        overlaps = bbox_overlaps1(anchors, gt_boxes[:,:4].contiguous())
+
+        # argmax_overlaps = overlaps.argmax(axis=1)
+        # max_overlaps = overlaps[np.arange(len(inds_inside)), argmax_overlaps]
+        # gt_argmax_overlaps = overlaps.argmax(axis=0)
+        # gt_max_overlaps = overlaps[gt_argmax_overlaps,
+        #                            np.arange(overlaps.shape[1])]
+        # gt_argmax_overlaps = np.where(overlaps == gt_max_overlaps)[0]
+
+        #_, argmax_overlaps1 = overlaps1.max(1)
+        #max_overlaps = overlaps1[np.arange(len(inds_inside)), argmax_overlaps1]
+        max_overlaps, _ = torch.max(overlaps, 1)
+        gt_max_overlaps, _ = torch.max(overlaps, 0)
+        
+        keep = ((overlaps[:,0] == gt_max_overlaps[0]) |  
+                (overlaps[:,1] == gt_max_overlaps[1]))
+
+        gt_argmax_overlaps = torch.nonzero(keep).squeeze()
+
 
         if not cfg.TRAIN.RPN_CLOBBER_POSITIVES:
             # assign bg labels first so that positive labels can clobber them
-            labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
+            self.labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
         # fg label: for each gt, anchor with highest overlap
-        labels[gt_argmax_overlaps] = 1
+        self.labels[gt_argmax_overlaps] = 1
 
         # fg label: above threshold IOU
-        labels[max_overlaps >= cfg.TRAIN.RPN_POSITIVE_OVERLAP] = 1
+        self.labels[max_overlaps >= cfg.TRAIN.RPN_POSITIVE_OVERLAP] = 1
 
         if cfg.TRAIN.RPN_CLOBBER_POSITIVES:
             # assign bg labels last so that negative labels can clobber positives
-            labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
+            self.labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
+
 
         # TODO: Check the differences between pytorch and pycaffe code here
         # subsample positive labels if we have too many
         num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
-        fg_inds = np.where(labels == 1)[0]
-        if len(fg_inds) > num_fg:
-            disable_inds = npr.choice(
-                fg_inds, size=(len(fg_inds) - num_fg), replace=False)
-            labels[disable_inds] = -1
+        
+        # fg_inds = np.where(labels == 1)[0]        
+        # if len(fg_inds) > num_fg:
+        #    disable_inds = npr.choice(
+        #        fg_inds, size=(len(fg_inds) - num_fg), replace=False)
+        #    labels[disable_inds] = -1
+
+        fg_inds = torch.nonzero(self.labels == 1).squeeze()
+        if fg_inds.size(0) > num_fg:
+            torch.randperm(fg_inds.size(0), out=self.randperm)
+            disable_inds = fg_inds[self.randperm[:fg_inds.size(0)-num_fg]]
+            self.labels[disable_inds] = -1
 
         # subsample negative labels if we have too many
-        num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
-        bg_inds = np.where(labels == 0)[0]
-        if len(bg_inds) > num_bg:
-            disable_inds = npr.choice(
-                bg_inds, size=(len(bg_inds) - num_bg), replace=False)
-            labels[disable_inds] = -1
+        
+        # num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
+        # bg_inds = np.where(labels == 0)[0]
+        # if len(bg_inds) > num_bg:
+        #    disable_inds = npr.choice(
+        #        bg_inds, size=(len(bg_inds) - num_bg), replace=False)
+        #    labels[disable_inds] = -1
             #print "was %s inds, disabling %s, now %s inds" % (
                 #len(bg_inds), len(disable_inds), np.sum(labels == 0))
+        
+        bg_inds = torch.nonzero(self.labels == 0).squeeze()
+        if bg_inds.size(0) > num_bg:
+            torch.randperm(bg_inds.size(0), out=self.randperm)
+            disable_inds = bg_inds[self.randperm[:bg_inds.size(0)-num_bg]]
+            self.labels[disable_inds] = -1
+        
+
+        pdb.set_trace()
+
+
 
         bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)
         bbox_targets = _compute_targets(anchors, gt_boxes_np[argmax_overlaps, :])
