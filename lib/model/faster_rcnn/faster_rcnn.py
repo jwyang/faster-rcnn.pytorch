@@ -75,16 +75,13 @@ class _fasterRCNN(nn.Module):
         # feed base feature map tp RPN to obtain rois
         rois = self.RCNN_rpn(base_feat, im_info, gt_boxes)
 
-        pdb.set_trace()
-
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
-            roi_data = self.RPN_proposal_target(rois, gt_boxes)
+            roi_data = self.RPN_proposal_target(rois, gt_boxes.data)
             rois = roi_data[0]
 
         rois_var = Variable(rois)
 
-        pdb.set_trace()
         # do roi pooling based on predicted rois
         pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
         pooled_feat_v = pooled_feat.view(pooled_feat.size()[0], -1)
@@ -99,7 +96,6 @@ class _fasterRCNN(nn.Module):
         # compute regression loss
         bbox_pred = self.RCNN_bbox_pred(x)
 
-        pdb.set_trace()
         if self.training:
             # classification loss
             label = Variable(roi_data[1].squeeze().long())
