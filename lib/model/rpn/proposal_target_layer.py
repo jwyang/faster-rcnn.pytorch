@@ -68,7 +68,7 @@ class _ProposalTargetLayer(nn.Module):
 
         # Sample rois with classification labels and bounding box regression
         # targets
-        
+
         # labels_old, rois_old, bbox_targets, bbox_inside_weights = _sample_rois(
         #     all_rois_np, gt_boxes_np, fg_rois_per_image,
         #     rois_per_image, self._num_classes)
@@ -76,7 +76,7 @@ class _ProposalTargetLayer(nn.Module):
         labels, rois, bbox_targets, bbox_inside_weights = self._sample_rois_pytorch(
             all_rois, gt_boxes, fg_rois_per_image,
             rois_per_image, self._num_classes)
-    
+
 
         if DEBUG:
             print 'num fg: {}'.format((labels > 0).sum())
@@ -126,7 +126,7 @@ class _ProposalTargetLayer(nn.Module):
         self.bbox_targets.resize_(clss.size(0), 4 * num_classes).zero_()
         self.bbox_inside_weights.resize_(self.bbox_targets.size()).zero_()
         inds = torch.nonzero(clss > 0).squeeze()
-            
+
         for i in range(inds.numel()):
             ind = inds[i]
             cls = clss[ind]
@@ -159,7 +159,7 @@ class _ProposalTargetLayer(nn.Module):
         examples.
         """
         # overlaps: (rois x gt_boxes)
-        overlaps = bbox_overlaps1(all_rois[:, 1:5].contiguous(), 
+        overlaps = bbox_overlaps1(all_rois[:, 1:5].contiguous(),
                                 gt_boxes[:, :4].contiguous())
 
         max_overlaps, gt_assignment = torch.max(overlaps, 1)
@@ -167,7 +167,7 @@ class _ProposalTargetLayer(nn.Module):
 
         # Select foreground RoIs as those with >= FG_THRESH overlap
         # fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
-        fg_inds = torch.nonzero(max_overlaps >= cfg.TRAIN.FG_THRESH).squeeze()   
+        fg_inds = torch.nonzero(max_overlaps >= cfg.TRAIN.FG_THRESH).squeeze()
 
         # Guard against the case when an image has fewer than fg_rois_per_image
         # foreground RoIs
@@ -179,8 +179,8 @@ class _ProposalTargetLayer(nn.Module):
 
         # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
 
-        bg_inds = torch.nonzero((max_overlaps < cfg.TRAIN.BG_THRESH_HI) & 
-                                (max_overlaps >= cfg.TRAIN.BG_THRESH_LO)).squeeze() 
+        bg_inds = torch.nonzero((max_overlaps < cfg.TRAIN.BG_THRESH_HI) &
+                                (max_overlaps >= cfg.TRAIN.BG_THRESH_LO)).squeeze()
 
         # Compute number of background RoIs to take from this image (guarding
         # against there being fewer than desired)
@@ -258,7 +258,7 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     overlaps = bbox_overlaps(
         np.ascontiguousarray(all_rois[:, 1:5], dtype=np.float),
         np.ascontiguousarray(gt_boxes[:, :4], dtype=np.float))
-    
+
     gt_assignment = overlaps.argmax(axis=1)
     max_overlaps = overlaps.max(axis=1)
     labels = gt_boxes[gt_assignment, 4]
