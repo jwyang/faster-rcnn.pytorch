@@ -110,7 +110,10 @@ class _fasterRCNN(nn.Module):
                 self.fg_cnt = fg_cnt
                 self.bg_cnt = bg_cnt
 
-            ce_weights = torch.ones(cls_score.size()[1])
+            ce_weights = torch.ones(cls_score.size(1))
+            if cfg.CUDA:
+                ce_weights = ce_weights.cuda()
+
             ce_weights[0] = float(fg_cnt) / bg_cnt
             # ce_weights = ce_weights.cuda()
             self.RCNN_loss_cls = F.cross_entropy(cls_score, label, weight=ce_weights)

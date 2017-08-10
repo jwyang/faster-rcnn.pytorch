@@ -56,9 +56,17 @@ class _AnchorTargetLayer(nn.Module):
         self.shift_x = torch.FloatTensor(1)
         self.shift_y = torch.FloatTensor(1)
         self.labels = torch.FloatTensor(1)
-        self.randperm = torch.LongTensor(1)
+        self.rand_holder = torch.LongTensor(1)
         self.bbox_inside_weights = torch.FloatTensor(1)
         self.bbox_outside_weights = torch.FloatTensor(1)
+
+        if cfg.CUDA:
+            self.shift_x = self.shift_x.cuda()
+            self.shift_y = self.shift_y.cuda()
+            self.labels = self.labels.cuda()
+            self.bbox_inside_weights = self.bbox_inside_weights.cuda()
+            self.bbox_outside_weights = self.bbox_outside_weights.cuda()
+            self._anchors = self._anchors.cuda()
 
     def forward(self, input):
         # Algorithm:
@@ -70,8 +78,7 @@ class _AnchorTargetLayer(nn.Module):
         # measure GT overlap
         rpn_cls_score = input[0]
         gt_boxes = input[1].data
-        im_info = input[2][0]
-        im_info_np = im_info.data.numpy()
+        im_info = input[2][0].data
 
         # TODO this should be equal to GPU number
         # assert input[0].size(1) == 1, \
@@ -120,8 +127,8 @@ class _AnchorTargetLayer(nn.Module):
 
         keep = ((all_anchors[:, 0] >= -self._allowed_border) &
                 (all_anchors[:, 1] >= -self._allowed_border) &
-                (all_anchors[:, 2] < im_info_np[1] + self._allowed_border) &
-                (all_anchors[:, 3] < im_info_np[0] + self._allowed_border))
+                (all_anchors[:, 2] < im_info[1] + self._allowed_border) &
+                (all_anchors[:, 3] < im_info[0] + self._allowed_border))
         inds_inside = torch.nonzero(keep).squeeze()
 
         if DEBUG:
@@ -143,7 +150,7 @@ class _AnchorTargetLayer(nn.Module):
 
         # overlaps between the anchors and the gt boxes
         # overlaps (ex, gt)
-        gt_boxes_np = gt_boxes.numpy()
+        # gt_boxes_np = gt_boxes.numpy()
         # overlaps = bbox_overlaps(
         #    np.ascontiguousarray(anchors.numpy(), dtype=np.float),
         #    np.ascontiguousarray(gt_boxes_np, dtype=np.float))
@@ -171,7 +178,7 @@ class _AnchorTargetLayer(nn.Module):
             # assign bg labels first so that positive labels can clobber them
             self.labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
-        # fg label: for each gt, anchor with highest overlap
+        # fg label: for each gt, anchgitor with highest overlap
         self.labels[gt_argmax_overlaps] = 1
 
         # fg label: above threshold IOU
@@ -194,8 +201,10 @@ class _AnchorTargetLayer(nn.Module):
 
         fg_inds = torch.nonzero(self.labels == 1).squeeze()
         if fg_inds.size(0) > num_fg:
-            torch.randperm(fg_inds.size(0), out=self.randperm)
-            disable_inds = fg_inds[self.randperm[:fg_inds.size(0)-num_fg]]
+            rand_num = torch.randperm(fg_inds.size(0)).long()
+            if cfg.CUDA:
+                rand_num = rand_num.cuda()
+            disable_inds = fg_inds[rand_num[:fg_inds.size(0)-num_fg]]
             self.labels[disable_inds] = -1
 
         # subsample negative labels if we have too many
@@ -211,8 +220,10 @@ class _AnchorTargetLayer(nn.Module):
         
         bg_inds = torch.nonzero(self.labels == 0).squeeze()
         if bg_inds.size(0) > num_bg:
-            torch.randperm(bg_inds.size(0), out=self.randperm)
-            disable_inds = bg_inds[self.randperm[:bg_inds.size(0)-num_bg]]
+            rand_num = torch.randperm(bg_inds.size(0)).long()
+            if cfg.CUDA:
+                rand_num = rand_num.cuda()
+            disable_inds = bg_inds[rand_num[:bg_inds.size(0)-num_bg]]
             self.labels[disable_inds] = -1
 
         #bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)

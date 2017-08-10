@@ -32,15 +32,20 @@ class _ProposalLayer(nn.Module):
 
         self._feat_stride = feat_stride
         anchor_scales = scales
-
-        # TODO: float here should adapted based on cpu or gpu?
-        self._anchors = torch.from_numpy(generate_anchors(scales=np.array(anchor_scales))).float()
-        self._num_anchors = self._anchors.size(0)
-
         # lazily initlize the variable here. 
         self.shift_x = torch.FloatTensor(1)
         self.shift_y = torch.FloatTensor(1)
         self.batch_inds = torch.FloatTensor(1)
+
+        self._anchors = torch.from_numpy(generate_anchors(scales=np.array(anchor_scales))).float()
+        self._num_anchors = self._anchors.size(0)
+
+        if cfg.CUDA:
+            self.shift_x = self.shift_x.cuda()
+            self.shift_y = self.shift_y.cuda()
+            self.batch_inds = self.batch_inds.cuda()
+            self._anchors = self._anchors.cuda()
+
         if DEBUG:
             print 'feat_stride: {}'.format(self._feat_stride)
             print 'anchors:'
@@ -56,6 +61,7 @@ class _ProposalLayer(nn.Module):
         #     top[1].reshape(1, 1, 1, 1)
 
     def forward(self, input):
+
         # Algorithm:
         #
         # for each (H, W) location i
@@ -157,7 +163,7 @@ class _ProposalLayer(nn.Module):
 
         # 3. remove predicted boxes with either height or width < threshold
         # (NOTE: convert min_size to input image scale stored in im_info[2])
-        keep = _filter_boxes(proposals, min_size * im_info[2]).squeeze()
+        keep = self._filter_boxes(proposals, min_size * im_info[2]).squeeze()
         keep_idx = torch.nonzero(keep).squeeze()
         proposals = proposals[keep_idx, :]
         scores = scores[keep_idx, :]
@@ -178,10 +184,14 @@ class _ProposalLayer(nn.Module):
 
         # TODO:jwyang:Compile nms for pytorch, and replace the original one
         # TODO:jwyang:NMS is slow, make it faster !!!!!
-        proposals_np = proposals.numpy()
-        scores_np = scores.numpy()
+
+        proposals_np = proposals.cpu().numpy()
+        scores_np = scores.cpu().numpy()
         keep_np = nms(np.hstack((proposals_np, scores_np)), nms_thresh)
         keep = torch.from_numpy(np.asarray(keep_np))
+
+        if cfg.CUDA:
+            keep = keep.cuda()
 
         if post_nms_topN > 0:
             keep = keep[:post_nms_topN]
@@ -213,9 +223,9 @@ class _ProposalLayer(nn.Module):
         """Reshaping happens during the call to forward."""
         pass
 
-def _filter_boxes(boxes, min_size):
-    """Remove all boxes with any side smaller than min_size."""
-    ws = boxes[:, 2] - boxes[:, 0] + 1
-    hs = boxes[:, 3] - boxes[:, 1] + 1
-    keep = ((ws >= min_size) & (hs >= min_size))
-    return keep
+    def _filter_boxes(self, boxes, min_size):
+        """Remove all boxes with any side smaller than min_size."""
+        ws = boxes[:, 2] - boxes[:, 0] + 1
+        hs = boxes[:, 3] - boxes[:, 1] + 1
+        keep = ((ws >= min_size) & (hs >= min_size))
+        return keep

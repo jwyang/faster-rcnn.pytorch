@@ -43,6 +43,13 @@ class _RPN(nn.Module):
         # define regression loss between bbox_pred and ground truth bboxes
         self.loss_bbox = 0
 
+    def cuda(self):
+        pdb.set_trace()
+
+    def to_cuda(self):
+        self.RPN_proposal.cuda()
+        self.RPN_anchor_target.cuda()
+        pdb.set_trace()
     @staticmethod
     def reshape(x, d):
         input_shape = x.size()

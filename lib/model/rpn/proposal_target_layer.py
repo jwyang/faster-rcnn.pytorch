@@ -28,12 +28,19 @@ class _ProposalTargetLayer(nn.Module):
     def __init__(self, nclasses):
         super(_ProposalTargetLayer, self).__init__()
         self._num_classes = nclasses
-        self.rand_holder = torch.LongTensor(1)
         self.bbox_targets = torch.FloatTensor(1)
         self.bbox_inside_weights = torch.FloatTensor(1)
         self.BBOX_NORMALIZE_MEANS = torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS)
         self.BBOX_NORMALIZE_STDS = torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS)
         self.BBOX_INSIDE_WEIGHTS = torch.FloatTensor(cfg.TRAIN.BBOX_INSIDE_WEIGHTS)
+
+        if cfg.CUDA:
+            self.bbox_targets = self.bbox_targets.cuda()
+            self.bbox_inside_weights = self.bbox_inside_weights.cuda()
+            self.BBOX_NORMALIZE_MEANS = self.BBOX_NORMALIZE_MEANS.cuda()
+            self.BBOX_NORMALIZE_STDS = self.BBOX_NORMALIZE_STDS.cuda()
+            self.BBOX_INSIDE_WEIGHTS = self.BBOX_INSIDE_WEIGHTS.cuda()
+
 
     def forward(self, all_rois, gt_boxes):
         # Proposal ROIs (0, x1, y1, x2, y2) coming from RPN
@@ -45,13 +52,13 @@ class _ProposalTargetLayer(nn.Module):
         # gt_boxes = bottom[1].data
 
         # Include ground-truth boxes in the set of candidate rois
-        all_rois_np = all_rois.numpy()
-        gt_boxes_np = gt_boxes.numpy()
+        #all_rois_np = all_rois.numpy()
+        #gt_boxes_np = gt_boxes.numpy()
 
-        zeros = np.zeros((gt_boxes_np.shape[0], 1), dtype=gt_boxes_np.dtype)
-        all_rois_np = np.vstack(
-            (all_rois_np, np.hstack((zeros, gt_boxes_np[:, :-1])))
-        )
+        #zeros = np.zeros((gt_boxes_np.shape[0], 1), dtype=gt_boxes_np.dtype)
+        #all_rois_np = np.vstack(
+        #    (all_rois_np, np.hstack((zeros, gt_boxes_np[:, :-1])))
+        #)
 
         zeros = torch.Tensor(gt_boxes.size(0), 1).zero_().type_as(all_rois)
         all_rois = torch.cat(
@@ -173,9 +180,12 @@ class _ProposalTargetLayer(nn.Module):
         # foreground RoIs
         fg_rois_per_this_image = min(fg_rois_per_image, fg_inds.numel())
         # Sample foreground regions without replacement
-        if fg_inds.numel() > 0:
-            torch.randperm(fg_inds.numel(), out=self.rand_holder)
-            fg_inds = fg_inds[self.rand_holder[:fg_rois_per_image]]
+        if fg_inds.numel() > 0:            
+            rand_num = torch.randperm(fg_inds.numel()).long()
+            if cfg.CUDA:
+                rand_num = rand_num.cuda()
+
+            fg_inds = fg_inds[rand_num[:fg_rois_per_image]]
 
         # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
 
@@ -188,8 +198,11 @@ class _ProposalTargetLayer(nn.Module):
         bg_rois_per_this_image = min(bg_rois_per_this_image, bg_inds.size)
         # Sample background regions without replacement
         if bg_inds.numel() > 0:
-            torch.randperm(bg_inds.numel(), out=self.rand_holder)
-            bg_inds = bg_inds[self.rand_holder[:bg_rois_per_this_image]]
+            rand_num = torch.randperm(bg_inds.numel()).long()
+            if cfg.CUDA:
+                rand_num = rand_num.cuda()
+
+            bg_inds = bg_inds[rand_num[:bg_rois_per_this_image]]
 
         # The indices that we're selecting (both fg and bg)
         keep_inds = torch.cat([fg_inds, bg_inds], 0)

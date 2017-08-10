@@ -291,6 +291,8 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 # Feature stride for RPN
 __C.FEAT_STRIDE = [16, ]
 
+__C.CUDA = False
+
 def get_output_dir(imdb, weights_filename):
   """Return the directory where experimental artifacts are placed.
   If the directory does not exist, it is created.

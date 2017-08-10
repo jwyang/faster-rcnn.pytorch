@@ -51,9 +51,9 @@ def parse_args():
   parser.add_argument('--set', dest='set_cfgs',
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
-  parser.add_argument('--worker', dest='worker',
-                      help='number of worker loading data',
-                      default=0, type=int)
+  parser.add_argument('--ngpu', dest='ngpu',
+                      help='number of gpu',
+                      default=1, type=int)
 
 
   if len(sys.argv) == 1:
@@ -80,7 +80,6 @@ if __name__ == '__main__':
   np.random.seed(cfg.RNG_SEED)
 
   # train set
-
   # -- Note: Use validation set and disable the flipped to enable faster loading.
   cfg.TRAIN.USE_FLIPPED = False  
   imdb, roidb = combined_roidb(args.imdbval_name)
@@ -88,19 +87,40 @@ if __name__ == '__main__':
   print('{:d} roidb entries'.format(len(roidb)))
   train_loader = RoIDataLayer(roidb, imdb.num_classes)
 
+  if args.ngpu > 0:
+    cfg.CUDA = True
+
   # initilize the network here.
   fasterRCNN = _fasterRCNN(args.net, imdb.classes)
+
+  if args.ngpu > 0:
+    fasterRCNN.cuda()
+
+  # initlaize the training data container.
+  im_data = torch.FloatTensor(1)
+  im_info = torch.FloatTensor(1)
+  gt_boxes = torch.FloatTensor(1)
+
+  if args.ngpu > 0:
+    im_data = im_data.cuda()
+    im_info = im_info.cuda()
+    gt_boxes = gt_boxes.cuda()
+
+  # put into variable.
+  im_data = Variable(im_data)
+  im_info = Variable(im_info)
+  gt_boxes = Variable(gt_boxes)
 
   # training
   for i in range(10):
     blobs = train_loader.forward()
-    im_data = Variable(torch.from_numpy(blobs['data']))
-    im_info = Variable(torch.from_numpy(blobs['im_info']))
-    gt_boxes = Variable(torch.from_numpy(blobs['gt_boxes']))
-    # gt_ishard = blobs['gt_ishard']
-    # dontcare_areas = blobs['dontcare_areas']
-    if gt_boxes.size(0) == 1:
-      continue
+    blobs['data'] = torch.from_numpy(blobs['data'])
+    blobs['im_info'] = torch.from_numpy(blobs['im_info'])
+    blobs['gt_boxes'] = torch.from_numpy(blobs['gt_boxes'])
+
+    im_data.data.resize_(blobs['data'].size()).copy_(blobs['data'])
+    im_info.data.resize_(blobs['im_info'].size()).copy_(blobs['im_info'])
+    gt_boxes.data.resize_(blobs['gt_boxes'].size()).copy_(blobs['gt_boxes'])
 
     out = fasterRCNN(im_data, im_info, gt_boxes)
 
