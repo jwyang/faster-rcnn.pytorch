@@ -124,4 +124,4 @@ if __name__ == '__main__':
 
     out = fasterRCNN(im_data, im_info, gt_boxes)
 
-    pdb.set_trace()
+    
