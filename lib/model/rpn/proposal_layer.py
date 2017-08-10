@@ -185,26 +185,30 @@ class _ProposalLayer(nn.Module):
         # TODO:jwyang:Compile nms for pytorch, and replace the original one
         # TODO:jwyang:NMS is slow, make it faster !!!!!
 
-        proposals_np = proposals.cpu().numpy()
-        scores_np = scores.cpu().numpy()
-        keep_np = nms(np.hstack((proposals_np, scores_np)), nms_thresh)
-        keep = torch.from_numpy(np.asarray(keep_np))
+        # ---numpy version---
+        # proposals_np = proposals.cpu().numpy()
+        # scores_np = scores.cpu().numpy()
+        # keep_np = nms(np.hstack((proposals_np, scores_np)), nms_thresh)
+        # keep = torch.from_numpy(np.asarray(keep_np))
+        # ---pytorch version---
+        keep = nms(torch.cat((proposals, scores), 1), nms_thresh)
+        keep = keep.long().squeeze()
 
-        if cfg.CUDA:
+        if cfg.CUDA and not keep.is_cuda:
             keep = keep.cuda()
 
         if post_nms_topN > 0:
             keep = keep[:post_nms_topN]
         proposals = proposals[keep, :]
         scores = scores[keep, :]
-
+        
         # Output rois blob
         # Our RPN implementation only supports a single input image, so all
         # batch inds are 0
         # blob = np.hstack((batch_inds, proposals.astype(np.float32, copy=False)))
         # top[0].reshape(*(blob.shape))
         # top[0].data[...] = blob
-        
+        # NOTE here we assume there is just one image in each batch
         self.batch_inds.resize_(proposals.size(0), 1).zero_()
         output = torch.cat((self.batch_inds, proposals), 1)
 
