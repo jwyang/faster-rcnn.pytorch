@@ -14,9 +14,8 @@ import numpy as np
 import numpy.random as npr
 
 from model.utils.config import cfg
-from generate_anchors import generate_anchors
+from generate_anchors imageport generate_anchors
 from bbox_transform import bbox_transform, clip_boxes, bbox_overlaps1
-from model.utils.cython_bbox import bbox_overlaps, bbox_intersections
 
 import pdb
 
@@ -53,20 +52,6 @@ class _AnchorTargetLayer(nn.Module):
 
         # allow boxes to sit over the edge by a small amount
         self._allowed_border = 0  # default is 0
-        self.shift_x = torch.FloatTensor(1)
-        self.shift_y = torch.FloatTensor(1)
-        self.labels = torch.FloatTensor(1)
-        self.rand_holder = torch.LongTensor(1)
-        self.bbox_inside_weights = torch.FloatTensor(1)
-        self.bbox_outside_weights = torch.FloatTensor(1)
-
-        if cfg.CUDA:
-            self.shift_x = self.shift_x.cuda()
-            self.shift_y = self.shift_y.cuda()
-            self.labels = self.labels.cuda()
-            self.bbox_inside_weights = self.bbox_inside_weights.cuda()
-            self.bbox_outside_weights = self.bbox_outside_weights.cuda()
-            self._anchors = self._anchors.cuda()
 
     def forward(self, input):
         # Algorithm:
@@ -103,15 +88,18 @@ class _AnchorTargetLayer(nn.Module):
         #                    shift_x.ravel(), shift_y.ravel())).transpose()
         
         # -- torch version ----- 
-        torch.arange(0, width, out=self.shift_x)
-        self.shift_x = self.shift_x * self._feat_stride # Check: feat_stride only has one value.
-        torch.arange(0, height, out=self.shift_y)
-        self.shift_y = self.shift_y * self._feat_stride # Check: feat_stride only has one value.        
+        shift_x = gt_boxes.new(width)
+        shift_x.copy_(torch.arange(0, width))
+        shift_x = shift_x * self._feat_stride # Check: feat_stride only has one value.
         
-        shifts = torch.stack([self.shift_x.repeat(height), 
-                self.shift_y.repeat(width,1).t().contiguous().view(-1), 
-                self.shift_x.repeat(height), 
-                self.shift_y.repeat(width,1).t().contiguous().view(-1)],1)
+        shift_y = gt_boxes.new(height)
+        shift_y.copy_(torch.arange(0, height))
+        shift_y = shift_y * self._feat_stride # Check: feat_stride only has one value.        
+        
+        shifts = torch.stack([shift_x.repeat(height), 
+                            shift_y.repeat(width,1).t().contiguous().view(-1), 
+                            shift_x.repeat(height), 
+                            shift_y.repeat(width,1).t().contiguous().view(-1)],1)
 
         # add A anchors (1, A, 4) to
         # cell K shifts (K, 1, 4) to get
@@ -120,6 +108,7 @@ class _AnchorTargetLayer(nn.Module):
         A = self._num_anchors
         K = shifts.size(0)
 
+        self._anchors = self._anchors.type_as(shifts) # move to specific gpu.
         all_anchors = self._anchors.view(1, A, 4) + shifts.view(K, 1, 4)
         all_anchors = all_anchors.view(K * A, 4)
 
@@ -141,8 +130,7 @@ class _AnchorTargetLayer(nn.Module):
             print 'anchors.size', anchors.size()
 
         # label: 1 is positive, 0 is negative, -1 is dont care
-        self.labels.resize_(inds_inside.size(0)).fill_(-1)
-
+        labels = shifts.new(inds_inside.size(0)).fill_(-1)
 
         #labels = np.empty((len(inds_inside), ), dtype=np.float32)
         #labels.fill(-1)
@@ -176,17 +164,17 @@ class _AnchorTargetLayer(nn.Module):
 
         if not cfg.TRAIN.RPN_CLOBBER_POSITIVES:
             # assign bg labels first so that positive labels can clobber them
-            self.labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
+            labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
         # fg label: for each gt, anchgitor with highest overlap
-        self.labels[gt_argmax_overlaps] = 1
+        labels[gt_argmax_overlaps] = 1
 
         # fg label: above threshold IOU
-        self.labels[max_overlaps >= cfg.TRAIN.RPN_POSITIVE_OVERLAP] = 1
+        labels[max_overlaps >= cfg.TRAIN.RPN_POSITIVE_OVERLAP] = 1
 
         if cfg.TRAIN.RPN_CLOBBER_POSITIVES:
             # assign bg labels last so that negative labels can clobber positives
-            self.labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
+            labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
 
         # TODO: Check the differences between pytorch and pycaffe code here
@@ -199,17 +187,15 @@ class _AnchorTargetLayer(nn.Module):
         #        fg_inds, size=(len(fg_inds) - num_fg), replace=False)
         #    labels[disable_inds] = -1
 
-        fg_inds = torch.nonzero(self.labels == 1).squeeze()
+        fg_inds = torch.nonzero(labels == 1).squeeze()
         if fg_inds.size(0) > num_fg:
-            rand_num = torch.randperm(fg_inds.size(0)).long()
-            if cfg.CUDA:
-                rand_num = rand_num.cuda()
+            rand_num = torch.randperm(fg_inds.size(0)).type_as(gt_boxes).long()
             disable_inds = fg_inds[rand_num[:fg_inds.size(0)-num_fg]]
-            self.labels[disable_inds] = -1
+            labels[disable_inds] = -1
 
         # subsample negative labels if we have too many
         
-        num_bg = cfg.TRAIN.RPN_BATCHSIZE - (self.labels == 1).sum()
+        num_bg = cfg.TRAIN.RPN_BATCHSIZE - (labels == 1).sum()
         # bg_inds = np.where(labels == 0)[0]
         # if len(bg_inds) > num_bg:
         #    disable_inds = npr.choice(
@@ -218,13 +204,11 @@ class _AnchorTargetLayer(nn.Module):
             #print "was %s inds, disabling %s, now %s inds" % (
                 #len(bg_inds), len(disable_inds), np.sum(labels == 0))
         
-        bg_inds = torch.nonzero(self.labels == 0).squeeze()
+        bg_inds = torch.nonzero(labels == 0).squeeze()
         if bg_inds.size(0) > num_bg:
-            rand_num = torch.randperm(bg_inds.size(0)).long()
-            if cfg.CUDA:
-                rand_num = rand_num.cuda()
+            rand_num = torch.randperm(bg_inds.size(0)).type_as(gt_boxes).long()
             disable_inds = bg_inds[rand_num[:bg_inds.size(0)-num_bg]]
-            self.labels[disable_inds] = -1
+            labels[disable_inds] = -1
 
         #bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)
         #bbox_targets = _compute_targets(anchors.numpy(), gt_boxes_np[argmax_overlaps.numpy(), :])
@@ -233,30 +217,32 @@ class _AnchorTargetLayer(nn.Module):
 
         # assign the bbox inside weights.
         #bbox_inside_weights = np.zeros((len(inds_inside.numpy()), 4), dtype=np.float32)
-        #bbox_inside_weights[self.labels.numpy() == 1, :] = np.array(cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS)
+        #bbox_inside_weights[labels.numpy() == 1, :] = np.array(cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS)
 
         # TODO: the RPN_BBOX_INSIDE_WEIGHTS is [1, 1, 1, 1], use 1 to assign all the weight.
         # Is this fine ?          
-        self.bbox_inside_weights.resize_(inds_inside.size(0), 4).zero_()
-        self.bbox_inside_weights[torch.nonzero(self.labels==1).squeeze(),:] = \
+        
+
+        bbox_inside_weights = gt_boxes.new(inds_inside.size(0), 4).zero_()
+        bbox_inside_weights[torch.nonzero(labels==1).squeeze(),:] = \
                             cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS[0]
         
 
-        self.bbox_outside_weights.resize_(inds_inside.size(0), 4).zero_()
+        bbox_outside_weights = gt_boxes.new(inds_inside.size(0), 4).zero_()
         if cfg.TRAIN.RPN_POSITIVE_WEIGHT < 0:
             # uniform weighting of examples (given non-uniform sampling)
-            num_examples = (self.labels > 0).sum()
+            num_examples = (labels > 0).sum()
             positive_weights = 1.0 / num_examples
             negative_weights = 1.0 / num_examples
         else:
             assert ((cfg.TRAIN.RPN_POSITIVE_WEIGHT > 0) &
                     (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))            
 
-            positive_weights = cfg.TRAIN.RPN_POSITIVE_WEIGHT / (self.labels == 1).sum()
-            negative_weights = (1.0 - cfg.TRAIN.RPN_POSITIVE_WEIGHT) / (self.labels == 0).sum()
+            positive_weights = cfg.TRAIN.RPN_POSITIVE_WEIGHT / (labels == 1).sum()
+            negative_weights = (1.0 - cfg.TRAIN.RPN_POSITIVE_WEIGHT) / (labels == 0).sum()
 
-        self.bbox_outside_weights[torch.nonzero(self.labels==1).squeeze()] = positive_weights
-        self.bbox_outside_weights[torch.nonzero(self.labels==0).squeeze()] = negative_weights
+        bbox_outside_weights[torch.nonzero(labels==1).squeeze()] = positive_weights
+        bbox_outside_weights[torch.nonzero(labels==0).squeeze()] = negative_weights
 
 
         #bbox_outside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)
@@ -286,10 +272,10 @@ class _AnchorTargetLayer(nn.Module):
             print 'stdevs:'
             print stds
 
-        self.labels = _unmap(self.labels, total_anchors, inds_inside, fill=-1)
+        labels = _unmap(labels, total_anchors, inds_inside, fill=-1)
         bbox_targets = _unmap(bbox_targets, total_anchors, inds_inside, fill=0)
-        self.bbox_inside_weights = _unmap(self.bbox_inside_weights, total_anchors, inds_inside, fill=0)
-        self.bbox_outside_weights = _unmap(self.bbox_outside_weights, total_anchors, inds_inside, fill=0)
+        bbox_inside_weights = _unmap(bbox_inside_weights, total_anchors, inds_inside, fill=0)
+        bbox_outside_weights = _unmap(bbox_outside_weights, total_anchors, inds_inside, fill=0)
 
         if DEBUG:
             print 'rpn: max max_overlap', np.max(max_overlaps)
@@ -309,9 +295,9 @@ class _AnchorTargetLayer(nn.Module):
         # top[0].reshape(*labels.shape)
         # top[0].data[...] = labels
 
-        self.labels = self.labels.view(1, height, width, A).permute(0,3,1,2).contiguous()
-        self.labels = self.labels.view(1, 1, A * height, width)
-        outputs.append(self.labels)
+        labels = labels.view(1, height, width, A).permute(0,3,1,2).contiguous()
+        labels = labels.view(1, 1, A * height, width)
+        outputs.append(labels)
 
         # bbox_targets
         # bbox_targets = bbox_targets \
@@ -332,9 +318,9 @@ class _AnchorTargetLayer(nn.Module):
         # top[2].reshape(*bbox_inside_weights.shape)
         # top[2].data[...] = bbox_inside_weights
 
-        self.bbox_inside_weights = self.bbox_inside_weights.view(1, height, width, A*4)\
+        bbox_inside_weights = bbox_inside_weights.view(1, height, width, A*4)\
                             .permute(0,3,1,2).contiguous()
-        outputs.append(self.bbox_inside_weights)
+        outputs.append(bbox_inside_weights)
 
         # bbox_outside_weights
         # bbox_outside_weights = bbox_outside_weights \
@@ -345,9 +331,9 @@ class _AnchorTargetLayer(nn.Module):
         # top[3].reshape(*bbox_outside_weights.shape)
         # top[3].data[...] = bbox_outside_weights
 
-        self.bbox_outside_weights = self.bbox_outside_weights.view(1, height, width, A*4)\
+        bbox_outside_weights = bbox_outside_weights.view(1, height, width, A*4)\
                                 .permute(0,3,1,2).contiguous()
-        outputs.append(self.bbox_outside_weights)
+        outputs.append(bbox_outside_weights)
 
         return outputs
 

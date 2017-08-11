@@ -32,24 +32,8 @@ class _ProposalLayer(nn.Module):
 
         self._feat_stride = feat_stride
         anchor_scales = scales
-        # lazily initlize the variable here. 
-        self.shift_x = torch.FloatTensor(1)
-        self.shift_y = torch.FloatTensor(1)
-        self.batch_inds = torch.FloatTensor(1)
-
         self._anchors = torch.from_numpy(generate_anchors(scales=np.array(anchor_scales))).float()
         self._num_anchors = self._anchors.size(0)
-
-        if cfg.CUDA:
-            self.shift_x = self.shift_x.cuda()
-            self.shift_y = self.shift_y.cuda()
-            self.batch_inds = self.batch_inds.cuda()
-            self._anchors = self._anchors.cuda()
-
-        if DEBUG:
-            print 'feat_stride: {}'.format(self._feat_stride)
-            print 'anchors:'
-            print self._anchors
 
         # rois blob: holds R regions of interest, each is a 5-tuple
         # (n, x1, y1, x2, y2) specifying an image batch index n and a
@@ -112,15 +96,18 @@ class _ProposalLayer(nn.Module):
         #shifts = shifts.contiguous().float()
         
         # -- torch version ----- 
-        torch.arange(0, width, out=self.shift_x)
-        self.shift_x = self.shift_x * self._feat_stride # Check: feat_stride only has one value.
-        torch.arange(0, height, out=self.shift_y)
-        self.shift_y = self.shift_y * self._feat_stride # Check: feat_stride only has one value.        
-        
-        shifts = torch.stack([self.shift_x.repeat(height), 
-                self.shift_y.repeat(width,1).t().contiguous().view(-1), 
-                self.shift_x.repeat(height), 
-                self.shift_y.repeat(width,1).t().contiguous().view(-1)],1)
+        shift_x = rpn_cls_prob.data.new(width)
+        shift_x.copy_(torch.arange(0, width))
+        shift_x = shift_x * self._feat_stride # Check: feat_stride only has one value.
+
+        shift_y = rpn_cls_prob.data.new(height)
+        shift_y.copy_(torch.arange(0, height))
+        shift_y = shift_y * self._feat_stride # Check: feat_stride only has one value.        
+            
+        shifts = torch.stack([shift_x.repeat(height), 
+                shift_y.repeat(width,1).t().contiguous().view(-1), 
+                shift_x.repeat(height), 
+                shift_y.repeat(width,1).t().contiguous().view(-1)],1)
 
         # Enumerate all shifted anchors:
         #
@@ -131,6 +118,7 @@ class _ProposalLayer(nn.Module):
         A = self._num_anchors
         K = shifts.size(0)
 
+        self._anchors = self._anchors.type_as(shifts)
         # anchors = self._anchors.view(1, A, 4) + shifts.view(1, K, 4).permute(1, 0, 2).contiguous()
         anchors = self._anchors.view(1, A, 4) + shifts.view(K, 1, 4)
         anchors = anchors.view(K * A, 4)

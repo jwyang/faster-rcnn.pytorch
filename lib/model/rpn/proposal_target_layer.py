@@ -28,19 +28,9 @@ class _ProposalTargetLayer(nn.Module):
     def __init__(self, nclasses):
         super(_ProposalTargetLayer, self).__init__()
         self._num_classes = nclasses
-        self.bbox_targets = torch.FloatTensor(1)
-        self.bbox_inside_weights = torch.FloatTensor(1)
         self.BBOX_NORMALIZE_MEANS = torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS)
         self.BBOX_NORMALIZE_STDS = torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS)
         self.BBOX_INSIDE_WEIGHTS = torch.FloatTensor(cfg.TRAIN.BBOX_INSIDE_WEIGHTS)
-
-        if cfg.CUDA:
-            self.bbox_targets = self.bbox_targets.cuda()
-            self.bbox_inside_weights = self.bbox_inside_weights.cuda()
-            self.BBOX_NORMALIZE_MEANS = self.BBOX_NORMALIZE_MEANS.cuda()
-            self.BBOX_NORMALIZE_STDS = self.BBOX_NORMALIZE_STDS.cuda()
-            self.BBOX_INSIDE_WEIGHTS = self.BBOX_INSIDE_WEIGHTS.cuda()
-
 
     def forward(self, all_rois, gt_boxes):
         # Proposal ROIs (0, x1, y1, x2, y2) coming from RPN
@@ -59,6 +49,10 @@ class _ProposalTargetLayer(nn.Module):
         #all_rois_np = np.vstack(
         #    (all_rois_np, np.hstack((zeros, gt_boxes_np[:, :-1])))
         #)
+        
+        self.BBOX_NORMALIZE_MEANS = self.BBOX_NORMALIZE_MEANS.type_as(all_rois)
+        self.BBOX_NORMALIZE_STDS = self.BBOX_NORMALIZE_STDS.type_as(all_rois)
+        self.BBOX_INSIDE_WEIGHTS = self.BBOX_INSIDE_WEIGHTS.type_as(all_rois)
 
         zeros = torch.Tensor(gt_boxes.size(0), 1).zero_().type_as(all_rois)
         all_rois = torch.cat(
@@ -130,8 +124,8 @@ class _ProposalTargetLayer(nn.Module):
         """
 
         clss = bbox_target_data[:, 0]
-        self.bbox_targets.resize_(clss.size(0), 4 * num_classes).zero_()
-        self.bbox_inside_weights.resize_(self.bbox_targets.size()).zero_()
+        bbox_targets = bbox_target_data.new(clss.size(0), 4 * num_classes).zero_()
+        bbox_inside_weights = bbox_target_data.new(bbox_targets.size()).zero_()
         inds = torch.nonzero(clss > 0).squeeze()
 
         for i in range(inds.numel()):
@@ -139,10 +133,10 @@ class _ProposalTargetLayer(nn.Module):
             cls = clss[ind]
             start = int(4 * cls)
             end = start + 4
-            self.bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
-            self.bbox_inside_weights[ind, start:end] = self.BBOX_INSIDE_WEIGHTS
+            bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
+            bbox_inside_weights[ind, start:end] = self.BBOX_INSIDE_WEIGHTS
 
-        return self.bbox_targets, self.bbox_inside_weights
+        return bbox_targets, bbox_inside_weights
 
 
     def _compute_targets_pytorch(self, ex_rois, gt_rois, labels):

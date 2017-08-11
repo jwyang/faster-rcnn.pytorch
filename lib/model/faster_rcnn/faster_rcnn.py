@@ -66,7 +66,7 @@ class _fasterRCNN(nn.Module):
         # for log
         self.debug = debug
 
-    def forward(self, im_data, im_info, gt_boxes=None):
+    def forward(self, im_data, im_info, gt_boxes):
 
         # feed image data to base model to obtain base feature map
         im_data = im_data.permute(0, 3, 1, 2)

@@ -17,10 +17,13 @@ import argparse
 import pprint
 import pdb
 
+import torch.nn as nn
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.layer import RoIDataLayer
+from roi_data_layer.roiLoader import roiLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.faster_rcnn.faster_rcnn import _fasterRCNN
+from DataParallelModified import DataParallelModified
 
 def parse_args():
   """
@@ -64,6 +67,21 @@ def parse_args():
   return args
 
 
+def collate_fn(batch): return batch
+
+def to_variable(batch):
+  """ make tensor to variable"""
+  new_batch = []
+  for data in batch:
+    new_data = []
+    for tensor in data:
+      if cfg.CUDA:
+        tensor = tensor.cuda()
+      tensor = Variable(tensor)
+      new_data.append(tensor)
+    new_batch.append(tuple(new_data))
+  return tuple(new_batch)
+
 if __name__ == '__main__':
   args = parse_args()
 
@@ -87,41 +105,25 @@ if __name__ == '__main__':
   print('{:d} roidb entries'.format(len(roidb)))
   train_loader = RoIDataLayer(roidb, imdb.num_classes)
 
+  dataset = roiLoader(roidb, imdb.num_classes)
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=2,
+                            shuffle=True, num_workers=2, collate_fn=collate_fn)
+
   if args.ngpu > 0:
     cfg.CUDA = True
 
   # initilize the network here.
-  fasterRCNN = _fasterRCNN(args.net, imdb.classes)
+  fasterRCNN = DataParallelModified(_fasterRCNN(args.net, imdb.classes))
 
   if args.ngpu > 0:
     fasterRCNN.cuda()
 
-  # initlaize the training data container.
-  im_data = torch.FloatTensor(1)
-  im_info = torch.FloatTensor(1)
-  gt_boxes = torch.FloatTensor(1)
-
-  if args.ngpu > 0:
-    im_data = im_data.cuda()
-    im_info = im_info.cuda()
-    gt_boxes = gt_boxes.cuda()
-
-  # put into variable.
-  im_data = Variable(im_data)
-  im_info = Variable(im_info)
-  gt_boxes = Variable(gt_boxes)
-
+  data_iter = iter(dataloader)
   # training
   for i in range(10):
-    blobs = train_loader.forward()
-    blobs['data'] = torch.from_numpy(blobs['data'])
-    blobs['im_info'] = torch.from_numpy(blobs['im_info'])
-    blobs['gt_boxes'] = torch.from_numpy(blobs['gt_boxes'])
+    data = data_iter.next()
+    data = to_variable(data)
 
-    im_data.data.resize_(blobs['data'].size()).copy_(blobs['data'])
-    im_info.data.resize_(blobs['im_info'].size()).copy_(blobs['im_info'])
-    gt_boxes.data.resize_(blobs['gt_boxes'].size()).copy_(blobs['gt_boxes'])
-
-    out = fasterRCNN(im_data, im_info, gt_boxes)
+    out = fasterRCNN(data)
 
     

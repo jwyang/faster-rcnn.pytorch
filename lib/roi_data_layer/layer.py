@@ -17,6 +17,7 @@ from model.utils.config import cfg
 from roi_data_layer.minibatch import get_minibatch
 import numpy as np
 import time
+import pdb
 
 class RoIDataLayer(object):
   """Fast R-CNN data layer used for training."""
@@ -80,6 +81,7 @@ class RoIDataLayer(object):
     """
     db_inds = self._get_next_minibatch_inds()
     minibatch_db = [self._roidb[i] for i in db_inds]
+
     return get_minibatch(minibatch_db, self._num_classes)
       
   def forward(self):
