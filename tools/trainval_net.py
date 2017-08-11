@@ -16,6 +16,7 @@ import numpy as np
 import argparse
 import pprint
 import pdb
+import time
 
 import torch.nn as nn
 from roi_data_layer.roidb import combined_roidb
@@ -99,15 +100,15 @@ if __name__ == '__main__':
 
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
-  cfg.TRAIN.USE_FLIPPED = False  
-  imdb, roidb = combined_roidb(args.imdbval_name)
+  cfg.TRAIN.USE_FLIPPED = True  
+  imdb, roidb = combined_roidb(args.imdb_name)
   
   print('{:d} roidb entries'.format(len(roidb)))
   train_loader = RoIDataLayer(roidb, imdb.num_classes)
 
   dataset = roiLoader(roidb, imdb.num_classes)
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=2,
-                            shuffle=True, num_workers=2, collate_fn=collate_fn)
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
+                            shuffle=True, num_workers=0, collate_fn=collate_fn)
 
   if args.ngpu > 0:
     cfg.CUDA = True
@@ -120,10 +121,12 @@ if __name__ == '__main__':
 
   data_iter = iter(dataloader)
   # training
-  for i in range(10):
+  start = time.time()
+  for i in range(100):
     data = data_iter.next()
     data = to_variable(data)
-
     out = fasterRCNN(data)
 
-    
+  end = time.time()
+  print(end - start)
+  pdb.set_trace()

@@ -8,6 +8,7 @@ from proposal_layer import _ProposalLayer
 from anchor_target_layer import _AnchorTargetLayer
 
 import pdb
+import time
 
 class _RPN(nn.Module):
     """ region proposal network """
@@ -81,12 +82,14 @@ class _RPN(nn.Module):
 
         # proposal layer
         cfg_key = 'TRAIN' if self.training else 'TEST'
+        
         rois = self.RPN_proposal((rpn_cls_prob, rpn_bbox_pred,
                                  im_info, cfg_key))
 
         # generating training labels and build the rpn loss
         if self.training:
             assert gt_bboxes is not None
+
             rpn_data = self.RPN_anchor_target((rpn_cls_score, gt_bboxes, im_info))
 
             # compute classification loss

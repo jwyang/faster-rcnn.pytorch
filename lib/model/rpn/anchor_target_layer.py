@@ -157,10 +157,10 @@ class _AnchorTargetLayer(nn.Module):
         max_overlaps, argmax_overlaps = torch.max(overlaps, 1)
         gt_max_overlaps, _ = torch.max(overlaps, 0)
         
+        gt_max_overlaps[gt_max_overlaps==0] = 1e-5
         keep = torch.sum(overlaps.eq(gt_max_overlaps.expand_as(overlaps)), 1)
 
         gt_argmax_overlaps = torch.nonzero(keep).squeeze()
-
 
         if not cfg.TRAIN.RPN_CLOBBER_POSITIVES:
             # assign bg labels first so that positive labels can clobber them

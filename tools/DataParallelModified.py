@@ -25,12 +25,10 @@ class DataParallelModified(nn.Module):
         #pdb.set_trace()
         #inputs = inputs[0]
         inputs, kwargs = self.scatter(inputs[0], kwargs, self.device_ids)
-        pdb.set_trace()
         if len(self.device_ids) == 1:
             return self.module(*inputs[0], **kwargs[0])
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
-        pdb.set_trace()
 
         return self.gather(outputs, self.output_device)            
 
