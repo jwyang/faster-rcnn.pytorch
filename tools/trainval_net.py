@@ -122,11 +122,15 @@ if __name__ == '__main__':
   data_iter = iter(dataloader)
   # training
   start = time.time()
-  for i in range(100):
+  for i in range(1000):
+    t1  = time.time()
     data = data_iter.next()
     data = to_variable(data)
+    t2 = time.time()
     out = fasterRCNN(data)
+    t3 = time.time()
+    print("t1:t2 %f" %(t2-t1))
+    print("total %f" %(t3-t2))
 
   end = time.time()
   print(end - start)
-  pdb.set_trace()

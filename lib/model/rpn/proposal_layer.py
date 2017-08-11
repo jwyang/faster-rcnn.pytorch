@@ -94,20 +94,19 @@ class _ProposalLayer(nn.Module):
         #shifts = torch.from_numpy(np.vstack((shift_x.ravel(), shift_y.ravel(),
         #                          shift_x.ravel(), shift_y.ravel())).transpose())
         #shifts = shifts.contiguous().float()
-
         # -- torch version ----- 
         shift_x = rpn_cls_prob.data.new(width)
         shift_x.copy_(torch.arange(0, width))
         shift_x = shift_x * self._feat_stride # Check: feat_stride only has one value.
-        shift_x = shift_x.view(1,-1).expand(height, shift_x.size(0)).contiguous().view(-1)
 
         shift_y = rpn_cls_prob.data.new(height)
         shift_y.copy_(torch.arange(0, height))
         shift_y = shift_y * self._feat_stride # Check: feat_stride only has one value.        
-        shift_y = shift_y.view(-1,1).expand(shift_y.size(0), width).contiguous().view(-1)
-
-        shifts = torch.stack([shift_x, shift_y, shift_x, shift_y],1)
-     
+            
+        shifts = torch.stack([shift_x.repeat(height), 
+                shift_y.repeat(width,1).t().contiguous().view(-1), 
+                shift_x.repeat(height), 
+                shift_y.repeat(width,1).t().contiguous().view(-1)],1)
 
         # Enumerate all shifted anchors:
         #
@@ -180,14 +179,16 @@ class _ProposalLayer(nn.Module):
         # keep = torch.from_numpy(np.asarray(keep_np))
         # ---pytorch version---
         keep = nms(torch.cat((proposals, scores), 1), nms_thresh)
-        keep = keep.type_as(bbox_deltas).long().squeeze()
+        keep = keep.long().squeeze()
 
+        if cfg.CUDA and not keep.is_cuda:
+            keep = keep.cuda()
 
         if post_nms_topN > 0:
             keep = keep[:post_nms_topN]
         proposals = proposals[keep, :]
         scores = scores[keep, :]
-
+        
         # Output rois blob
         # Our RPN implementation only supports a single input image, so all
         # batch inds are 0

@@ -49,7 +49,7 @@ class _fasterRCNN(nn.Module):
         self.RPN_proposal_target = _ProposalTargetLayer(self.n_classes)
 
         self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
-
+        '''
         self.RCNN_top_model = nn.Sequential(
             nn.Linear(self.dout_base_model*cfg.POOLING_SIZE*cfg.POOLING_SIZE, 4096),
             nn.ReLU(True),
@@ -59,7 +59,7 @@ class _fasterRCNN(nn.Module):
 
         self.RCNN_cls_score = nn.Linear(4096, self.n_classes)
         self.RCNN_bbox_pred = nn.Linear(4096, self.n_classes * 4)
-
+        '''
         # loss
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
@@ -87,6 +87,7 @@ class _fasterRCNN(nn.Module):
         pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
         pooled_feat_v = pooled_feat.view(pooled_feat.size()[0], -1)
 
+        '''
         # feed pooled features to top model
         x = self.RCNN_top_model(pooled_feat_v)
 
@@ -127,5 +128,6 @@ class _fasterRCNN(nn.Module):
 
             bbox_targets_var = Variable(bbox_targets)
             self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, bbox_targets_var, size_average=False) / (fg_cnt + 1e-4)
-
-        return cls_prob, bbox_pred, rois_var
+        '''
+        #return cls_prob, bbox_pred, rois_var
+        return pooled_feat_v

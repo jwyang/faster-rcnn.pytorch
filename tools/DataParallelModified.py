@@ -6,7 +6,7 @@ from torch.nn.parallel.parallel_apply import parallel_apply
 from torch.autograd import Variable
 
 import pdb
-
+import time
 class DataParallelModified(nn.Module):
     def __init__(self, module, device_ids=None, output_device=None, dim=0):
         super(DataParallelModified, self).__init__()
@@ -24,12 +24,19 @@ class DataParallelModified(nn.Module):
     def forward(self, *inputs, **kwargs):
         #pdb.set_trace()
         #inputs = inputs[0]
+        t3 = time.time()
         inputs, kwargs = self.scatter(inputs[0], kwargs, self.device_ids)
+        t4 = time.time()
+
         if len(self.device_ids) == 1:
             return self.module(*inputs[0], **kwargs[0])
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
+        t5 = time.time()
         outputs = self.parallel_apply(replicas, inputs, kwargs)
-
+        t6 = time.time()
+        print("t3:t4 %f" %(t4-t3))
+        print("t4:t5 %f" %(t5-t4))        
+        print("t5:t6 %f" %(t6-t5))
         return self.gather(outputs, self.output_device)            
 
     def replicate(self, module, device_ids):
