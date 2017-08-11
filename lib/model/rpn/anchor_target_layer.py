@@ -14,7 +14,7 @@ import numpy as np
 import numpy.random as npr
 
 from model.utils.config import cfg
-from generate_anchors imageport generate_anchors
+from generate_anchors import generate_anchors
 from bbox_transform import bbox_transform, clip_boxes, bbox_overlaps1
 
 import pdb
