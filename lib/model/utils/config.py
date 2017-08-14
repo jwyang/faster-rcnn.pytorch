@@ -65,6 +65,10 @@ __C.TRAIN.SCALES = (600,)
 # Max pixel size of the longest side of a scaled input image
 __C.TRAIN.MAX_SIZE = 1000
 
+# Trim size for input images to create minibatch
+__C.TRAIN.TRIM_HEIGHT = 600
+__C.TRAIN.TRIM_WIDTH = 600
+
 # Images to use per minibatch
 __C.TRAIN.IMS_PER_BATCH = 1
 
