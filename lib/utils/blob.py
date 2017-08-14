@@ -39,8 +39,9 @@ def prep_im_for_blob(im, pixel_means, target_size, max_size):
   im_size_max = np.max(im_shape[0:2])
   im_scale = float(target_size) / float(im_size_min)
   # Prevent the biggest axis from being more than MAX_SIZE
-  if np.round(im_scale * im_size_max) > max_size:
-    im_scale = float(max_size) / float(im_size_max)
+  # Comment this if so that all images have 600 small size
+  # if np.round(im_scale * im_size_max) > max_size:
+  #   im_scale = float(max_size) / float(im_size_max)
   im = cv2.resize(im, None, None, fx=im_scale, fy=im_scale,
                   interpolation=cv2.INTER_LINEAR)
 
