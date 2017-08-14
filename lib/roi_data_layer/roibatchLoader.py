@@ -80,8 +80,8 @@ class roibatchLoader(data.Dataset):
     gt_boxes = torch.cat((gt_boxes, ind), 1)
 
     # permute trim_data to adapt to downstream processing
-    trim_data.permute(0, 3, 1, 2)
-
+    trim_data = trim_data.permute(0, 3, 1, 2)
+    
     return trim_data, im_info, gt_boxes
 
   def __len__(self):
