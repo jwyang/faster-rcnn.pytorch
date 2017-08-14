@@ -22,7 +22,7 @@ class DataParallelModified(nn.Module):
             self.module.cuda(device_ids[0]) 
 
     def forward(self, *inputs, **kwargs):
-        #pdb.set_trace()
+        pdb.set_trace()
         #inputs = inputs[0]
         t3 = time.time()
         inputs, kwargs = self.scatter(inputs[0], kwargs, self.device_ids)

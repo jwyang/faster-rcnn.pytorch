@@ -109,14 +109,27 @@ if __name__ == '__main__':
 
   # dataset = roiLoader(roidb, imdb.num_classes)
   dataset = roibatchLoader(roidb, imdb.num_classes)  
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=32,
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.TRAIN.IMS_PER_BATCH,
                             shuffle=True, num_workers=5, collate_fn=collate_fn)
+
+  # input image data
+  im_data = torch.Tensor(cfg.TRAIN.IMS_PER_BATCH, \
+                         3,
+                         cfg.TRAIN.TRIM_HEIGHT, \
+                         cfg.TRAIN.TRIM_WIDTH)
+
+  # input image info
+  im_info = torch.Tensor(cfg.TRAIN.IMS_PER_BATCH, 4)
+
+  # input gt boxes
+  gt_boxes = torch.Tensor(5 * cfg.TRAIN.IMS_PER_BATCH, 6)
 
   if args.ngpu > 0:
     cfg.CUDA = True
 
   # initilize the network here.
-  fasterRCNN = DataParallelModified(_fasterRCNN(args.net, imdb.classes))
+  # fasterRCNN = DataParallelModified(_fasterRCNN(args.net, imdb.classes))
+  fasterRCNN = _fasterRCNN(args.net, imdb.classes)
 
   if args.ngpu > 0:
     fasterRCNN.cuda()
@@ -127,12 +140,23 @@ if __name__ == '__main__':
   for i in range(100):
     t1  = time.time()
     data = data_iter.next()
+
+    ind_s = 0
+    for i in range(len(data)):
+      im_data[i,:,:,:] = data[i][0]
+      im_info[i,:] = data[i][1]
+      gt_boxes[ind_s:(ind_s + data[i][2].size(0)),:] = data[i][2]
+      ind_s = ind_s + data[i][2].size(0)
+
+    pdb.set_trace()
+    data = (im_data, im_info, gt_boxes[:ind_s,:])
+
     data = to_variable(data)
     t2 = time.time()
-    # out = fasterRCNN(data)
-    # t3 = time.time()
+    out = fasterRCNN(data)
+    t3 = time.time()
     print("t1:t2 %f" %(t2-t1))
-    # print("total %f" %(t3-t2))
+    print("total %f" %(t3-t2))
 
   end = time.time()
   print(end - start)

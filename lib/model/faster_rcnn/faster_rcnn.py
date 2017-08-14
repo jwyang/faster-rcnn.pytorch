@@ -60,6 +60,7 @@ class _fasterRCNN(nn.Module):
         self.RCNN_cls_score = nn.Linear(4096, self.n_classes)
         self.RCNN_bbox_pred = nn.Linear(4096, self.n_classes * 4)
         '''
+
         # loss
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
@@ -67,11 +68,11 @@ class _fasterRCNN(nn.Module):
         # for log
         self.debug = debug
 
-    def forward(self, im_data, im_info, gt_boxes):
+    def forward(self, input):
 
         # feed image data to base model to obtain base feature map
-        im_data = im_data.permute(0, 3, 1, 2)
-        base_feat = self.RCNN_base_model(im_data)
+        pdb.set_trace()
+        base_feat = self.RCNN_base_model(self.im_data)
 
         # feed base feature map tp RPN to obtain rois
         rois = self.RCNN_rpn(base_feat, im_info, gt_boxes)
