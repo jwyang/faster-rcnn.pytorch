@@ -22,6 +22,7 @@ import torch.nn as nn
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.layer import RoIDataLayer
 from roi_data_layer.roiLoader import roiLoader
+from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.faster_rcnn.faster_rcnn import _fasterRCNN
 from DataParallelModified import DataParallelModified
@@ -106,9 +107,10 @@ if __name__ == '__main__':
   print('{:d} roidb entries'.format(len(roidb)))
   train_loader = RoIDataLayer(roidb, imdb.num_classes)
 
-  dataset = roiLoader(roidb, imdb.num_classes)
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
-                            shuffle=True, num_workers=0, collate_fn=collate_fn)
+  # dataset = roiLoader(roidb, imdb.num_classes)
+  dataset = roibatchLoader(roidb, imdb.num_classes)  
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=32,
+                            shuffle=True, num_workers=5, collate_fn=collate_fn)
 
   if args.ngpu > 0:
     cfg.CUDA = True
@@ -122,15 +124,15 @@ if __name__ == '__main__':
   data_iter = iter(dataloader)
   # training
   start = time.time()
-  for i in range(1000):
+  for i in range(100):
     t1  = time.time()
     data = data_iter.next()
     data = to_variable(data)
     t2 = time.time()
-    out = fasterRCNN(data)
-    t3 = time.time()
+    # out = fasterRCNN(data)
+    # t3 = time.time()
     print("t1:t2 %f" %(t2-t1))
-    print("total %f" %(t3-t2))
+    # print("total %f" %(t3-t2))
 
   end = time.time()
   print(end - start)
