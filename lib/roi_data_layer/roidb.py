@@ -6,7 +6,7 @@ from __future__ import print_function
 import numpy as np
 from model.utils.config import cfg
 from model.rpn.bbox_transform import bbox_transform
-from utils.cython_bbox import bbox_overlaps
+from model.utils.cython_bbox import bbox_overlaps
 from datasets.factory import get_imdb
 import PIL
 
