@@ -23,8 +23,8 @@ class roibatchLoader(data.Dataset):
     self._roidb = roidb
     self._num_classes = num_classes
     # we make the height of image consistent to trim_height, trim_width
-    self.trim_height = 600 # cfg.TRAIN.TRIM_HEIGHT
-    self.trim_width = 600 # cfg.TRAIN.TRIM_WIDTH
+    self.trim_height = cfg.TRAIN.TRIM_HEIGHT
+    self.trim_width = cfg.TRAIN.TRIM_WIDTH
 
   def __getitem__(self, index):
 
