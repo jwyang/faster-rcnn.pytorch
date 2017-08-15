@@ -27,23 +27,22 @@ class _fasterRCNN(nn.Module):
         if baseModel == "vgg16":
             pretrained_model = models.vgg16(pretrained=True)
             self.RCNN_base_model = nn.Sequential(*list(pretrained_model.features.children())[:-1])
-            self.dout_base_model = 512
         elif baseModel == "res50":
             pretrained_model = models.resnet50(pretrained=True)
             self.RCNN_base_model = nn.Sequential(*list(pretrained_model.children())[:-2])
-            self.dout_base_model = 2048
         elif baseModel == "res101":
             pretrained_model = models.resnet50(pretrained=True)
             self.RCNN_base_model = nn.Sequential(*list(pretrained_model.children())[:-2])
-            self.dout_base_model = 2048
         else:
             raise RuntimeError('baseModel is not included.')
 
-        #virtual_input = torch.randn(1, 3, 224, 224)
-        #out = self.RCNN_base_model(Variable(virtual_input))
-        #self.dout_base_model = out.size(1)
+        virtual_input = torch.randn(1, 3, cfg.TRAIN.TRIM_HEIGHT, cfg.TRAIN.TRIM_WIDTH)
+        out = self.RCNN_base_model(Variable(virtual_input))
+        feat_height = out.size(2)
+        feat_width = out.size(3)
+        dout_base_model = out.size(1)
         # define rpn
-        self.RCNN_rpn = _RPN(self.dout_base_model)
+        self.RCNN_rpn = _RPN(feat_height, feat_width, dout_base_model)
 
         # define proposal layer for target
         self.RPN_proposal_target = _ProposalTargetLayer(self.n_classes)
@@ -68,27 +67,32 @@ class _fasterRCNN(nn.Module):
         # for log
         self.debug = debug
 
-    def forward(self, input):
+    def forward(self, im_data, im_info, gt_boxes, num_boxes):
 
+        batch_size = im_data.size(0)
         # feed image data to base model to obtain base feature map
-        pdb.set_trace()
-        base_feat = self.RCNN_base_model(self.im_data)
+        base_feat = self.RCNN_base_model(im_data)
 
         # feed base feature map tp RPN to obtain rois
-        rois = self.RCNN_rpn(base_feat, im_info, gt_boxes)
+        rois = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
+
 
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
-            roi_data = self.RPN_proposal_target(rois, gt_boxes.data)
-            rois = roi_data[0]
-
+            rois_tmp = []
+            for i in range(batch_size):
+                gt_boxes_single = gt_boxes[i][:num_boxes[i]]
+                roi_data = self.RPN_proposal_target(rois[i], gt_boxes_single)
+                rois_tmp.append(roi_data[0])
+                
+            rois = rois_tmp
         rois_var = Variable(rois)
 
         # do roi pooling based on predicted rois
         pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
         pooled_feat_v = pooled_feat.view(pooled_feat.size()[0], -1)
 
-        '''
+        
         # feed pooled features to top model
         x = self.RCNN_top_model(pooled_feat_v)
 
@@ -129,6 +133,6 @@ class _fasterRCNN(nn.Module):
 
             bbox_targets_var = Variable(bbox_targets)
             self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, bbox_targets_var, size_average=False) / (fg_cnt + 1e-4)
-        '''
+        
         #return cls_prob, bbox_pred, rois_var
         return pooled_feat_v

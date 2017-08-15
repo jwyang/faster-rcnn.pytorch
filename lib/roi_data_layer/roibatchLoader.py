@@ -15,6 +15,7 @@ from roi_data_layer.minibatch import get_minibatch
 from model.rpn.bbox_transform import bbox_transform_inv, clip_boxes
 
 import numpy as np
+import random
 import time
 import pdb
 
@@ -25,6 +26,7 @@ class roibatchLoader(data.Dataset):
     # we make the height of image consistent to trim_height, trim_width
     self.trim_height = cfg.TRAIN.TRIM_HEIGHT
     self.trim_width = cfg.TRAIN.TRIM_WIDTH
+    self.max_num_box = 20
 
   def __getitem__(self, index):
 
@@ -32,6 +34,8 @@ class roibatchLoader(data.Dataset):
     blobs = get_minibatch(minibatch_db, self._num_classes)
     data = torch.from_numpy(blobs['data'])
     im_info = torch.from_numpy(blobs['im_info'])
+    # we need to random shuffle the bounding box.
+    np.random.shuffle(blobs['gt_boxes'])
     gt_boxes = torch.from_numpy(blobs['gt_boxes'])
 
     ##################################################
@@ -74,15 +78,17 @@ class roibatchLoader(data.Dataset):
         # update im_info
         im_info[0, 1] = self.trim_width
 
-    # append img index to im_info and gt_boxes
-    ind = torch.FloatTensor(gt_boxes.size(0), 1).fill_(index)
-    im_info = torch.cat((im_info, ind[0]), 1)
-    gt_boxes = torch.cat((gt_boxes, ind), 1)
+    num_boxes = min(gt_boxes.size(0), self.max_num_box)
+
+    gt_boxes_padding = torch.FloatTensor(self.max_num_box, 5).zero_()
+    # take the top num_boxes
+    gt_boxes_padding[:num_boxes,:] = gt_boxes[:num_boxes]
 
     # permute trim_data to adapt to downstream processing
-    trim_data = trim_data.permute(0, 3, 1, 2)
+    trim_data = trim_data.permute(0, 3, 1, 2).contiguous().view(3, self.trim_height, self.trim_width)
+    im_info = im_info.view(3)
     
-    return trim_data, im_info, gt_boxes
+    return trim_data, im_info, gt_boxes_padding, num_boxes
 
   def __len__(self):
     return len(self._roidb)

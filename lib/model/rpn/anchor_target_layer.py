@@ -15,7 +15,7 @@ import numpy.random as npr
 
 from model.utils.config import cfg
 from generate_anchors import generate_anchors
-from bbox_transform import bbox_transform, clip_boxes, bbox_overlaps1
+from bbox_transform import bbox_transform, clip_boxes, bbox_overlaps
 
 import pdb
 
@@ -62,8 +62,10 @@ class _AnchorTargetLayer(nn.Module):
         # filter out-of-image anchors
         # measure GT overlap
         rpn_cls_score = input[0]
-        gt_boxes = input[1].data
-        im_info = input[2][0].data
+        gt_boxes = input[1]
+        im_info = input[2]
+        num_boxes = input[3]
+        shifts = input[4]
 
         # TODO this should be equal to GPU number
         # assert input[0].size(1) == 1, \
@@ -88,27 +90,29 @@ class _AnchorTargetLayer(nn.Module):
         #                    shift_x.ravel(), shift_y.ravel())).transpose()
         
         # -- torch version ----- 
-        shift_x = gt_boxes.new(width)
-        shift_x.copy_(torch.arange(0, width))
-        shift_x = shift_x * self._feat_stride # Check: feat_stride only has one value.
+        # shift_x = gt_boxes.new(width)
+        # shift_x.copy_(torch.arange(0, width))
+        # shift_x = shift_x * self._feat_stride # Check: feat_stride only has one value.
         
-        shift_y = gt_boxes.new(height)
-        shift_y.copy_(torch.arange(0, height))
-        shift_y = shift_y * self._feat_stride # Check: feat_stride only has one value.        
+        # shift_y = gt_boxes.new(height)
+        # shift_y.copy_(torch.arange(0, height))
+        # shift_y = shift_y * self._feat_stride # Check: feat_stride only has one value.        
         
-        shifts = torch.stack([shift_x.repeat(height), 
-                            shift_y.repeat(width,1).t().contiguous().view(-1), 
-                            shift_x.repeat(height), 
-                            shift_y.repeat(width,1).t().contiguous().view(-1)],1)
+        # shifts = torch.stack([shift_x.repeat(height), 
+        #                    shift_y.repeat(width,1).t().contiguous().view(-1), 
+        #                    shift_x.repeat(height), 
+        #                    shift_y.repeat(width,1).t().contiguous().view(-1)],1)
 
         # add A anchors (1, A, 4) to
         # cell K shifts (K, 1, 4) to get
         # shift anchors (K, A, 4)
         # reshape to (K*A, 4) shifted anchors
+        batch_size = gt_boxes.size(0)
+        
         A = self._num_anchors
         K = shifts.size(0)
 
-        self._anchors = self._anchors.type_as(shifts) # move to specific gpu.
+        self._anchors = self._anchors.type_as(gt_boxes) # move to specific gpu.
         all_anchors = self._anchors.view(1, A, 4) + shifts.view(K, 1, 4)
         all_anchors = all_anchors.view(K * A, 4)
 
@@ -116,8 +120,8 @@ class _AnchorTargetLayer(nn.Module):
 
         keep = ((all_anchors[:, 0] >= -self._allowed_border) &
                 (all_anchors[:, 1] >= -self._allowed_border) &
-                (all_anchors[:, 2] < im_info[1] + self._allowed_border) &
-                (all_anchors[:, 3] < im_info[0] + self._allowed_border))
+                (all_anchors[:, 2] < im_info[0][1] + self._allowed_border) &
+                (all_anchors[:, 3] < im_info[0][0] + self._allowed_border))
         inds_inside = torch.nonzero(keep).squeeze()
 
         if DEBUG:
@@ -130,8 +134,10 @@ class _AnchorTargetLayer(nn.Module):
             print 'anchors.size', anchors.size()
 
         # label: 1 is positive, 0 is negative, -1 is dont care
-        labels = shifts.new(inds_inside.size(0)).fill_(-1)
-
+        labels = gt_boxes.new(batch_size, inds_inside.size(0)).fill_(-1)
+        bbox_inside_weights = gt_boxes.new(batch_size, inds_inside.size(0), 4).zero_()
+        bbox_outside_weights = gt_boxes.new(batch_size, inds_inside.size(0), 4).zero_()
+        bbox_targets = gt_boxes.new(batch_size, inds_inside.size(0), 4).zero_()
         #labels = np.empty((len(inds_inside), ), dtype=np.float32)
         #labels.fill(-1)
 
@@ -142,140 +148,140 @@ class _AnchorTargetLayer(nn.Module):
         # overlaps = bbox_overlaps(
         #    np.ascontiguousarray(anchors.numpy(), dtype=np.float),
         #    np.ascontiguousarray(gt_boxes_np, dtype=np.float))
+        for i in range(batch_size):
+            gt_boxes_single = gt_boxes[i,:num_boxes[i]]
+            overlaps = bbox_overlaps(anchors, gt_boxes_single[:,:4].contiguous())
 
-        overlaps = bbox_overlaps1(anchors, gt_boxes[:,:4].contiguous())
+            # argmax_overlaps = overlaps.argmax(axis=1)
+            # max_overlaps = overlaps[np.arange(len(inds_inside)), argmax_overlaps]
+            # gt_argmax_overlaps = overlaps.argmax(axis=0)
+            # gt_max_overlaps = overlaps[gt_argmax_overlaps,
+            #                            np.arange(overlaps.shape[1])]
+            # gt_argmax_overlaps = np.where(overlaps == gt_max_overlaps)[0]
 
-        # argmax_overlaps = overlaps.argmax(axis=1)
-        # max_overlaps = overlaps[np.arange(len(inds_inside)), argmax_overlaps]
-        # gt_argmax_overlaps = overlaps.argmax(axis=0)
-        # gt_max_overlaps = overlaps[gt_argmax_overlaps,
-        #                            np.arange(overlaps.shape[1])]
-        # gt_argmax_overlaps = np.where(overlaps == gt_max_overlaps)[0]
-
-        #_, argmax_overlaps1 = overlaps1.max(1)
-        #max_overlaps = overlaps1[np.arange(len(inds_inside)), argmax_overlaps1]
-        max_overlaps, argmax_overlaps = torch.max(overlaps, 1)
-        gt_max_overlaps, _ = torch.max(overlaps, 0)
+            #_, argmax_overlaps1 = overlaps1.max(1)
+            #max_overlaps = overlaps1[np.arange(len(inds_inside)), argmax_overlaps1]
+            max_overlaps, argmax_overlaps = torch.max(overlaps, 1)
+            gt_max_overlaps, _ = torch.max(overlaps, 0)
         
-        gt_max_overlaps[gt_max_overlaps==0] = 1e-5
-        keep = torch.sum(overlaps.eq(gt_max_overlaps.expand_as(overlaps)), 1)
+            gt_max_overlaps[gt_max_overlaps==0] = 1e-5
+            keep = torch.sum(overlaps.eq(gt_max_overlaps.expand_as(overlaps)), 1)
 
-        gt_argmax_overlaps = torch.nonzero(keep).squeeze()
+            gt_argmax_overlaps = torch.nonzero(keep).squeeze()
 
-        if not cfg.TRAIN.RPN_CLOBBER_POSITIVES:
-            # assign bg labels first so that positive labels can clobber them
-            labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
+            if not cfg.TRAIN.RPN_CLOBBER_POSITIVES:
+                # assign bg labels first so that positive labels can clobber them
+                labels[i][max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
-        # fg label: for each gt, anchgitor with highest overlap
-        labels[gt_argmax_overlaps] = 1
+            # fg label: for each gt, anchgitor with highest overlap
+            labels[i][gt_argmax_overlaps] = 1
 
-        # fg label: above threshold IOU
-        labels[max_overlaps >= cfg.TRAIN.RPN_POSITIVE_OVERLAP] = 1
+         
+            # fg label: above threshold IOU
+            labels[i][max_overlaps >= cfg.TRAIN.RPN_POSITIVE_OVERLAP] = 1
 
-        if cfg.TRAIN.RPN_CLOBBER_POSITIVES:
-            # assign bg labels last so that negative labels can clobber positives
-            labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
+            if cfg.TRAIN.RPN_CLOBBER_POSITIVES:
+                # assign bg labels last so that negative labels can clobber positives
+                labels[i][max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
 
-        # TODO: Check the differences between pytorch and pycaffe code here
-        # subsample positive labels if we have too many
-        num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
+            # TODO: Check the differences between pytorch and pycaffe code here
+            # subsample positive labels if we have too many
+            num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
         
-        # fg_inds = np.where(labels == 1)[0]        
-        # if len(fg_inds) > num_fg:
-        #    disable_inds = npr.choice(
-        #        fg_inds, size=(len(fg_inds) - num_fg), replace=False)
-        #    labels[disable_inds] = -1
+            # fg_inds = np.where(labels == 1)[0]        
+            # if len(fg_inds) > num_fg:
+            #    disable_inds = npr.choice(
+            #        fg_inds, size=(len(fg_inds) - num_fg), replace=False)
+            #    labels[disable_inds] = -1
 
-        fg_inds = torch.nonzero(labels == 1).squeeze()
-        if fg_inds.size(0) > num_fg:
-            rand_num = torch.randperm(fg_inds.size(0)).type_as(gt_boxes).long()
-            disable_inds = fg_inds[rand_num[:fg_inds.size(0)-num_fg]]
-            labels[disable_inds] = -1
+            fg_inds = torch.nonzero(labels[i] == 1).squeeze()
+            if fg_inds.size(0) > num_fg:
+                rand_num = torch.randperm(fg_inds.size(0)).type_as(gt_boxes).long()
+                disable_inds = fg_inds[rand_num[:fg_inds.size(0)-num_fg]]
+                labels[i][disable_inds] = -1
 
-        # subsample negative labels if we have too many
+            # subsample negative labels if we have too many
         
-        num_bg = cfg.TRAIN.RPN_BATCHSIZE - (labels == 1).sum()
-        # bg_inds = np.where(labels == 0)[0]
-        # if len(bg_inds) > num_bg:
-        #    disable_inds = npr.choice(
-        #        bg_inds, size=(len(bg_inds) - num_bg), replace=False)
-        #    labels[disable_inds] = -1
-            #print "was %s inds, disabling %s, now %s inds" % (
-                #len(bg_inds), len(disable_inds), np.sum(labels == 0))
+            num_bg = cfg.TRAIN.RPN_BATCHSIZE - (labels[i] == 1).sum()
+            # bg_inds = np.where(labels == 0)[0]
+            # if len(bg_inds) > num_bg:
+            #    disable_inds = npr.choice(
+            #        bg_inds, size=(len(bg_inds) - num_bg), replace=False)
+            #    labels[disable_inds] = -1
+                #print "was %s inds, disabling %s, now %s inds" % (
+                    #len(bg_inds), len(disable_inds), np.sum(labels == 0))
         
-        bg_inds = torch.nonzero(labels == 0).squeeze()
-        if bg_inds.size(0) > num_bg:
-            rand_num = torch.randperm(bg_inds.size(0)).type_as(gt_boxes).long()
-            disable_inds = bg_inds[rand_num[:bg_inds.size(0)-num_bg]]
-            labels[disable_inds] = -1
+            bg_inds = torch.nonzero(labels[i] == 0).squeeze()
+            if bg_inds.size(0) > num_bg:
+                rand_num = torch.randperm(bg_inds.size(0)).type_as(gt_boxes).long()
+                disable_inds = bg_inds[rand_num[:bg_inds.size(0)-num_bg]]
+                labels[i][disable_inds] = -1
 
-        #bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)
-        #bbox_targets = _compute_targets(anchors.numpy(), gt_boxes_np[argmax_overlaps.numpy(), :])
+        
+            #bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)
+            #bbox_targets = _compute_targets(anchors.numpy(), gt_boxes_np[argmax_overlaps.numpy(), :])
 
-        bbox_targets = _compute_targets(anchors, gt_boxes[argmax_overlaps, :])
+            bbox_targets[i] = _compute_targets(anchors, gt_boxes_single[argmax_overlaps, :])
+            # assign the bbox inside weights.
+            #bbox_inside_weights = np.zeros((len(inds_inside.numpy()), 4), dtype=np.float32)
+            #bbox_inside_weights[labels.numpy() == 1, :] = np.array(cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS)
 
-        # assign the bbox inside weights.
-        #bbox_inside_weights = np.zeros((len(inds_inside.numpy()), 4), dtype=np.float32)
-        #bbox_inside_weights[labels.numpy() == 1, :] = np.array(cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS)
+            # TODO: the RPN_BBOX_INSIDE_WEIGHTS is [1, 1, 1, 1], use 1 to assign all the weight.
+            # Is this fine ?          
+            
 
-        # TODO: the RPN_BBOX_INSIDE_WEIGHTS is [1, 1, 1, 1], use 1 to assign all the weight.
-        # Is this fine ?          
+            bbox_inside_weights[i][torch.nonzero(labels[i]==1).squeeze(),:] = \
+                                cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS[0]
         
 
-        bbox_inside_weights = gt_boxes.new(inds_inside.size(0), 4).zero_()
-        bbox_inside_weights[torch.nonzero(labels==1).squeeze(),:] = \
-                            cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS[0]
-        
+            if cfg.TRAIN.RPN_POSITIVE_WEIGHT < 0:
+                # uniform weighting of examples (given non-uniform sampling)
+                num_examples = (labels[i] > 0).sum()
+                positive_weights = 1.0 / num_examples
+                negative_weights = 1.0 / num_examples
+            else:
+                assert ((cfg.TRAIN.RPN_POSITIVE_WEIGHT > 0) &
+                        (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))            
 
-        bbox_outside_weights = gt_boxes.new(inds_inside.size(0), 4).zero_()
-        if cfg.TRAIN.RPN_POSITIVE_WEIGHT < 0:
-            # uniform weighting of examples (given non-uniform sampling)
-            num_examples = (labels > 0).sum()
-            positive_weights = 1.0 / num_examples
-            negative_weights = 1.0 / num_examples
-        else:
-            assert ((cfg.TRAIN.RPN_POSITIVE_WEIGHT > 0) &
-                    (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))            
+                positive_weights = cfg.TRAIN.RPN_POSITIVE_WEIGHT / (labels[i] == 1).sum()
+                negative_weights = (1.0 - cfg.TRAIN.RPN_POSITIVE_WEIGHT) / (labels[i] == 0).sum()
 
-            positive_weights = cfg.TRAIN.RPN_POSITIVE_WEIGHT / (labels == 1).sum()
-            negative_weights = (1.0 - cfg.TRAIN.RPN_POSITIVE_WEIGHT) / (labels == 0).sum()
-
-        bbox_outside_weights[torch.nonzero(labels==1).squeeze()] = positive_weights
-        bbox_outside_weights[torch.nonzero(labels==0).squeeze()] = negative_weights
+            bbox_outside_weights[i][torch.nonzero(labels[i]==1).squeeze()] = positive_weights
+            bbox_outside_weights[i][torch.nonzero(labels[i]==0).squeeze()] = negative_weights
 
 
-        #bbox_outside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)
-        #if cfg.TRAIN.RPN_POSITIVE_WEIGHT < 0:
-            # uniform weighting of examples (given non-uniform sampling)
-        #    num_examples = np.sum(labels >= 0)
-        #    positive_weights = np.ones((1, 4)) * 1.0 / num_examples
-        #    negative_weights = np.ones((1, 4)) * 1.0 / num_examples
-        #else:
-        #    assert ((cfg.TRAIN.RPN_POSITIVE_WEIGHT > 0) &
-        #            (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))
-        #    positive_weights = (cfg.TRAIN.RPN_POSITIVE_WEIGHT /
-        #                        np.sum(labels == 1))
-        #    negative_weights = ((1.0 - cfg.TRAIN.RPN_POSITIVE_WEIGHT) /
-        #                        np.sum(labels == 0))
-        #bbox_outside_weights[labels == 1, :] = positive_weights
-        #bbox_outside_weights[labels == 0, :] = negative_weights
+            #bbox_outside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)
+            #if cfg.TRAIN.RPN_POSITIVE_WEIGHT < 0:
+                # uniform weighting of examples (given non-uniform sampling)
+            #    num_examples = np.sum(labels >= 0)
+            #    positive_weights = np.ones((1, 4)) * 1.0 / num_examples
+            #    negative_weights = np.ones((1, 4)) * 1.0 / num_examples
+            #else:
+            #    assert ((cfg.TRAIN.RPN_POSITIVE_WEIGHT > 0) &
+            #            (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))
+            #    positive_weights = (cfg.TRAIN.RPN_POSITIVE_WEIGHT /
+            #                        np.sum(labels == 1))
+            #    negative_weights = ((1.0 - cfg.TRAIN.RPN_POSITIVE_WEIGHT) /
+            #                        np.sum(labels == 0))
+            #bbox_outside_weights[labels == 1, :] = positive_weights
+            #bbox_outside_weights[labels == 0, :] = negative_weights
 
-        if DEBUG:
-            self._sums += bbox_targets[labels == 1, :].sum(axis=0)
-            self._squared_sums += (bbox_targets[labels == 1, :] ** 2).sum(axis=0)
-            self._counts += np.sum(labels == 1)
-            means = self._sums / self._counts
-            stds = np.sqrt(self._squared_sums / self._counts - means ** 2)
-            print 'means:'
-            print means
-            print 'stdevs:'
-            print stds
+            if DEBUG:
+                self._sums += bbox_targets[labels == 1, :].sum(axis=0)
+                self._squared_sums += (bbox_targets[labels == 1, :] ** 2).sum(axis=0)
+                self._counts += np.sum(labels == 1)
+                means = self._sums / self._counts
+                stds = np.sqrt(self._squared_sums / self._counts - means ** 2)
+                print 'means:'
+                print means
+                print 'stdevs:'
+                print stds
 
-        labels = _unmap(labels, total_anchors, inds_inside, fill=-1)
-        bbox_targets = _unmap(bbox_targets, total_anchors, inds_inside, fill=0)
-        bbox_inside_weights = _unmap(bbox_inside_weights, total_anchors, inds_inside, fill=0)
-        bbox_outside_weights = _unmap(bbox_outside_weights, total_anchors, inds_inside, fill=0)
+        labels = _unmap(labels, total_anchors, inds_inside, batch_size, fill=-1)
+        bbox_targets = _unmap(bbox_targets, total_anchors, inds_inside, batch_size, fill=0)
+        bbox_inside_weights = _unmap(bbox_inside_weights, total_anchors, inds_inside, batch_size, fill=0)
+        bbox_outside_weights = _unmap(bbox_outside_weights, total_anchors, inds_inside, batch_size, fill=0)
 
         if DEBUG:
             print 'rpn: max max_overlap', np.max(max_overlaps)
@@ -295,8 +301,8 @@ class _AnchorTargetLayer(nn.Module):
         # top[0].reshape(*labels.shape)
         # top[0].data[...] = labels
 
-        labels = labels.view(1, height, width, A).permute(0,3,1,2).contiguous()
-        labels = labels.view(1, 1, A * height, width)
+        labels = labels.view(batch_size, height, width, A).permute(0,3,1,2).contiguous()
+        labels = labels.view(batch_size, 1, A * height, width)
         outputs.append(labels)
 
         # bbox_targets
@@ -305,7 +311,7 @@ class _AnchorTargetLayer(nn.Module):
         # outputs.append(torch.from_numpy(bbox_targets))
         # top[1].reshape(*bbox_targets.shape)
         # top[1].data[...] = bbox_targets
-        bbox_targets = bbox_targets.view(1, height, width, A*4).permute(0,3,1,2).contiguous()
+        bbox_targets = bbox_targets.view(batch_size, height, width, A*4).permute(0,3,1,2).contiguous()
         outputs.append(bbox_targets)
 
 
@@ -318,7 +324,7 @@ class _AnchorTargetLayer(nn.Module):
         # top[2].reshape(*bbox_inside_weights.shape)
         # top[2].data[...] = bbox_inside_weights
 
-        bbox_inside_weights = bbox_inside_weights.view(1, height, width, A*4)\
+        bbox_inside_weights = bbox_inside_weights.view(batch_size, height, width, A*4)\
                             .permute(0,3,1,2).contiguous()
         outputs.append(bbox_inside_weights)
 
@@ -331,7 +337,7 @@ class _AnchorTargetLayer(nn.Module):
         # top[3].reshape(*bbox_outside_weights.shape)
         # top[3].data[...] = bbox_outside_weights
 
-        bbox_outside_weights = bbox_outside_weights.view(1, height, width, A*4)\
+        bbox_outside_weights = bbox_outside_weights.view(batch_size, height, width, A*4)\
                                 .permute(0,3,1,2).contiguous()
         outputs.append(bbox_outside_weights)
 
@@ -361,15 +367,16 @@ class _AnchorTargetLayer(nn.Module):
 #         ret[inds, :] = data
 #     return ret
 
-def _unmap(data, count, inds, fill=0):
+def _unmap(data, count, inds, batch_size, fill=0):
     """ Unmap a subset of item (data) back to the original set of items (of
     size count) """
-    if data.dim() == 1:
-        ret = torch.Tensor(count).fill_(fill).type_as(data)
-        ret[inds] = data
+
+    if data.dim() == 2:
+        ret = torch.Tensor(batch_size, count).fill_(fill).type_as(data)
+        ret[:, inds] = data
     else:
-        ret = torch.Tensor(count, data.size(1)).fill_(fill).type_as(data)
-        ret[inds,:] = data
+        ret = torch.Tensor(batch_size, count, data.size(2)).fill_(fill).type_as(data)
+        ret[:, inds,:] = data
     return ret
 
 def _compute_targets(ex_rois, gt_rois):

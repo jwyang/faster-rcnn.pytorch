@@ -13,8 +13,7 @@ import torch.nn as nn
 import numpy as np
 import numpy.random as npr
 from ..utils.config import cfg
-from bbox_transform import bbox_transform, bbox_overlaps1
-from ..utils.cython_bbox import bbox_overlaps
+from bbox_transform import bbox_transform, bbox_overlaps
 import pdb
 
 DEBUG = False
@@ -160,7 +159,7 @@ class _ProposalTargetLayer(nn.Module):
         examples.
         """
         # overlaps: (rois x gt_boxes)
-        overlaps = bbox_overlaps1(all_rois[:, 1:5].contiguous(),
+        overlaps = bbox_overlaps(all_rois[:, 1:5].contiguous(),
                                 gt_boxes[:, :4].contiguous())
 
         max_overlaps, gt_assignment = torch.max(overlaps, 1)
