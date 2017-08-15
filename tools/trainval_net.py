@@ -21,7 +21,6 @@ import time
 import torch.nn as nn
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.layer import RoIDataLayer
-from roi_data_layer.roiLoader import roiLoader
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.faster_rcnn.faster_rcnn import _fasterRCNN
@@ -68,22 +67,6 @@ def parse_args():
   args = parser.parse_args()
   return args
 
-
-def collate_fn(batch): return batch
-
-def to_variable(batch):
-  """ make tensor to variable"""
-  new_batch = []
-  for data in batch:
-    new_data = []
-    for tensor in data:
-      if cfg.CUDA:
-        tensor = tensor.cuda()
-      tensor = Variable(tensor)
-      new_data.append(tensor)
-    new_batch.append(tuple(new_data))
-  return tuple(new_batch)
-
 if __name__ == '__main__':
   args = parse_args()
 
@@ -110,19 +93,23 @@ if __name__ == '__main__':
   # dataset = roiLoader(roidb, imdb.num_classes)
   dataset = roibatchLoader(roidb, imdb.num_classes)  
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.TRAIN.IMS_PER_BATCH,
-                            shuffle=True, num_workers=5, collate_fn=collate_fn)
+                            shuffle=True, num_workers=0)
 
-  # input image data
-  im_data = torch.Tensor(cfg.TRAIN.IMS_PER_BATCH, \
-                         3,
-                         cfg.TRAIN.TRIM_HEIGHT, \
-                         cfg.TRAIN.TRIM_WIDTH)
+  # initilize the tensor holder here. 
+  im_data = torch.FloatTensor(1)
+  im_info = torch.FloatTensor(1)
+  num_boxes = torch.LongTensor(1)
+  gt_boxes = torch.FloatTensor(1)
 
-  # input image info
-  im_info = torch.Tensor(cfg.TRAIN.IMS_PER_BATCH, 4)
+  # ship to cuda
+  if args.ngpu > 0:
+    im_data = im_data.cuda()
+    im_info = im_info.cuda()
+    num_boxes = num_boxes.cuda()
+    gt_boxes = gt_boxes.cuda()
 
-  # input gt boxes
-  gt_boxes = torch.Tensor(5 * cfg.TRAIN.IMS_PER_BATCH, 6)
+  # make variable
+  im_data = Variable(im_data)
 
   if args.ngpu > 0:
     cfg.CUDA = True
@@ -141,22 +128,13 @@ if __name__ == '__main__':
     t1  = time.time()
     data = data_iter.next()
 
-    ind_s = 0
-    for i in range(len(data)):
-      im_data[i,:,:,:] = data[i][0]
-      im_info[i,:] = data[i][1]
-      gt_boxes[ind_s:(ind_s + data[i][2].size(0)),:] = data[i][2]
-      ind_s = ind_s + data[i][2].size(0)
+    im_data.data.resize_(data[0].size()).copy_(data[0])
+    im_info.resize_(data[1].size()).copy_(data[1])
+    gt_boxes.resize_(data[2].size()).copy_(data[2])
+    num_boxes.resize_(data[3].size()).copy_(data[3])
 
-    pdb.set_trace()
-    data = (im_data, im_info, gt_boxes[:ind_s,:])
+    out = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
 
-    data = to_variable(data)
-    t2 = time.time()
-    out = fasterRCNN(data)
-    t3 = time.time()
-    print("t1:t2 %f" %(t2-t1))
-    print("total %f" %(t3-t2))
 
   end = time.time()
   print(end - start)
