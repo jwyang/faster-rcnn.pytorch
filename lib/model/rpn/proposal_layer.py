@@ -62,7 +62,7 @@ class _ProposalLayer(nn.Module):
 
 
         # the first set of _num_anchors channels are bg probs
-        # the second set are the fg probs, which we want
+        # the second set are the fg probs
         scores = input[0][:, self._num_anchors:, :, :]
         bbox_deltas = input[1].data
         im_info = input[2]
@@ -168,9 +168,6 @@ class _ProposalLayer(nn.Module):
             # 7. take after_nms_topN (e.g. 300)
             # 8. return the top proposals (-> RoIs top)
 
-            # TODO:jwyang:Compile nms for pytorch, and replace the original one
-            # TODO:jwyang:NMS is slow, make it faster !!!!!
-
             # ---numpy version---
             # proposals_np = proposals.cpu().numpy()
             # scores_np = scores.cpu().numpy()
@@ -194,7 +191,7 @@ class _ProposalLayer(nn.Module):
             # top[0].reshape(*(blob.shape))
             # top[0].data[...] = blob
             # NOTE here we assume there is just one image in each batch
-            batch_inds = scores_single.new(proposals_single.size(0), 1).zero_()
+            batch_inds = scores_single.new(proposals_single.size(0), 1).fill_(i)
             output_single = torch.cat((batch_inds, proposals_single), 1)
 
             output.append(output_single)
@@ -202,6 +199,7 @@ class _ProposalLayer(nn.Module):
         # if len(top) > 1:
         #     top[1].reshape(*(scores.shape))
         #     top[1].data[...] = scores
+
 
         return output
 

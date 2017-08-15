@@ -93,7 +93,7 @@ if __name__ == '__main__':
   # dataset = roiLoader(roidb, imdb.num_classes)
   dataset = roibatchLoader(roidb, imdb.num_classes)  
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.TRAIN.IMS_PER_BATCH,
-                            shuffle=True, num_workers=0)
+                            shuffle=False, num_workers=5)
 
   # initilize the tensor holder here. 
   im_data = torch.FloatTensor(1)
@@ -127,7 +127,6 @@ if __name__ == '__main__':
   for i in range(100):
     t1  = time.time()
     data = data_iter.next()
-
     im_data.data.resize_(data[0].size()).copy_(data[0])
     im_info.resize_(data[1].size()).copy_(data[1])
     gt_boxes.resize_(data[2].size()).copy_(data[2])

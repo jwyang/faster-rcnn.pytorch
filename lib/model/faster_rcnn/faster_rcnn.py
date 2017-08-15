@@ -48,9 +48,9 @@ class _fasterRCNN(nn.Module):
         self.RPN_proposal_target = _ProposalTargetLayer(self.n_classes)
 
         self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
-        '''
+        
         self.RCNN_top_model = nn.Sequential(
-            nn.Linear(self.dout_base_model*cfg.POOLING_SIZE*cfg.POOLING_SIZE, 4096),
+            nn.Linear(dout_base_model*cfg.POOLING_SIZE*cfg.POOLING_SIZE, 4096),
             nn.ReLU(True),
             nn.Dropout(0.5),
             nn.Linear(4096, 4096)
@@ -58,7 +58,7 @@ class _fasterRCNN(nn.Module):
 
         self.RCNN_cls_score = nn.Linear(4096, self.n_classes)
         self.RCNN_bbox_pred = nn.Linear(4096, self.n_classes * 4)
-        '''
+        
 
         # loss
         self.RCNN_loss_cls = 0
@@ -76,25 +76,40 @@ class _fasterRCNN(nn.Module):
         # feed base feature map tp RPN to obtain rois
         rois = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
 
-
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
-            rois_tmp = []
+            rois_coord = []
+            rois_label = torch.Tensor()
+            rois_target = torch.Tensor()
+            rois_inside_ws = torch.Tensor()
+            rois_outside_ws = torch.Tensor()
             for i in range(batch_size):
                 gt_boxes_single = gt_boxes[i][:num_boxes[i]]
                 roi_data = self.RPN_proposal_target(rois[i], gt_boxes_single)
-                rois_tmp.append(roi_data[0])
+                rois_coord.append(roi_data[0])
+                if i == 0:
+                    rois_label, rois_target, rois_inside_ws, rois_outside_ws = roi_data[1:]
+                else:
+                    rois_label = torch.cat((rois_label, roi_data[1]), 0)
+                    rois_target = torch.cat((rois_target, roi_data[2]), 0)
+                    rois_inside_ws = torch.cat((rois_inside_ws, roi_data[3]), 0)
+                    rois_outside_ws = torch.cat((rois_outside_ws, roi_data[4]), 0)
                 
-            rois = rois_tmp
-        rois_var = Variable(rois)
+            rois = rois_coord
 
-        # do roi pooling based on predicted rois
-        pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
-        pooled_feat_v = pooled_feat.view(pooled_feat.size()[0], -1)
+        for i in range(batch_size):
+            roi_var = Variable(rois[i])
+            # do roi pooling based on predicted rois
+            pooled_feat = self.RCNN_roi_pool(base_feat[i].unsqueeze(0), roi_var)
+            pooled_feat_v = pooled_feat.view(pooled_feat.size()[0], -1)
+            if i == 0:
+                pooled_feat_all = pooled_feat_v
+            else:
+                pooled_feat_all = torch.cat((pooled_feat_all, pooled_feat_v), 0)
 
         
         # feed pooled features to top model
-        x = self.RCNN_top_model(pooled_feat_v)
+        x = self.RCNN_top_model(pooled_feat_all)
 
         # compute classifcation loss
         cls_score = self.RCNN_cls_score(x)
@@ -105,7 +120,7 @@ class _fasterRCNN(nn.Module):
 
         if self.training:
             # classification loss
-            label = Variable(roi_data[1].squeeze().long())
+            label = Variable(rois_label.squeeze().long())
             fg_cnt = torch.sum(label.data.ne(0))
             bg_cnt = label.data.numel() - fg_cnt
 
@@ -126,13 +141,45 @@ class _fasterRCNN(nn.Module):
             self.RCNN_loss_cls = F.cross_entropy(cls_score, label, weight=ce_weights)
 
             # bounding box regression L1 loss
-            bbox_targets, bbox_inside_weights, bbox_outside_weights = roi_data[2:]
-            bbox_targets = torch.mul(bbox_targets, bbox_inside_weights)
-            bbox_inside_weights_var = Variable(bbox_inside_weights)
-            bbox_pred = torch.mul(bbox_pred, bbox_inside_weights_var)
+            rois_target = torch.mul(rois_target, rois_inside_ws)
+            rois_inside_ws_var = Variable(rois_inside_ws)
+            bbox_pred = torch.mul(bbox_pred, rois_inside_ws_var)
 
-            bbox_targets_var = Variable(bbox_targets)
-            self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, bbox_targets_var, size_average=False) / (fg_cnt + 1e-4)
-        
-        #return cls_prob, bbox_pred, rois_var
-        return pooled_feat_v
+            rois_target_var = Variable(rois_target)
+            self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, rois_target_var, size_average=False) / (fg_cnt + 1e-4)
+
+        # if self.training:
+        #     # classification loss
+        #     label = Variable(roi_data[1].squeeze().long())
+        #     fg_cnt = torch.sum(label.data.ne(0))
+        #     bg_cnt = label.data.numel() - fg_cnt
+
+        #     # for log
+        #     if self.debug:
+        #         maxv, predict = cls_score.data.max(1)
+        #         self.tp = torch.sum(predict[:fg_cnt].eq(label.data[:fg_cnt])) if fg_cnt > 0 else 0
+        #         self.tf = torch.sum(predict[fg_cnt:].eq(label.data[fg_cnt:]))
+        #         self.fg_cnt = fg_cnt
+        #         self.bg_cnt = bg_cnt
+
+        #     ce_weights = torch.ones(cls_score.size(1))
+        #     if cfg.CUDA:
+        #         ce_weights = ce_weights.cuda()
+
+        #     ce_weights[0] = float(fg_cnt) / bg_cnt
+        #     # ce_weights = ce_weights.cuda()
+        #     self.RCNN_loss_cls = F.cross_entropy(cls_score, label, weight=ce_weights)
+
+        #     # bounding box regression L1 loss
+        #     bbox_targets, bbox_inside_weights, bbox_outside_weights = roi_data[2:]
+        #     bbox_targets = torch.mul(bbox_targets, bbox_inside_weights)
+        #     bbox_inside_weights_var = Variable(bbox_inside_weights)
+        #     bbox_pred = torch.mul(bbox_pred, bbox_inside_weights_var)
+
+        #     bbox_targets_var = Variable(bbox_targets)
+        #     self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, bbox_targets_var, size_average=False) / (fg_cnt + 1e-4)
+        cls_prob = cls_prob.view(batch_size, cfg.TRAIN.BATCH_SIZE, -1)
+        bbox_pred = bbox_pred.view(batch_size, cfg.TRAIN.BATCH_SIZE, -1)
+
+        return cls_prob, bbox_pred, rois
+        #return pooled_feat_v

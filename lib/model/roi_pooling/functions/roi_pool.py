@@ -13,7 +13,7 @@ class RoIPoolFunction(Function):
         self.rois = None
         self.feature_size = None
 
-    def forward(self, features, rois):
+    def forward(self, features, rois):        
         batch_size, num_channels, data_height, data_width = features.size()
         num_rois = rois.size()[0]
         output = torch.zeros(num_rois, num_channels, self.pooled_height, self.pooled_width)

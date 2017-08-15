@@ -67,14 +67,13 @@ class _RPN(nn.Module):
         # x = x.permute(0, 2, 3, 1)
         return x
 
-    def forward(self, input, im_info, gt_boxes, num_boxes):
-        # input is the feature map
+    def forward(self, base_feat, im_info, gt_boxes, num_boxes):
 
-        batch_size = input.size(0)
+        batch_size = base_feat.size(0)
         self.shifts = self.shifts.type_as(im_info)
 
         # return feature map after convrelu layer
-        rpn_conv1 = self.RPN_ConvReLU(input)
+        rpn_conv1 = self.RPN_ConvReLU(base_feat)
         # get rpn classification score
         rpn_cls_score = self.RPN_cls_score(rpn_conv1)
 
