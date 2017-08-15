@@ -110,13 +110,16 @@ if __name__ == '__main__':
 
   # make variable
   im_data = Variable(im_data)
+  im_info = Variable(im_info)
+  num_boxes = Variable(num_boxes)
+  gt_boxes = Variable(gt_boxes)
 
   if args.ngpu > 0:
     cfg.CUDA = True
 
   # initilize the network here.
   # fasterRCNN = DataParallelModified(_fasterRCNN(args.net, imdb.classes))
-  fasterRCNN = _fasterRCNN(args.net, imdb.classes)
+  fasterRCNN = nn.DataParallel(_fasterRCNN(args.net, imdb.classes))
 
   if args.ngpu > 0:
     fasterRCNN.cuda()
@@ -128,9 +131,9 @@ if __name__ == '__main__':
     t1  = time.time()
     data = data_iter.next()
     im_data.data.resize_(data[0].size()).copy_(data[0])
-    im_info.resize_(data[1].size()).copy_(data[1])
-    gt_boxes.resize_(data[2].size()).copy_(data[2])
-    num_boxes.resize_(data[3].size()).copy_(data[3])
+    im_info.data.resize_(data[1].size()).copy_(data[1])
+    gt_boxes.data.resize_(data[2].size()).copy_(data[2])
+    num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
     out = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
 

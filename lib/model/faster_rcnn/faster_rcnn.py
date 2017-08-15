@@ -69,9 +69,14 @@ class _fasterRCNN(nn.Module):
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
 
+        im_info = im_info.data
+        gt_boxes = gt_boxes.data
+        num_boxes = num_boxes.data
+
         batch_size = im_data.size(0)
         # feed image data to base model to obtain base feature map
         base_feat = self.RCNN_base_model(im_data)
+
 
         # feed base feature map tp RPN to obtain rois
         rois = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
@@ -181,5 +186,5 @@ class _fasterRCNN(nn.Module):
         cls_prob = cls_prob.view(batch_size, cfg.TRAIN.BATCH_SIZE, -1)
         bbox_pred = bbox_pred.view(batch_size, cfg.TRAIN.BATCH_SIZE, -1)
 
-        return cls_prob, bbox_pred, rois
+        return cls_prob, bbox_pred
         #return pooled_feat_v
