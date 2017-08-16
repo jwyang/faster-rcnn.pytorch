@@ -114,7 +114,7 @@ class _RPN(nn.Module):
 
             self.rpn_loss_cls = self.rpn_loss_cls / batch_size
 
-            rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights = rpn_data[1:]
+            rpn_bbox_targets, rpn_bbox_inside_weights = rpn_data[1:]
             # compute bbox regression loss
             rpn_bbox_targets = torch.mul(rpn_bbox_targets, rpn_bbox_inside_weights)
             rpn_bbox_inside_weights_v = Variable(rpn_bbox_inside_weights)

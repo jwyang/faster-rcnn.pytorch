@@ -132,7 +132,7 @@ class _ProposalLayer(nn.Module):
         # reshape to (1 * H * W * A, 1) where rows are ordered by (h, w, a)
         # scores = scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
         scores = scores.permute(0, 2, 3, 1).contiguous()
-        scores = scores.view(batch_size, -1, 1)
+        scores = scores.view(batch_size, -1)
 
 
         # Convert anchors into proposals via bbox transformations
@@ -141,28 +141,37 @@ class _ProposalLayer(nn.Module):
 
         # 2. clip predicted boxes to image
         proposals = clip_boxes(proposals, im_info, batch_size)
+        # assign the score to 0 if it's non keep.
 
+        keep = self._filter_boxes(proposals, min_size * im_info[:, 2])
+
+
+        #pdb.set_trace()
         output = []
         for i in range(batch_size):
 
-            proposals_single = proposals[i,:]
-            scores_single = scores[i,:]
-            # 3. remove predicted boxes with either height or width < threshold
-            # (NOTE: convert min_size to input image scale stored in im_info[2])
-            keep = self._filter_boxes(proposals_single, min_size * im_info[i, 2]).squeeze()
-            keep_idx = torch.nonzero(keep).squeeze()
-            proposals_single = proposals_single[keep_idx, :]
-            scores_single = scores_single[keep_idx, :]
+            # proposals_single = proposals[i,:]
+            # scores_single = scores[i,:]
+            # # 3. remove predicted boxes with either height or width < threshold
+            # # (NOTE: convert min_size to input image scale stored in im_info[2])
+            # keep = self._filter_boxes(proposals_single, min_size * im_info[i, 2]).squeeze()
+            
+            keep_idx = torch.nonzero(keep[i]).squeeze()
+            proposals_single = proposals[i][keep_idx, :]
+            scores_single = scores[i][keep_idx]
 
-            # 4. sort all (proposal, score) pairs by score from highest to lowest
-            # 5. take top pre_nms_topN (e.g. 6000)
+            # #pdb.set_trace()
+
+            # # 4. sort all (proposal, score) pairs by score from highest to lowest
+            # # 5. take top pre_nms_topN (e.g. 6000)
             _, order = torch.sort(scores_single, 0, True)
             order = order.squeeze()
-            # order = scores.ravel().argsort()[::-1]
+            # # order = scores.ravel().argsort()[::-1]
             if pre_nms_topN > 0:
                 order = order[:pre_nms_topN]
+
             proposals_single = proposals_single[order, :]
-            scores_single = scores_single[order, :]
+            scores_single = scores_single[order].view(-1,1)
 
             # 6. apply nms (e.g. threshold = 0.7)
             # 7. take after_nms_topN (e.g. 300)
@@ -174,15 +183,14 @@ class _ProposalLayer(nn.Module):
             # keep_np = nms(np.hstack((proposals_np, scores_np)), nms_thresh)
             # keep = torch.from_numpy(np.asarray(keep_np))
             # ---pytorch version---
-            keep = nms(torch.cat((proposals_single, scores_single), 1), nms_thresh)
-            keep = keep.long().squeeze()
+            keep_idx = nms(torch.cat((proposals_single, scores_single), 1), nms_thresh)
 
-            keep = keep.type_as(scores).long()
+            keep_idx = keep_idx.type_as(scores).long().squeeze()
 
             if post_nms_topN > 0:
-                keep = keep[:post_nms_topN]
-            proposals_single = proposals_single[keep, :]
-            scores_single = scores_single[keep, :]
+                keep_idx = keep_idx[:post_nms_topN]
+            proposals_single = proposals_single[keep_idx, :]
+            scores_single = scores_single[keep_idx, :]
 
             # Output rois blob
             # Our RPN implementation only supports a single input image, so all
@@ -213,7 +221,7 @@ class _ProposalLayer(nn.Module):
 
     def _filter_boxes(self, boxes, min_size):
         """Remove all boxes with any side smaller than min_size."""
-        ws = boxes[:, 2] - boxes[:, 0] + 1
-        hs = boxes[:, 3] - boxes[:, 1] + 1
-        keep = ((ws >= min_size) & (hs >= min_size))
+        ws = boxes[:, :, 2] - boxes[:, :, 0] + 1
+        hs = boxes[:, :, 3] - boxes[:, :, 1] + 1
+        keep = ((ws >= min_size.view(-1,1).expand_as(ws)) & (hs >= min_size.view(-1,1).expand_as(hs)))
         return keep
