@@ -25,11 +25,11 @@ class RoIPoolFunction(Function):
                                             _features, rois, output)
             # output = output.cuda()
         else:
-            output = output.cuda()
-            argmax = argmax.cuda()
+            output = output.type_as(features)
+            argmax = argmax.type_as(features).int()
             roi_pooling.roi_pooling_forward_cuda(self.pooled_height, self.pooled_width, self.spatial_scale,
                                                  features, rois, output, argmax)
-            self.output = output
+            # self.output = output
             self.argmax = argmax
             self.rois = rois
             self.feature_size = features.size()

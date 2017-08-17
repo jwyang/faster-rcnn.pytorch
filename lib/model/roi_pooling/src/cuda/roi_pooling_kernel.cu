@@ -71,8 +71,9 @@ __global__ void ROIPoolForward(const int nthreads, const float* bottom_data,
         // If nothing is pooled, argmax = -1 causes nothing to be backprop'd
         int maxidx = -1;
         // bottom_data += roi_batch_ind * channels * height * width;
-
-        int bottom_data_offset = c * height * width;
+        
+        int bottom_data_batch_offset = roi_batch_ind * channels * height * width;
+        int bottom_data_offset = bottom_data_batch_offset + c * height * width;
 
         for (int h = hstart; h < hend; ++h) {
             for (int w = wstart; w < wend; ++w) {
