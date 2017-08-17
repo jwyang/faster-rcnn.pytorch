@@ -1,15 +1,49 @@
 import torch
 import torch.nn as nn
-from torch.nn.parallel.scatter_gather import gather
+from torch.nn.parallel.scatter_gather import gather, scatter_kwargs
 from torch.nn.parallel.replicate import replicate
 from torch.nn.parallel.parallel_apply import parallel_apply
 from torch.autograd import Variable
 
 import pdb
 import time
-class DataParallelModified(nn.Module):
+
+class DataParallel(nn.Module):
+    """Implements data parallelism at the module level.
+
+    This container parallelizes the application of the given module by
+    splitting the input across the specified devices by chunking in the batch
+    dimension. In the forward pass, the module is replicated on each device,
+    and each replica handles a portion of the input. During the backwards
+    pass, gradients from each replica are summed into the original module.
+
+    The batch size should be larger than the number of GPUs used. It should
+    also be an integer multiple of the number of GPUs so that each chunk is the
+    same size (so that each GPU processes the same number of samples).
+
+    See also: :ref:`cuda-nn-dataparallel-instead`
+
+    Arbitrary positional and keyword inputs are allowed to be passed into
+    DataParallel EXCEPT Tensors. All variables will be scattered on dim
+    specified (default 0). Primitive types will be broadcasted, but all
+    other types will be a shallow copy and can be corrupted if written to in
+    the model's forward pass.
+
+    Args:
+        module: module to be parallelized
+        device_ids: CUDA devices (default: all devices)
+        output_device: device location of output (default: device_ids[0])
+
+    Example::
+
+        >>> net = torch.nn.DataParallel(model, device_ids=[0, 1, 2])
+        >>> output = net(input_var)
+    """
+
+    # TODO: update notes/cuda.rst when this class handles 8+ GPUs well
+
     def __init__(self, module, device_ids=None, output_device=None, dim=0):
-        super(DataParallelModified, self).__init__()
+        super(DataParallel, self).__init__()
         if device_ids is None:
             device_ids = list(range(torch.cuda.device_count()))
         if output_device is None:
@@ -19,25 +53,16 @@ class DataParallelModified(nn.Module):
         self.device_ids = device_ids
         self.output_device = output_device
         if len(self.device_ids) == 1:
-            self.module.cuda(device_ids[0]) 
+            self.module.cuda(device_ids[0])
 
     def forward(self, *inputs, **kwargs):
-        pdb.set_trace()
-        #inputs = inputs[0]
-        t3 = time.time()
-        inputs, kwargs = self.scatter(inputs[0], kwargs, self.device_ids)
-        t4 = time.time()
-
+        inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
         if len(self.device_ids) == 1:
             return self.module(*inputs[0], **kwargs[0])
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
-        t5 = time.time()
-        outputs = self.parallel_apply(replicas, inputs, kwargs)
-        t6 = time.time()
-        print("t3:t4 %f" %(t4-t3))
-        print("t4:t5 %f" %(t5-t4))        
-        print("t5:t6 %f" %(t6-t5))
-        return self.gather(outputs, self.output_device)            
+	outputs = self.parallel_apply(replicas, inputs, kwargs)
+	   
+	return self.gather(outputs, self.output_device)
 
     def replicate(self, module, device_ids):
         return replicate(module, device_ids)
@@ -54,7 +79,9 @@ class DataParallelModified(nn.Module):
 
 def data_parallel(module, inputs, device_ids=None, output_device=None, dim=0, module_kwargs=None):
     """Evaluates module(input) in parallel across the GPUs given in device_ids.
+
     This is the functional version of the DataParallel module.
+
     Args:
         module: the module to evaluate in parallel
         inputs: inputs to the module
@@ -82,20 +109,3 @@ def data_parallel(module, inputs, device_ids=None, output_device=None, dim=0, mo
     outputs = parallel_apply(replicas, inputs, module_kwargs, used_device_ids)
     return gather(outputs, output_device, dim)
 
-def scatter_map(inputs, target_gpus):
-    input_list = []
-    for i in range(len(inputs)):
-        var_list = []
-        for var in inputs[i]:
-            var_list.append(var.cuda(target_gpus[i]))
-        input_list.append(tuple(var_list))
-    return tuple(input_list)
-
-def scatter_kwargs(inputs, kwargs, target_gpus, dim=0):
-    """Scatter with support for kwargs dictionary"""
-    inputs = scatter_map(inputs, target_gpus)
-    if kwargs is None or len(kwargs) == 0:
-        kwargs = tuple({} for _ in inputs)
-    else:
-        kwargs = scatter(kwargs, target_gpus, dim)[:len(inputs)]
-    return inputs, kwargs

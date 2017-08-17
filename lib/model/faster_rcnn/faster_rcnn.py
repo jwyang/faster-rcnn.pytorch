@@ -9,7 +9,7 @@ import numpy as np
 from model.utils.config import cfg
 from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
-from model.rpn.proposal_target_layer import _ProposalTargetLayer
+from model.rpn.proposal_target_layer_batch import _ProposalTargetLayer
 import time
 import pdb
 
@@ -84,23 +84,26 @@ class _fasterRCNN(nn.Module):
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
 
-            rois_coord = []
-            rois_label = []
-            rois_target = []
-            rois_inside_ws = []
-            rois_outside_ws = []
+            # rois_coord = []
+            # rois_label = []
+            # rois_target = []
+            # rois_inside_ws = []
+            # rois_outside_ws = []
             #rois_label = torch.Tensor()
             #rois_target = torch.Tensor()
             #rois_inside_ws = torch.Tensor()
             #rois_outside_ws = torch.Tensor()
-            for i in range(batch_size):
-                gt_boxes_single = gt_boxes[i][:num_boxes[i]]
-                roi_data = self.RPN_proposal_target(rois[i], gt_boxes_single)
-                rois_coord.append(roi_data[0])
-                rois_label.append(roi_data[1])
-                rois_target.append(roi_data[2])
-                rois_inside_ws.append(roi_data[3])
-                rois_outside_ws.append(roi_data[4])
+
+            roi_data = self.RPN_proposal_target(rois, gt_boxes, num_boxes)
+
+            rois, rois_label, rois_target, rois_inside_ws = roi_data
+
+
+                # roi_data = self.RPN_proposal_target(rois[i], gt_boxes_single)
+                # rois_coord.append(roi_data[0])
+                # rois_label.append(roi_data[1])
+                # rois_target.append(roi_data[2])
+                # rois_inside_ws.append(roi_data[3])
 
                 #if i == 0:
                 #    rois_label, rois_target, rois_inside_ws, rois_outside_ws = roi_data[1:]
@@ -109,25 +112,18 @@ class _fasterRCNN(nn.Module):
                 #    rois_target = torch.cat((rois_target, roi_data[2]), 0)
                 #    rois_inside_ws = torch.cat((rois_inside_ws, roi_data[3]), 0)
                 #    rois_outside_ws = torch.cat((rois_outside_ws, roi_data[4]), 0)
-            rois = rois_coord
-            rois_label = torch.cat(tuple(rois_label),0)
-            rois_target = torch.cat(tuple(rois_target),0)
-            rois_inside_ws = torch.cat(tuple(rois_inside_ws),0)
-            rois_outside_ws = torch.cat(tuple(rois_outside_ws),0)
+            # rois = rois_coord
+            # rois_label = torch.cat(tuple(rois_label),0)
+            # rois_target = torch.cat(tuple(rois_target),0)
+            # rois_inside_ws = torch.cat(tuple(rois_inside_ws),0)
         
-        pooled_feat_all = []
-        for i in range(batch_size):
-            print(i)
-            roi_var = Variable(rois[i])
-            
-            # do roi pooling based on predicted rois
-            pooled_feat = self.RCNN_roi_pool(base_feat[i].view(1, self.dout_base_model, self.feat_height, self.feat_width), roi_var)
-            pooled_feat_v = pooled_feat.view(pooled_feat.size(0), -1)
-            pooled_feat_all.append(pooled_feat_v)
-
-
-        '''
-        pooled_feat_all = torch.cat(tuple(pooled_feat_all), 0)
+        #pooled_feat_all = []
+        #for i in range(batch_size):
+        roi_var = Variable(rois)
+        
+        # do roi pooling based on predicted rois
+        pooled_feat = self.RCNN_roi_pool(base_feat, roi_var)
+        pooled_feat_all = pooled_feat.view(batch_size, -1)
         
         # feed pooled features to top model
         x = self.RCNN_top_model(pooled_feat_all)
@@ -203,5 +199,5 @@ class _fasterRCNN(nn.Module):
         bbox_pred = bbox_pred.view(batch_size, cfg.TRAIN.BATCH_SIZE, -1)
         
         return cls_prob, bbox_pred
-        '''
-        return base_feat
+        
+        #return base_feat

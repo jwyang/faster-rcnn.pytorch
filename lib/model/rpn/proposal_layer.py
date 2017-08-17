@@ -147,7 +147,7 @@ class _ProposalLayer(nn.Module):
 
 
         #pdb.set_trace()
-        output = []
+        output = scores.new(batch_size, post_nms_topN, 5).zero_()
         for i in range(batch_size):
 
             # proposals_single = proposals[i,:]
@@ -160,7 +160,6 @@ class _ProposalLayer(nn.Module):
             proposals_single = proposals[i][keep_idx, :]
             scores_single = scores[i][keep_idx]
 
-            # #pdb.set_trace()
 
             # # 4. sort all (proposal, score) pairs by score from highest to lowest
             # # 5. take top pre_nms_topN (e.g. 6000)
@@ -199,10 +198,18 @@ class _ProposalLayer(nn.Module):
             # top[0].reshape(*(blob.shape))
             # top[0].data[...] = blob
             # NOTE here we assume there is just one image in each batch
-            batch_inds = scores_single.new(proposals_single.size(0), 1).fill_(i)
-            output_single = torch.cat((batch_inds, proposals_single), 1)
+            # batch_inds = scores_single.new(proposals_single.size(0), 1).fill_(i)
+            
+            # padding 0 at the end.
+            num_proposal = proposals_single.size(0)
+            output[i,:,0] = i
+            output[i,:num_proposal,1:] = proposals_single
 
-            output.append(output_single)
+            #pdb.set_trace()
+            #output_single = torch.cat((batch_inds, proposals_single), 1)
+
+
+            #output.append(output_single)
         # [Optional] output scores blob
         # if len(top) > 1:
         #     top[1].reshape(*(scores.shape))

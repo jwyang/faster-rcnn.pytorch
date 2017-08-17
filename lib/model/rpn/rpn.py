@@ -25,7 +25,7 @@ class _RPN(nn.Module):
                         nn.Conv2d(self.din, 512, 3, 1, 1, bias=True),
                         nn.ReLU(True)
         )
-
+        
         # define bg/fg classifcation score layer
         self.nc_score_out = len(self.anchor_scales) * 3 * 2 # 2(bg/fg) * 9 (anchors)
         self.RPN_cls_score = nn.Conv2d(512, self.nc_score_out, 1, 1, 0)
