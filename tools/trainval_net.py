@@ -20,9 +20,7 @@ import time
 
 import torch.nn as nn
 from roi_data_layer.roidb import combined_roidb
-from roi_data_layer.layer import RoIDataLayer
 from roi_data_layer.roibatchLoader import roibatchLoader
-from roi_data_layer.roiLoader import roiLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.faster_rcnn.faster_rcnn import _fasterRCNN
 
@@ -88,10 +86,9 @@ if __name__ == '__main__':
   imdb, roidb = combined_roidb(args.imdb_name)
   
   print('{:d} roidb entries'.format(len(roidb)))
-  train_loader = RoIDataLayer(roidb, imdb.num_classes)
 
-  dataset = roiLoader(roidb, imdb.num_classes)
-  # dataset = roibatchLoader(roidb, imdb.num_classes)  
+
+  dataset = roibatchLoader(roidb, imdb.num_classes)
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=8,
                             shuffle=False, num_workers=5)
 

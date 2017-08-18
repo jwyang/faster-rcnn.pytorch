@@ -84,16 +84,6 @@ class _fasterRCNN(nn.Module):
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
 
-            # rois_coord = []
-            # rois_label = []
-            # rois_target = []
-            # rois_inside_ws = []
-            # rois_outside_ws = []
-            #rois_label = torch.Tensor()
-            #rois_target = torch.Tensor()
-            #rois_inside_ws = torch.Tensor()
-            #rois_outside_ws = torch.Tensor()
-
             roi_data = self.RPN_proposal_target(rois, gt_boxes, num_boxes)
             rois, rois_label, rois_target, rois_inside_ws = roi_data
 
@@ -101,26 +91,6 @@ class _fasterRCNN(nn.Module):
             rois_target = rois_target.view(-1, rois_target.size(2))
             rois_inside_ws = rois_inside_ws.view(-1, rois_inside_ws.size(2))
 
-                # roi_data = self.RPN_proposal_target(rois[i], gt_boxes_single)
-                # rois_coord.append(roi_data[0])
-                # rois_label.append(roi_data[1])
-                # rois_target.append(roi_data[2])
-                # rois_inside_ws.append(roi_data[3])
-
-                #if i == 0:
-                #    rois_label, rois_target, rois_inside_ws, rois_outside_ws = roi_data[1:]
-                #else:
-                #    rois_label = torch.cat((rois_label, roi_data[1]), 0)
-                #    rois_target = torch.cat((rois_target, roi_data[2]), 0)
-                #    rois_inside_ws = torch.cat((rois_inside_ws, roi_data[3]), 0)
-                #    rois_outside_ws = torch.cat((rois_outside_ws, roi_data[4]), 0)
-            # rois = rois_coord
-            # rois_label = torch.cat(tuple(rois_label),0)
-            # rois_target = torch.cat(tuple(rois_target),0)
-            # rois_inside_ws = torch.cat(tuple(rois_inside_ws),0)
-        
-        #pooled_feat_all = []
-        #for i in range(batch_size):
         rois_var = Variable(rois.view(-1,5))
         
         # do roi pooling based on predicted rois
@@ -143,20 +113,9 @@ class _fasterRCNN(nn.Module):
             fg_cnt = torch.sum(label.data.ne(0))
             bg_cnt = label.data.numel() - fg_cnt
 
-            # for log
-            if self.debug:
-                maxv, predict = cls_score.data.max(1)
-                self.tp = torch.sum(predict[:fg_cnt].eq(label.data[:fg_cnt])) if fg_cnt > 0 else 0
-                self.tf = torch.sum(predict[fg_cnt:].eq(label.data[fg_cnt:]))
-                self.fg_cnt = fg_cnt
-                self.bg_cnt = bg_cnt
-
-            ce_weights = torch.ones(cls_score.size(1))
-            if cfg.CUDA:
-                ce_weights = ce_weights.cuda()
-
+            ce_weights = rois_label.new(cls_score.size(1)).fill_(1)
             ce_weights[0] = float(fg_cnt) / bg_cnt
-            # ce_weights = ce_weights.cuda()
+
             self.RCNN_loss_cls = F.cross_entropy(cls_score, label, weight=ce_weights)
 
             # bounding box regression L1 loss
@@ -167,39 +126,8 @@ class _fasterRCNN(nn.Module):
             rois_target_var = Variable(rois_target)
             self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, rois_target_var, size_average=False) / (fg_cnt + 1e-4)
 
-        # if self.training:
-        #     # classification loss
-        #     label = Variable(roi_data[1].squeeze().long())
-        #     fg_cnt = torch.sum(label.data.ne(0))
-        #     bg_cnt = label.data.numel() - fg_cnt
-
-        #     # for log
-        #     if self.debug:
-        #         maxv, predict = cls_score.data.max(1)
-        #         self.tp = torch.sum(predict[:fg_cnt].eq(label.data[:fg_cnt])) if fg_cnt > 0 else 0
-        #         self.tf = torch.sum(predict[fg_cnt:].eq(label.data[fg_cnt:]))
-        #         self.fg_cnt = fg_cnt
-        #         self.bg_cnt = bg_cnt
-
-        #     ce_weights = torch.ones(cls_score.size(1))
-        #     if cfg.CUDA:
-        #         ce_weights = ce_weights.cuda()
-
-        #     ce_weights[0] = float(fg_cnt) / bg_cnt
-        #     # ce_weights = ce_weights.cuda()
-        #     self.RCNN_loss_cls = F.cross_entropy(cls_score, label, weight=ce_weights)
-
-        #     # bounding box regression L1 loss
-        #     bbox_targets, bbox_inside_weights, bbox_outside_weights = roi_data[2:]
-        #     bbox_targets = torch.mul(bbox_targets, bbox_inside_weights)
-        #     bbox_inside_weights_var = Variable(bbox_inside_weights)
-        #     bbox_pred = torch.mul(bbox_pred, bbox_inside_weights_var)
-
-        #     bbox_targets_var = Variable(bbox_targets)
-        #     self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, bbox_targets_var, size_average=False) / (fg_cnt + 1e-4)
         cls_prob = cls_prob.view(batch_size, cfg.TRAIN.BATCH_SIZE, -1)
         bbox_pred = bbox_pred.view(batch_size, cfg.TRAIN.BATCH_SIZE, -1)
         
         return cls_prob, bbox_pred
         
-        #return base_feat
