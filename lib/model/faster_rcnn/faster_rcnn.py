@@ -119,11 +119,11 @@ class _fasterRCNN(nn.Module):
         
         #pooled_feat_all = []
         #for i in range(batch_size):
-        roi_var = Variable(rois)
+        roi_var = Variable(rois.view(-1,5))
         
         # do roi pooling based on predicted rois
         pooled_feat = self.RCNN_roi_pool(base_feat, roi_var)
-        pooled_feat_all = pooled_feat.view(batch_size, -1)
+        pooled_feat_all = pooled_feat.view(pooled_feat.size(0), -1)
         
         # feed pooled features to top model
         x = self.RCNN_top_model(pooled_feat_all)
@@ -137,7 +137,7 @@ class _fasterRCNN(nn.Module):
 
         if self.training:
             # classification loss
-            label = Variable(rois_label.squeeze().long())
+            label = Variable(rois_label.view(-1).long())
             fg_cnt = torch.sum(label.data.ne(0))
             bg_cnt = label.data.numel() - fg_cnt
 
@@ -162,7 +162,7 @@ class _fasterRCNN(nn.Module):
             rois_inside_ws_var = Variable(rois_inside_ws)
             bbox_pred = torch.mul(bbox_pred, rois_inside_ws_var)
 
-            rois_target_var = Variable(rois_target)
+            rois_target_var = Variable(rois_target.view(-1, rois_target.size(2)))
             self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, rois_target_var, size_average=False) / (fg_cnt + 1e-4)
 
         # if self.training:
