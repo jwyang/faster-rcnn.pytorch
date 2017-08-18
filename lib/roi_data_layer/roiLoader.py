@@ -28,6 +28,7 @@ class roiLoader(data.Dataset):
 
     minibatch_db = [self._roidb[index]]
     blobs = get_minibatch(minibatch_db, self._num_classes)
+    pdb.set_trace()
     data = torch.from_numpy(blobs['data'])
     im_info = torch.from_numpy(blobs['im_info'])
     gt_boxes = torch.from_numpy(blobs['gt_boxes'])

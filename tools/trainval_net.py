@@ -22,6 +22,7 @@ import torch.nn as nn
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.layer import RoIDataLayer
 from roi_data_layer.roibatchLoader import roibatchLoader
+from roi_data_layer.roiLoader import roiLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.faster_rcnn.faster_rcnn import _fasterRCNN
 
@@ -89,8 +90,8 @@ if __name__ == '__main__':
   print('{:d} roidb entries'.format(len(roidb)))
   train_loader = RoIDataLayer(roidb, imdb.num_classes)
 
-  # dataset = roiLoader(roidb, imdb.num_classes)
-  dataset = roibatchLoader(roidb, imdb.num_classes)  
+  dataset = roiLoader(roidb, imdb.num_classes)
+  # dataset = roibatchLoader(roidb, imdb.num_classes)  
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=8,
                             shuffle=False, num_workers=5)
 
@@ -128,7 +129,7 @@ if __name__ == '__main__':
   start = time.time()
   for i in range(100):
     t1  = time.time()
-    data = data_iter.next()
+    data = data_iter.next()    
     im_data.data.resize_(data[0].size()).copy_(data[0])
     im_info.data.resize_(data[1].size()).copy_(data[1])
     gt_boxes.data.resize_(data[2].size()).copy_(data[2])
