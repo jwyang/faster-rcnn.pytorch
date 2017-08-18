@@ -115,7 +115,6 @@ if __name__ == '__main__':
     cfg.CUDA = True
 
   # initilize the network here.
-  # fasterRCNN = DataParallelModified(_fasterRCNN(args.net, imdb.classes))
   fasterRCNN = nn.DataParallel(_fasterRCNN(args.net, imdb.classes))
 
   if args.ngpu > 0:
