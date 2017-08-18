@@ -24,7 +24,6 @@ from roi_data_layer.layer import RoIDataLayer
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.faster_rcnn.faster_rcnn import _fasterRCNN
-from DataParallelModified import DataParallelModified
 
 def parse_args():
   """
@@ -92,7 +91,7 @@ if __name__ == '__main__':
 
   # dataset = roiLoader(roidb, imdb.num_classes)
   dataset = roibatchLoader(roidb, imdb.num_classes)  
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.TRAIN.IMS_PER_BATCH,
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=8,
                             shuffle=False, num_workers=5)
 
   # initilize the tensor holder here. 
