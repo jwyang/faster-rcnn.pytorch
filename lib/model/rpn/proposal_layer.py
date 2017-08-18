@@ -145,32 +145,45 @@ class _ProposalLayer(nn.Module):
 
         keep = self._filter_boxes(proposals, min_size * im_info[:, 2])
 
-
-        #pdb.set_trace()
-        output = scores.new(batch_size, post_nms_topN, 5).zero_()
+        # trim keep index to make it euqal over batch
+        keep_num = torch.sum(keep.int(), 1)
+        trim_size = torch.min(keep_num)
+        keep_idx = []
         for i in range(batch_size):
+        	keep_idx_i = torch.nonzero(keep[i]).squeeze()
+        	keep_idx_i = keep_idx_i[:trim_size]
+        	keep_idx.append(keep_idx_i + i * scores.size(1))
 
-            # proposals_single = proposals[i,:]
-            # scores_single = scores[i,:]
+        keep_idx = torch.cat(tuple(keep_idx), 0)
+
+        scores_keep = scores.view(-1)[keep_idx].view(batch_size, trim_size)
+        proposals_keep = proposals.view(-1, 4)[keep_idx, :].contiguous().view(batch_size, trim_size, 4)
+        
+        _, order = torch.sort(scores_keep, 1, True)
+
+        output = scores.new(batch_size, post_nms_topN, 5).zero_()
+
+        for i in range(batch_size):
             # # 3. remove predicted boxes with either height or width < threshold
             # # (NOTE: convert min_size to input image scale stored in im_info[2])
             # keep = self._filter_boxes(proposals_single, min_size * im_info[i, 2]).squeeze()
-            
-            keep_idx = torch.nonzero(keep[i]).squeeze()
-            proposals_single = proposals[i][keep_idx, :]
-            scores_single = scores[i][keep_idx]
+            # keep_idx = torch.nonzero(keep[i]).squeeze()
 
+            proposals_single = proposals_keep[i]
+            scores_single = scores_keep[i]
 
             # # 4. sort all (proposal, score) pairs by score from highest to lowest
             # # 5. take top pre_nms_topN (e.g. 6000)
-            _, order = torch.sort(scores_single, 0, True)
-            order = order.squeeze()
-            # # order = scores.ravel().argsort()[::-1]
-            if pre_nms_topN > 0:
-                order = order[:pre_nms_topN]
+            order_single = order[i]
 
-            proposals_single = proposals_single[order, :]
-            scores_single = scores_single[order].view(-1,1)
+            # _, order = torch.sort(scores_single, 0, True)
+            # order = order.squeeze()
+            # # order = scores.ravel().argsort()[::-1]
+            if pre_nms_topN > 0 and pre_nms_topN < trim_size:
+                order_single = order_single[:pre_nms_topN]
+
+            proposals_single = proposals_single[order_single, :]
+            scores_single = scores_single[order_single].view(-1,1)
 
             # 6. apply nms (e.g. threshold = 0.7)
             # 7. take after_nms_topN (e.g. 300)
@@ -182,14 +195,13 @@ class _ProposalLayer(nn.Module):
             # keep_np = nms(np.hstack((proposals_np, scores_np)), nms_thresh)
             # keep = torch.from_numpy(np.asarray(keep_np))
             # ---pytorch version---
-            keep_idx = nms(torch.cat((proposals_single, scores_single), 1), nms_thresh)
-
-            keep_idx = keep_idx.type_as(scores).long().squeeze()
+            keep_idx_i = nms(torch.cat((proposals_single, scores_single), 1), nms_thresh)
+            keep_idx_i = keep_idx_i.type_as(scores).long().squeeze()
 
             if post_nms_topN > 0:
-                keep_idx = keep_idx[:post_nms_topN]
-            proposals_single = proposals_single[keep_idx, :]
-            scores_single = scores_single[keep_idx, :]
+                keep_idx_i = keep_idx_i[:post_nms_topN]
+            proposals_single = proposals_single[keep_idx_i, :]
+            scores_single = scores_single[keep_idx_i, :]
 
             # Output rois blob
             # Our RPN implementation only supports a single input image, so all
