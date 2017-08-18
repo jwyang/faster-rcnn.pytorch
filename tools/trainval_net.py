@@ -82,17 +82,17 @@ if __name__ == '__main__':
 
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
-  cfg.TRAIN.USE_FLIPPED = True  
+  cfg.TRAIN.USE_FLIPPED = True
   imdb, roidb = combined_roidb(args.imdb_name)
-  
+
   print('{:d} roidb entries'.format(len(roidb)))
 
 
   dataset = roibatchLoader(roidb, imdb.num_classes)
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=8,
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=64,
                             shuffle=False, num_workers=5)
 
-  # initilize the tensor holder here. 
+  # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
   im_info = torch.FloatTensor(1)
   num_boxes = torch.LongTensor(1)
@@ -125,7 +125,7 @@ if __name__ == '__main__':
   start = time.time()
   for i in range(100):
     t1  = time.time()
-    data = data_iter.next()    
+    data = data_iter.next()
     im_data.data.resize_(data[0].size()).copy_(data[0])
     im_info.data.resize_(data[1].size()).copy_(data[1])
     gt_boxes.data.resize_(data[2].size()).copy_(data[2])
