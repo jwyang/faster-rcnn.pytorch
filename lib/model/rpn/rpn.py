@@ -124,4 +124,4 @@ class _RPN(nn.Module):
             self.rpn_loss_box = F.smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets_v, size_average=False) / (fg_cnt + 1e-4)
             self.rpn_loss_box = self.rpn_loss_box / batch_size
 
-        return rois
+        return rois, self.rpn_loss_cls, self.rpn_loss_box

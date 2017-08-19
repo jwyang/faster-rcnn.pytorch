@@ -10,15 +10,17 @@ from __future__ import print_function
 import _init_paths
 import os
 import sys
-import torch
-from torch.autograd import Variable
 import numpy as np
 import argparse
 import pprint
 import pdb
 import time
 
+import torch
+from torch.autograd import Variable
 import torch.nn as nn
+import torch.optim as optim
+
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
@@ -122,17 +124,27 @@ if __name__ == '__main__':
 
   data_iter = iter(dataloader)
   # training
+
+  optimizer = optim.Adam(fasterRCNN.parameters())
+
   start = time.time()
   for i in range(100):
-    t1  = time.time()
+
+    fasterRCNN.zero_grad()
     data = data_iter.next()
     im_data.data.resize_(data[0].size()).copy_(data[0])
     im_info.data.resize_(data[1].size()).copy_(data[1])
     gt_boxes.data.resize_(data[2].size()).copy_(data[2])
     num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
-    out = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+    cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+    loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
 
+    # backward
+    loss.backward()
+    optimizer.step()
+
+    print(loss.data)
 
   end = time.time()
   print(end - start)
