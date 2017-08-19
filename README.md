@@ -8,10 +8,15 @@ This is the code for image graph detection. It conducts the object detection, at
 
 put VOCdevkit2007 under data folder. 
 
-To run: 
+To train a resnet101, run:
 ```
 ./experiments/scripts/train_faster_rcnn.sh 0 pascal_voc res101
 ```
+Alternatively, to train a vgg16, run:
+```
+./experiments/scripts/train_faster_rcnn.sh 0 pascal_voc vgg16
+```
+
 #### Faster-RCNN
 
 1. Pretrained Bottom Network (e.g., AlexNet, VGG, ResNet, etc.) 
