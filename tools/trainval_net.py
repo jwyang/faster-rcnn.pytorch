@@ -26,6 +26,8 @@ from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.faster_rcnn.faster_rcnn import _fasterRCNN
 
+import pdb
+
 def parse_args():
   """
   Parse input arguments
@@ -67,6 +69,21 @@ def parse_args():
   args = parser.parse_args()
   return args
 
+def weights_normal_init(model, dev=0.01):
+    if isinstance(model, list):
+        for m in model:
+            weights_normal_init(m, dev)
+    else:
+        for m in model.modules():
+            if isinstance(m, nn.Conv2d):
+                m.weight.data.normal_(0.0, dev)
+            elif isinstance(m, nn.Linear):
+                m.weight.data.normal_(0.0, dev)
+
+lr = cfg.TRAIN.LEARNING_RATE
+momentum = cfg.TRAIN.MOMENTUM
+weight_decay = cfg.TRAIN.WEIGHT_DECAY
+
 if __name__ == '__main__':
   args = parse_args()
 
@@ -91,8 +108,8 @@ if __name__ == '__main__':
 
 
   dataset = roibatchLoader(roidb, imdb.num_classes)
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=8,
-                            shuffle=False, num_workers=5)
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
+                            shuffle=False, num_workers=0)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -117,7 +134,15 @@ if __name__ == '__main__':
     cfg.CUDA = True
 
   # initilize the network here.
-  fasterRCNN = nn.DataParallel(_fasterRCNN(args.net, imdb.classes))
+  fasterRCNN = _fasterRCNN(args.net, imdb.classes)
+  weights_normal_init(fasterRCNN)
+
+  # pdb.set_trace()
+  params = list(fasterRCNN.parameters())
+  #  optimizer = optim.Adam(fasterRCNN.parameters())
+  optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=weight_decay)
+
+  # fasterRCNN = nn.DataParallel(fasterRCNN)
 
   if args.ngpu > 0:
     fasterRCNN.cuda()
@@ -125,12 +150,11 @@ if __name__ == '__main__':
   data_iter = iter(dataloader)
   # training
 
-  optimizer = optim.Adam(fasterRCNN.parameters())
 
   start = time.time()
   for i in range(100):
 
-    fasterRCNN.zero_grad()
+    # fasterRCNN.zero_grad()
     data = data_iter.next()
     im_data.data.resize_(data[0].size()).copy_(data[0])
     im_info.data.resize_(data[1].size()).copy_(data[1])
@@ -141,7 +165,11 @@ if __name__ == '__main__':
     loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
 
     # backward
+    optimizer.zero_grad()    
     loss.backward()
+
+    pdb.set_trace()
+    
     optimizer.step()
 
     print(loss.data)

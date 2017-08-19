@@ -53,11 +53,20 @@ class _fasterRCNN(nn.Module):
             nn.Linear(self.dout_base_model*cfg.POOLING_SIZE*cfg.POOLING_SIZE, 4096),
             nn.ReLU(True),
             nn.Dropout(0.5),
-            nn.Linear(4096, 4096)
+            nn.Linear(4096, 4096),
+            nn.ReLU(True),            
+            nn.Dropout(0.5)
         )
 
-        self.RCNN_cls_score = nn.Linear(4096, self.n_classes)
-        self.RCNN_bbox_pred = nn.Linear(4096, self.n_classes * 4)
+        self.RCNN_cls_score = nn.Sequential(
+            nn.Linear(4096, self.n_classes),
+            nn.ReLU(True)
+        )
+
+        self.RCNN_bbox_pred = nn.Sequential(
+            nn.Linear(4096, self.n_classes * 4),
+            nn.ReLU(True)
+        )
         
 
         # loss

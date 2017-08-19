@@ -135,7 +135,6 @@ class _ProposalLayer(nn.Module):
             # # (NOTE: convert min_size to input image scale stored in im_info[2])
             # keep = self._filter_boxes(proposals_single, min_size * im_info[i, 2]).squeeze()
             # keep_idx = torch.nonzero(keep[i]).squeeze()
-
             proposals_single = proposals_keep[i]
             scores_single = scores_keep[i]
 
