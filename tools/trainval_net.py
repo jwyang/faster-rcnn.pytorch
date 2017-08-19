@@ -90,8 +90,8 @@ if __name__ == '__main__':
   print('{:d} roidb entries'.format(len(roidb)))
   train_loader = RoIDataLayer(roidb, imdb.num_classes)
 
-  dataset = roiLoader(roidb, imdb.num_classes)
-  # dataset = roibatchLoader(roidb, imdb.num_classes)  
+  # dataset = roiLoader(roidb, imdb.num_classes)
+  dataset = roibatchLoader(roidb, imdb.num_classes)  
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=8,
                             shuffle=False, num_workers=5)
 
