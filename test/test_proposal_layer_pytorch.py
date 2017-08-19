@@ -93,29 +93,6 @@ RPN_proposal = _ProposalLayer(feat_stride_pt, anchor_scales).cuda()
 rois_pt = RPN_proposal((rpn_cls_prob_pt.cuda(), rpn_cls_pred_pt.cuda(),
                                  im_info_pt.cuda(), shifts.cuda(), cfg_key))
 
-pdb.set_trace()
-
-
-
-# proposal_target_layer.py
-
-
-
-
-
-
-
-
-
-
-
-# anchor_target_layer.py
-
-
-
-
-
-
 
 
 

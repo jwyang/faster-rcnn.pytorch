@@ -16,7 +16,6 @@ rpn_cls_prob_np = rpn_cls_prob_pt.numpy()
 rpn_cls_pred_pt = torch.rand(1, 36, width, height) * 2 - 1 
 rpn_cls_pred_np = rpn_cls_pred_pt.numpy()
 
-
 data = {}
 data['width'] = width
 data['height'] = height
@@ -26,7 +25,23 @@ data['im_info'] = im_info_pt
 data['rpn_cls_prob_pt'] = rpn_cls_prob_pt
 data['rpn_cls_pred_pt'] = rpn_cls_pred_pt
 
-pickle.dump(data, open('data.pkl', 'w'))
+pickle.dump(data, open('data_proposal_layer.pkl', 'w'))
 
 
+rois = torch.zeros(1, 2000, 5)
+rois[:,:,1:5] = torch.rand(1, 2000, 4) * 600
+
+gt_boxes_np = np.array([[419.20001221,  336.        ,  516.79998779,  540.79998779,    9.],
+				[262.3999939 ,  420.79998779,  403.20001221,  593.59997559,    9. ]])
+
+gt_boxes_py = torch.from_numpy(gt_boxes_np)
+
+gt_ishard = [0, 0]
+dont_care_areas = []
+
+data = {}
+data['rois'] = rois
+data['gt_boxes_np'] = gt_boxes_np
+
+pickle.dump(data, open('proposal_target_layer.pkl', 'w'))
 
