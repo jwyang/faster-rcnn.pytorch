@@ -17,6 +17,8 @@ from utils.cython_bbox import bbox_overlaps, bbox_intersections
 from fast_rcnn.config import cfg
 from fast_rcnn.bbox_transform import bbox_transform
 
+import pdb
+
 # <<<< obsolete
 
 DEBUG = False
@@ -60,6 +62,8 @@ def proposal_target_layer(rpn_rois, gt_boxes, gt_ishard, dontcare_areas, _num_cl
     """
     add the ground-truth to rois will cause zero loss! not good for visuallization
     """
+    pdb.set_trace()
+
     jittered_gt_boxes = _jitter_gt_boxes(gt_easyboxes)
     zeros = np.zeros((gt_easyboxes.shape[0] * 2, 1), dtype=gt_easyboxes.dtype)
     all_rois = np.vstack((all_rois, \

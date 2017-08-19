@@ -102,7 +102,7 @@ class _AnchorTargetLayer(nn.Module):
         if not cfg.TRAIN.RPN_CLOBBER_POSITIVES:
             labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
-        # gt_max_overlaps[gt_max_overlaps==0] = 1e-5
+        gt_max_overlaps[gt_max_overlaps==0] = 1e-5
         keep = torch.sum(overlaps.eq(gt_max_overlaps.view(batch_size,1,-1).expand_as(overlaps)), 2)
         
         if torch.sum(keep) > 0:

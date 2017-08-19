@@ -87,10 +87,9 @@ if __name__ == '__main__':
 
   print('{:d} roidb entries'.format(len(roidb)))
 
-
+  # dataset = roiLoader(roidb, imdb.num_classes)
   dataset = roibatchLoader(roidb, imdb.num_classes)
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=64,
-                            shuffle=False, num_workers=5)
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=False, num_workers=5)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)

@@ -9,7 +9,7 @@ import numpy as np
 from model.utils.config import cfg
 from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
-from model.rpn.proposal_target_layer_batch import _ProposalTargetLayer
+from model.rpn.proposal_target_layer import _ProposalTargetLayer
 import time
 import pdb
 
