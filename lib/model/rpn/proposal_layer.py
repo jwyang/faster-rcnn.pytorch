@@ -64,7 +64,7 @@ class _ProposalLayer(nn.Module):
         # the first set of _num_anchors channels are bg probs
         # the second set are the fg probs
         scores = input[0][:, self._num_anchors:, :, :]
-        bbox_deltas = input[1].data
+        bbox_deltas = input[1]
         im_info = input[2]
         shifts = input[3]
         cfg_key = input[4]
@@ -138,7 +138,7 @@ class _ProposalLayer(nn.Module):
         # Convert anchors into proposals via bbox transformations
         proposals = bbox_transform_inv(anchors, bbox_deltas, batch_size)
 
-
+        
         # 2. clip predicted boxes to image
         proposals = clip_boxes(proposals, im_info, batch_size)
         # assign the score to 0 if it's non keep.

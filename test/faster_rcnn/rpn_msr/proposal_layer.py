@@ -12,9 +12,9 @@ from .generate_anchors import generate_anchors
 
 # TODO: make fast_rcnn irrelevant
 # >>>> obsolete, because it depends on sth outside of this project
-from ..fast_rcnn.config import cfg
-from ..fast_rcnn.bbox_transform import bbox_transform_inv, clip_boxes
-from ..fast_rcnn.nms_wrapper import nms
+from fast_rcnn.config import cfg
+from fast_rcnn.bbox_transform import bbox_transform_inv, clip_boxes
+from fast_rcnn.nms_wrapper import nms
 
 # <<<< obsolete
 import pdb
@@ -98,7 +98,6 @@ def proposal_layer(rpn_cls_prob_reshape, rpn_bbox_pred, im_info, cfg_key, _feat_
     shift_x, shift_y = np.meshgrid(shift_x, shift_y)
     shifts = np.vstack((shift_x.ravel(), shift_y.ravel(),
                         shift_x.ravel(), shift_y.ravel())).transpose()
-    pdb.set_trace()
     # Enumerate all shifted anchors:
     #
     # add A anchors (1, A, 4) to

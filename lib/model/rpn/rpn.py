@@ -87,7 +87,7 @@ class _RPN(nn.Module):
         # proposal layer
         cfg_key = 'TRAIN' if self.training else 'TEST'
         
-        rois = self.RPN_proposal((rpn_cls_prob.data, rpn_bbox_pred,
+        rois = self.RPN_proposal((rpn_cls_prob.data, rpn_bbox_pred.data,
                                  im_info, self.shifts, cfg_key))
 
         # generating training labels and build the rpn loss
