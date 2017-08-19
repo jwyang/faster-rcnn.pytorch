@@ -11,9 +11,6 @@ this_dir = osp.dirname(__file__)
 lib_path = osp.join(this_dir, 'faster_rcnn')
 add_path(lib_path)
 
-lib_path = osp.join(this_dir, 'faster_rcnn_rbg')
-add_path(lib_path)
-
 pt_lib_path = osp.join(this_dir, '..', 'lib')
 add_path(pt_lib_path)
 
