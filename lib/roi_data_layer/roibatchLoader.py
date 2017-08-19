@@ -56,8 +56,8 @@ class roibatchLoader(data.Dataset):
         gt_boxes[:, 3] = gt_boxes[:, 3] - y_s        
 
         # update gt bounding box according the trip
-        gt_boxes[:, 1].clamp(0, self.trim_height)
-        gt_boxes[:, 3].clamp(0, self.trim_height)
+        gt_boxes[:, 1].clamp_(0, self.trim_height)
+        gt_boxes[:, 3].clamp_(0, self.trim_height)
 
         # update im_info
         im_info[0, 0] = self.trim_height
@@ -72,8 +72,8 @@ class roibatchLoader(data.Dataset):
         gt_boxes[:, 2] = gt_boxes[:, 2] - x_s
 
         # update gt bounding box according the trip
-        gt_boxes[:, 0].clamp(0, self.trim_width)
-        gt_boxes[:, 2].clamp(0, self.trim_width)
+        gt_boxes[:, 0].clamp_(0, self.trim_width)
+        gt_boxes[:, 2].clamp_(0, self.trim_width)
 
         # update im_info
         im_info[0, 1] = self.trim_width
