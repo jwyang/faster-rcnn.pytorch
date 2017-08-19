@@ -97,21 +97,11 @@ def bbox_transform_inv(boxes, deltas, batch_size):
     pred_w = np.exp(dw) * widths
     pred_h = np.exp(dh) * heights
 
-    #pred_boxes = torch.Tensor(deltas)
-    # x1
-    #pred_boxes[:, 0::4] = pred_ctr_x - 0.5 * pred_w
-    # y1
-    #pred_boxes[:, 1::4] = pred_ctr_y - 0.5 * pred_h
-    # x2
-    #pred_boxes[:, 2::4] = pred_ctr_x + 0.5 * pred_w
-    # y2
-    #pred_boxes[:, 3::4] = pred_ctr_y + 0.5 * pred_h
-
     # avoid re-initialize the memory here. 
     pred_boxes = torch.stack([pred_ctr_x - 0.5 * pred_w, 
                         pred_ctr_y - 0.5 * pred_h, 
                         pred_ctr_x + 0.5 * pred_w, 
-                        pred_ctr_y + 0.5 * pred_h],1).view(batch_size, -1,4) 
+                        pred_ctr_y + 0.5 * pred_h], 2)
 
     return pred_boxes
 
@@ -119,21 +109,16 @@ def clip_boxes(boxes, im_shape, batch_size):
     """
     Clip boxes to image boundaries.
     """
-    im_shape = im_shape.int()
+    num_rois = boxes.size(1)
 
-    for i in range(batch_size):
-        # x1 >= 0
-        boxes[i, :, 0].clamp(0, im_shape[i, 1] - 1)
-        # boxes[:, 0::4] = torch.max(torch.min(boxes[:, 0::4], im_shape[1] - 1), 0)
-        # y1 >= 0
-        boxes[i, :, 1].clamp(0, im_shape[i, 0] - 1)
-        # boxes[:, 1::4] = torch.max(torch.min(boxes[:, 1::4], im_shape[0] - 1), 0)
-        # x2 < im_shape[1]
-        boxes[i, :, 2].clamp(0, im_shape[i, 1] - 1)
-        # boxes[:, 2::4] = torch.max(torch.min(boxes[:, 2::4], im_shape[1] - 1), 0)
-        # y2 < im_shape[0]
-        boxes[i, :, 3].clamp(0, im_shape[i, 0] - 1)
-        # boxes[:, 3::4] = torch.max(torch.min(boxes[:, 3::4], im_shape[0] - 1), 0)
+    boxes[boxes < 0] = 0
+    batch_x = (im_shape[:,0]-1).view(batch_size, 1).expand(batch_size, num_rois)
+    batch_y = (im_shape[:,1]-1).view(batch_size, 1).expand(batch_size, num_rois)
+    
+    boxes[:,:,0][boxes[:,:,0] > batch_x] = batch_x
+    boxes[:,:,1][boxes[:,:,1] > batch_y] = batch_y
+    boxes[:,:,2][boxes[:,:,2] > batch_x] = batch_x
+    boxes[:,:,3][boxes[:,:,3] > batch_y] = batch_y
 
     return boxes
 

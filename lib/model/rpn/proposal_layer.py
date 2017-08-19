@@ -85,27 +85,8 @@ class _ProposalLayer(nn.Module):
         if DEBUG:
             print 'score map size: {}'.format(scores.shape)
 
-
-        # Enumerate all shifts
-        # -- numpy version -----
-        
-        #shift_x = np.arange(0, width) * self._feat_stride
-        #shift_y = np.arange(0, height) * self._feat_stride
-        #shift_x, shift_y = np.meshgrid(shift_x, shift_y)
-        #shifts = torch.from_numpy(np.vstack((shift_x.ravel(), shift_y.ravel(),
-        #                          shift_x.ravel(), shift_y.ravel())).transpose())
-        #shifts = shifts.contiguous().float()
-        # -- torch version ----- 
-
-        # Enumerate all shifted anchors:
-        #
-        # add A anchors (1, A, 4) to
-        # cell K shifts (K, 1, 4) to get
-        # shift anchors (K, A, 4)
-        # reshape to (K*A, 4) shifted anchors
         batch_size = bbox_deltas.size(0)
         
-
         A = self._num_anchors
         K = shifts.size(0)
 
@@ -116,33 +97,19 @@ class _ProposalLayer(nn.Module):
 
         # Transpose and reshape predicted bbox transformations to get them
         # into the same order as the anchors:
-        #
-        # bbox deltas will be (1, 4 * A, H, W) format
-        # transpose to (1, H, W, 4 * A)
-        # reshape to (1 * H * W * A, 4) where rows are ordered by (h, w, a)
-        # in slowest to fastest order
-        # bbox_deltas = bbox_deltas.transpose((0, 2, 3, 1)).reshape((-1, 4))
         bbox_deltas = bbox_deltas.permute(0, 2, 3, 1).contiguous()
         bbox_deltas = bbox_deltas.view(batch_size, -1, 4)
 
         # Same story for the scores:
-        #
-        # scores are (1, A, H, W) format
-        # transpose to (1, H, W, A)
-        # reshape to (1 * H * W * A, 1) where rows are ordered by (h, w, a)
-        # scores = scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
         scores = scores.permute(0, 2, 3, 1).contiguous()
         scores = scores.view(batch_size, -1)
-
 
         # Convert anchors into proposals via bbox transformations
         proposals = bbox_transform_inv(anchors, bbox_deltas, batch_size)
 
-        
         # 2. clip predicted boxes to image
         proposals = clip_boxes(proposals, im_info, batch_size)
         # assign the score to 0 if it's non keep.
-
         keep = self._filter_boxes(proposals, min_size * im_info[:, 2])
 
         # trim keep index to make it euqal over batch

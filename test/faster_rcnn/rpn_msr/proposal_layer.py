@@ -104,6 +104,7 @@ def proposal_layer(rpn_cls_prob_reshape, rpn_bbox_pred, im_info, cfg_key, _feat_
     # cell K shifts (K, 1, 4) to get
     # shift anchors (K, A, 4)
     # reshape to (K*A, 4) shifted anchors
+    
     A = _num_anchors
     K = shifts.shape[0]
     anchors = _anchors.reshape((1, A, 4)) + \
