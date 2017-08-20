@@ -162,7 +162,7 @@ class _ProposalTargetLayer(nn.Module):
                 # rand_num = torch.randperm(bg_num_rois).type_as(all_rois).long()
                 rand_num = torch.floor(torch.rand(bg_rois_per_this_image) \
                     * bg_num_rois).type_as(all_rois).long()                
-                bg_inds = bg_inds[rand_num[:bg_rois_per_this_image]]
+                bg_inds = bg_inds[rand_num]
 
             # The indices that we're selecting (both fg and bg)
             keep_inds = torch.cat([fg_inds, bg_inds], 0)

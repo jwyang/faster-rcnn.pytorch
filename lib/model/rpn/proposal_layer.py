@@ -208,6 +208,5 @@ class _ProposalLayer(nn.Module):
         """Remove all boxes with any side smaller than min_size."""
         ws = boxes[:, :, 2] - boxes[:, :, 0] + 1
         hs = boxes[:, :, 3] - boxes[:, :, 1] + 1
-        # keep = ((ws >= min_size.view(-1,1).expand_as(ws)) & (hs >= min_size.view(-1,1).expand_as(hs)))
-        keep = ((ws >= min_size.view(-1,1)) & (hs >= min_size.view(-1,1)))        
+        keep = ((ws >= min_size.view(-1,1).expand_as(ws)) & (hs >= min_size.view(-1,1).expand_as(hs)))
         return keep
