@@ -71,7 +71,7 @@ __global__ void ROIPoolForward(const int nthreads, const float* bottom_data,
         // If nothing is pooled, argmax = -1 causes nothing to be backprop'd
         int maxidx = -1;
         // bottom_data += roi_batch_ind * channels * height * width;
-        
+
         int bottom_data_batch_offset = roi_batch_ind * channels * height * width;
         int bottom_data_offset = bottom_data_batch_offset + c * height * width;
 
@@ -101,18 +101,18 @@ int ROIPoolForwardLaucher(
     const int kThreadsPerBlock = 1024;
     int output_size = num_rois * pooled_height * pooled_width * channels;
     cudaError_t err;
-/*
+
     ROIPoolForward<<<(output_size + kThreadsPerBlock - 1) / kThreadsPerBlock, kThreadsPerBlock, 0, stream>>>(
       output_size, bottom_data, spatial_scale, height, width, channels, pooled_height,
       pooled_width, bottom_rois, top_data, argmax_data);
-*/
-    dim3 blocks(DIVUP(output_size, kThreadsPerBlock),
-                DIVUP(output_size, kThreadsPerBlock));
-    dim3 threads(kThreadsPerBlock);
 
-    ROIPoolForward<<<blocks, threads, 0, stream>>>(
-      output_size, bottom_data, spatial_scale, height, width, channels, pooled_height,
-      pooled_width, bottom_rois, top_data, argmax_data);
+    // dim3 blocks(DIVUP(output_size, kThreadsPerBlock),
+    //             DIVUP(output_size, kThreadsPerBlock));
+    // dim3 threads(kThreadsPerBlock);
+    //
+    // ROIPoolForward<<<blocks, threads, 0, stream>>>(
+    //   output_size, bottom_data, spatial_scale, height, width, channels, pooled_height,
+    //   pooled_width, bottom_rois, top_data, argmax_data);
 
     err = cudaGetLastError();
     if(cudaSuccess != err)
@@ -211,17 +211,17 @@ int ROIPoolBackwardLaucher(const float* top_diff, const float spatial_scale, con
     int output_size = batch_size * height * width * channels;
     cudaError_t err;
 
-    // ROIPoolBackward<<<(output_size + kThreadsPerBlock - 1) / kThreadsPerBlock, kThreadsPerBlock, 0, stream>>>(
-    //   output_size, top_diff, argmax_data, num_rois, spatial_scale, height, width, channels, pooled_height,
-    //   pooled_width, bottom_diff, bottom_rois);
-
-    dim3 blocks(DIVUP(output_size, kThreadsPerBlock),
-                DIVUP(output_size, kThreadsPerBlock));
-    dim3 threads(kThreadsPerBlock);
-
-    ROIPoolBackward<<<blocks, threads, 0, stream>>>(
+    ROIPoolBackward<<<(output_size + kThreadsPerBlock - 1) / kThreadsPerBlock, kThreadsPerBlock, 0, stream>>>(
       output_size, top_diff, argmax_data, num_rois, spatial_scale, height, width, channels, pooled_height,
       pooled_width, bottom_diff, bottom_rois);
+
+    // dim3 blocks(DIVUP(output_size, kThreadsPerBlock),
+    //             DIVUP(output_size, kThreadsPerBlock));
+    // dim3 threads(kThreadsPerBlock);
+    //
+    // ROIPoolBackward<<<blocks, threads, 0, stream>>>(
+    //   output_size, top_diff, argmax_data, num_rois, spatial_scale, height, width, channels, pooled_height,
+    //   pooled_width, bottom_diff, bottom_rois);
 
     err = cudaGetLastError();
     if(cudaSuccess != err)
