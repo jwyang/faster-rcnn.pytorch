@@ -48,9 +48,12 @@ def parse_args():
   parser.add_argument('--iters', dest='max_iters',
                       help='number of iterations to train',
                       default=70000, type=int)
-  parser.add_argument('--disp_interval', dest='display interval',
+  parser.add_argument('--disp_interval', dest='disp_interval',
                       help='number of iterations to display',
-                      default=70000, type=int)
+                      default=10, type=int)
+  parser.add_argument('--checkpoint_interval', dest='checkpoint_interval',
+                      help='number of iterations to display',
+                      default=100, type=int)  
   parser.add_argument('--tag', dest='tag',
                       help='tag of the model',
                       default=None, type=str)
@@ -60,6 +63,9 @@ def parse_args():
   parser.add_argument('--set', dest='set_cfgs',
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
+  parser.add_argument('--save_dir', dest='save_dir',
+                      help='directory to save models', default="models",
+                      nargs=argparse.REMAINDER)  
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
                       default=1, type=int)
@@ -88,6 +94,20 @@ momentum = cfg.TRAIN.MOMENTUM
 weight_decay = cfg.TRAIN.WEIGHT_DECAY
 use_multiGPU = True
 
+def save_net(fname, net):
+    import h5py
+    h5f = h5py.File(fname, mode='w')
+    for k, v in net.state_dict().items():
+        h5f.create_dataset(k, data=v.cpu().numpy())
+
+
+def load_net(fname, net):
+    import h5py
+    h5f = h5py.File(fname, mode='r')
+    for k, v in net.state_dict().items():
+        param = torch.from_numpy(np.asarray(h5f[k]))
+        v.copy_(param)
+
 if __name__ == '__main__':
   args = parse_args()
 
@@ -110,6 +130,9 @@ if __name__ == '__main__':
 
   print('{:d} roidb entries'.format(len(roidb)))
 
+  output_dir = args.save_dir + "/" + args.net
+  if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
 
   dataset = roibatchLoader(roidb, imdb.num_classes)
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=14,
@@ -159,22 +182,22 @@ if __name__ == '__main__':
 
   data_iter = iter(dataloader)
   # training
-  data = data_iter.next()
-  im_data.data.resize_(data[0].size()).copy_(data[0])
-  im_info.data.resize_(data[1].size()).copy_(data[1])
-  gt_boxes.data.resize_(data[2].size()).copy_(data[2])
-  num_boxes.data.resize_(data[3].size()).copy_(data[3])
+  # data = data_iter.next()
+  # im_data.data.resize_(data[0].size()).copy_(data[0])
+  # im_info.data.resize_(data[1].size()).copy_(data[1])
+  # gt_boxes.data.resize_(data[2].size()).copy_(data[2])
+  # num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
   loss_temp = 0
 
   start = time.time()
-  for step in range(100):
+  for step in range(args.max_iters):
 
-    # data = data_iter.next()
-    # im_data.data.resize_(data[0].size()).copy_(data[0])
-    # im_info.data.resize_(data[1].size()).copy_(data[1])
-    # gt_boxes.data.resize_(data[2].size()).copy_(data[2])
-    # num_boxes.data.resize_(data[3].size()).copy_(data[3])
+    data = data_iter.next()
+    im_data.data.resize_(data[0].size()).copy_(data[0])
+    im_info.data.resize_(data[1].size()).copy_(data[1])
+    gt_boxes.data.resize_(data[2].size()).copy_(data[2])
+    num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
     fasterRCNN.zero_grad()
     cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
@@ -185,7 +208,7 @@ if __name__ == '__main__':
     loss.backward()
     optimizer.step()
 
-    if step % 10 == 0:
+    if step % args.disp_interval == 0:
       if use_multiGPU:
         print("[iter %4d] loss: [%.4f] rpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f] " \
           % (step, loss_temp / 10, 0, 0, 0, 0))      
@@ -194,6 +217,11 @@ if __name__ == '__main__':
           % (step, loss_temp / 10, fasterRCNN.rpn_loss_cls.data[0], fasterRCNN.rpn_loss_bbox.data[0], \
                                 fasterRCNN.RCNN_loss_cls.data[0], fasterRCNN.RCNN_loss_bbox.data[0]))      
       loss_temp = 0
+
+    if (step % args.checkpoint_interval == 0) and step > 0:
+        save_name = os.path.join(output_dir, 'faster_rcnn_{}.h5'.format(step))
+        save_net(save_name, fasterRCNN)
+        print('save model: {}'.format(save_name))
 
   end = time.time()
   print(end - start)
