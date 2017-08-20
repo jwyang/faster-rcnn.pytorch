@@ -156,7 +156,7 @@ class _ProposalTargetLayer(nn.Module):
             # Compute number of background RoIs to take from this image (guarding
             # against there being fewer than desired)
             bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
-            bg_rois_per_this_image = min(bg_rois_per_this_image, bg_inds.size)
+            bg_rois_per_this_image = min(bg_rois_per_this_image, bg_num_rois)
             # Sample background regions without replacement
             if bg_num_rois > 0:
                 rand_num = torch.randperm(bg_num_rois).type_as(all_rois).long()

@@ -100,6 +100,7 @@ class _RPN(nn.Module):
             rpn_cls_score = rpn_cls_score_reshape.permute(0, 2, 3, 1).contiguous().view(batch_size, -1, 2)
             rpn_label = rpn_data[0].view(batch_size, -1)
 
+            fg_cnt = 0
             self.rpn_loss_cls = 0
             for i in range(batch_size):
                 rpn_keep = rpn_label[i].ne(-1).nonzero().squeeze()
@@ -108,7 +109,7 @@ class _RPN(nn.Module):
                 rpn_label_tmp = torch.index_select(rpn_label[i], 0, rpn_keep)
                 rpn_label_v = Variable(rpn_label_tmp.long())
 
-                fg_cnt = torch.sum(rpn_label_v.data.ne(0))
+                fg_cnt += torch.sum(rpn_label_v.data.ne(0))
 
                 self.rpn_loss_cls += F.cross_entropy(rpn_cls_score_single, rpn_label_v)
 

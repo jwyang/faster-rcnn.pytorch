@@ -45,7 +45,7 @@ class _fasterRCNN(nn.Module):
         self.RCNN_rpn = _RPN(self.feat_height, self.feat_width, self.dout_base_model)
 
         # define proposal layer for target
-        self.RPN_proposal_target = _ProposalTargetLayer(self.n_classes)
+        self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
 
         self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
         
@@ -93,7 +93,7 @@ class _fasterRCNN(nn.Module):
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
 
-            roi_data = self.RPN_proposal_target(rois, gt_boxes, num_boxes)
+            roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes)
             rois, rois_label, rois_target, rois_inside_ws = roi_data
 
             rois_label = rois_label.view(-1)

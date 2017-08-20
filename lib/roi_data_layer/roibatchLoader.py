@@ -48,6 +48,7 @@ class roibatchLoader(data.Dataset):
     if data_height > data_width:
         # if height > width, then crop on height
         # randomly generate an y start point
+        # while True:
         y_s = np.random.randint(data_height - self.trim_height + 1)
         trim_data = data[:, y_s:(y_s + self.trim_height), :]
 
@@ -56,14 +57,18 @@ class roibatchLoader(data.Dataset):
         gt_boxes[:, 3] = gt_boxes[:, 3] - y_s        
 
         # update gt bounding box according the trip
-        gt_boxes[:, 1].clamp_(0, self.trim_height)
-        gt_boxes[:, 3].clamp_(0, self.trim_height)
+        gt_boxes[:, 1].clamp_(0, self.trim_height - 1)
+        gt_boxes[:, 3].clamp_(0, self.trim_height - 1)
+
+            # if not ((gt_boxes[:, 3].sum() <= 1) or (gt_boxes[:, 1].mean() >= (self.trim_height - 1))):
+            #     break
 
         # update im_info
         im_info[0, 0] = self.trim_height
 
     elif data_height <= data_width:
         # if height <= width, then crop on width
+        # while True:
         x_s = np.random.randint(data_width - self.trim_width + 1)
         trim_data = data[:, :, x_s:(x_s + self.trim_width), :]
 
@@ -72,8 +77,11 @@ class roibatchLoader(data.Dataset):
         gt_boxes[:, 2] = gt_boxes[:, 2] - x_s
 
         # update gt bounding box according the trip
-        gt_boxes[:, 0].clamp_(0, self.trim_width)
-        gt_boxes[:, 2].clamp_(0, self.trim_width)
+        gt_boxes[:, 0].clamp_(0, self.trim_width - 1)
+        gt_boxes[:, 2].clamp_(0, self.trim_width - 1)
+
+            # if not ((gt_boxes[:, 2].sum() <= 1) or (gt_boxes[:, 0].mean() >= (self.trim_width - 1))):            
+            #     break
 
         # update im_info
         im_info[0, 1] = self.trim_width

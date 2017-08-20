@@ -108,7 +108,7 @@ if __name__ == '__main__':
 
 
   dataset = roibatchLoader(roidb, imdb.num_classes)
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=4,
                             shuffle=False, num_workers=0)
 
   # initilize the tensor holder here.
@@ -139,8 +139,8 @@ if __name__ == '__main__':
 
   # pdb.set_trace()
   params = list(fasterRCNN.parameters())
-  #  optimizer = optim.Adam(fasterRCNN.parameters())
-  optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=weight_decay)
+  optimizer = optim.Adam(fasterRCNN.parameters(), lr = lr * 0.1)
+  # optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=weight_decay)
 
   # fasterRCNN = nn.DataParallel(fasterRCNN)
 
@@ -149,30 +149,36 @@ if __name__ == '__main__':
 
   data_iter = iter(dataloader)
   # training
+  # data = data_iter.next()
+  # im_data.data.resize_(data[0].size()).copy_(data[0])
+  # im_info.data.resize_(data[1].size()).copy_(data[1])
+  # gt_boxes.data.resize_(data[2].size()).copy_(data[2])
+  # num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
+  loss_temp = 0
 
   start = time.time()
   for i in range(100):
 
-    # fasterRCNN.zero_grad()
     data = data_iter.next()
     im_data.data.resize_(data[0].size()).copy_(data[0])
     im_info.data.resize_(data[1].size()).copy_(data[1])
     gt_boxes.data.resize_(data[2].size()).copy_(data[2])
     num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
+    fasterRCNN.zero_grad()
     cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
     loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
-
+    loss_temp += loss.data[0]
     # backward
     optimizer.zero_grad()    
     loss.backward()
-
-    pdb.set_trace()
-    
     optimizer.step()
 
-    print(loss.data)
+
+    if i % 10 == 0:
+      print("[iter %4d]: loss [%.4f]" % (i, loss_temp / 10))
+      loss_temp = 0
 
   end = time.time()
   print(end - start)
