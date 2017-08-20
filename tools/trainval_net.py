@@ -48,6 +48,9 @@ def parse_args():
   parser.add_argument('--iters', dest='max_iters',
                       help='number of iterations to train',
                       default=70000, type=int)
+  parser.add_argument('--disp_interval', dest='display interval',
+                      help='number of iterations to display',
+                      default=70000, type=int)
   parser.add_argument('--tag', dest='tag',
                       help='tag of the model',
                       default=None, type=str)
@@ -108,8 +111,8 @@ if __name__ == '__main__':
 
 
   dataset = roibatchLoader(roidb, imdb.num_classes)
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=4,
-                            shuffle=False, num_workers=0)
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=2,
+                            shuffle=False, num_workers=2)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -135,11 +138,15 @@ if __name__ == '__main__':
 
   # initilize the network here.
   fasterRCNN = _fasterRCNN(args.net, imdb.classes)
-  weights_normal_init(fasterRCNN)
+  weights_normal_init(fasterRCNN.RCNN_rpn.RPN_cls_score)
+  weights_normal_init(fasterRCNN.RCNN_rpn.RPN_bbox_pred)  
+  weights_normal_init(fasterRCNN.RCNN_top_model)
+  weights_normal_init(fasterRCNN.RCNN_cls_score)
+  weights_normal_init(fasterRCNN.RCNN_bbox_pred)
 
   # pdb.set_trace()
   params = list(fasterRCNN.parameters())
-  optimizer = optim.Adam(fasterRCNN.parameters(), lr = lr * 0.1)
+  optimizer = optim.Adam(params[8:], lr = lr * 0.1)
   # optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=weight_decay)
 
   # fasterRCNN = nn.DataParallel(fasterRCNN)
@@ -158,7 +165,7 @@ if __name__ == '__main__':
   loss_temp = 0
 
   start = time.time()
-  for i in range(100):
+  for step in range(1000):
 
     data = data_iter.next()
     im_data.data.resize_(data[0].size()).copy_(data[0])
@@ -168,16 +175,17 @@ if __name__ == '__main__':
 
     fasterRCNN.zero_grad()
     cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
-    loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
+    loss = (rpn_loss + rcnn_loss) / im_data.size(0)
     loss_temp += loss.data[0]
     # backward
     optimizer.zero_grad()    
     loss.backward()
     optimizer.step()
 
-
-    if i % 10 == 0:
-      print("[iter %4d]: loss [%.4f]" % (i, loss_temp / 10))
+    if step % 10 == 0:
+      print("[iter %4d] loss: [%.4f] rpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f] " \
+        % (step, loss_temp / 10, fasterRCNN.rpn_loss_cls.data[0], fasterRCNN.rpn_loss_bbox.data[0], \
+                              fasterRCNN.RCNN_loss_cls.data[0], fasterRCNN.RCNN_loss_bbox.data[0]))
       loss_temp = 0
 
   end = time.time()

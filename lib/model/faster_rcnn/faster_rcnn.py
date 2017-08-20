@@ -59,13 +59,11 @@ class _fasterRCNN(nn.Module):
         )
 
         self.RCNN_cls_score = nn.Sequential(
-            nn.Linear(4096, self.n_classes),
-            nn.ReLU(True)
+            nn.Linear(4096, self.n_classes)
         )
 
         self.RCNN_bbox_pred = nn.Sequential(
-            nn.Linear(4096, self.n_classes * 4),
-            nn.ReLU(True)
+            nn.Linear(4096, self.n_classes * 4)
         )
         
 
@@ -88,7 +86,7 @@ class _fasterRCNN(nn.Module):
 
         
         # feed base feature map tp RPN to obtain rois
-        rois, rpn_loss_cls, rpn_loss_box = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
+        rois, self.rpn_loss_cls, self.rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
         
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
@@ -136,7 +134,7 @@ class _fasterRCNN(nn.Module):
             self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, rois_target_var, size_average=False) / (fg_cnt + 1e-4)
 
         
-            rpn_loss = rpn_loss_cls + 10 * rpn_loss_box
+            rpn_loss = self.rpn_loss_cls + 10 * self.rpn_loss_bbox
             rcnn_loss = self.RCNN_loss_cls + 10 * self.RCNN_loss_bbox
 
         cls_prob = cls_prob.view(batch_size, cfg.TRAIN.BATCH_SIZE, -1)
