@@ -152,17 +152,18 @@ class _ProposalTargetLayer(nn.Module):
             bg_inds = torch.nonzero((max_overlaps[i] < cfg.TRAIN.BG_THRESH_HI) &
                                     (max_overlaps[i] >= cfg.TRAIN.BG_THRESH_LO)).squeeze()
 
-            bg_num_rois = bg_inds.numel()
+            bg_num_rois = bg_inds.size(0)
             # Compute number of background RoIs to take from this image (guarding
             # against there being fewer than desired)
             bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
-            # bg_rois_per_this_image = min(bg_rois_per_this_image, bg_num_rois)
+            bg_rois_per_this_image = min(bg_rois_per_this_image, bg_inds.size)
             # Sample background regions without replacement
             if bg_num_rois > 0:
-                # rand_num = torch.randperm(bg_num_rois).type_as(all_rois).long()
-                rand_num = torch.floor(torch.rand(bg_rois_per_this_image) \
-                    * bg_num_rois).type_as(all_rois).long()                
-                bg_inds = bg_inds[rand_num]
+                rand_num = torch.randperm(bg_num_rois).type_as(all_rois).long()
+                bg_inds = bg_inds[rand_num[:bg_rois_per_this_image]]
+                # rand_num = torch.floor(torch.rand(bg_rois_per_this_image).type_as(all_rois) 
+                #                         * bg_num_rois).long()
+                # bg_inds = bg_inds[rand_num]
 
             # The indices that we're selecting (both fg and bg)
             keep_inds = torch.cat([fg_inds, bg_inds], 0)

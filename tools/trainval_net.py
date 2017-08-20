@@ -86,6 +86,7 @@ def weights_normal_init(model, dev=0.01):
 lr = cfg.TRAIN.LEARNING_RATE
 momentum = cfg.TRAIN.MOMENTUM
 weight_decay = cfg.TRAIN.WEIGHT_DECAY
+use_multiGPU = True
 
 if __name__ == '__main__':
   args = parse_args()
@@ -111,8 +112,8 @@ if __name__ == '__main__':
 
 
   dataset = roibatchLoader(roidb, imdb.num_classes)
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=2,
-                            shuffle=False, num_workers=2)
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=14,
+                            shuffle=False, num_workers=4)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -138,6 +139,7 @@ if __name__ == '__main__':
 
   # initilize the network here.
   fasterRCNN = _fasterRCNN(args.net, imdb.classes)
+  # weights_normal_init(fasterRCNN)
   weights_normal_init(fasterRCNN.RCNN_rpn.RPN_cls_score)
   weights_normal_init(fasterRCNN.RCNN_rpn.RPN_bbox_pred)  
   weights_normal_init(fasterRCNN.RCNN_top_model)
@@ -149,33 +151,34 @@ if __name__ == '__main__':
   optimizer = optim.Adam(params[8:], lr = lr * 0.1)
   # optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=weight_decay)
 
-  # fasterRCNN = nn.DataParallel(fasterRCNN)
+  if use_multiGPU:
+    fasterRCNN = nn.DataParallel(fasterRCNN)
 
   if args.ngpu > 0:
     fasterRCNN.cuda()
 
   data_iter = iter(dataloader)
   # training
-  # data = data_iter.next()
-  # im_data.data.resize_(data[0].size()).copy_(data[0])
-  # im_info.data.resize_(data[1].size()).copy_(data[1])
-  # gt_boxes.data.resize_(data[2].size()).copy_(data[2])
-  # num_boxes.data.resize_(data[3].size()).copy_(data[3])
+  data = data_iter.next()
+  im_data.data.resize_(data[0].size()).copy_(data[0])
+  im_info.data.resize_(data[1].size()).copy_(data[1])
+  gt_boxes.data.resize_(data[2].size()).copy_(data[2])
+  num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
   loss_temp = 0
 
   start = time.time()
-  for step in range(1000):
+  for step in range(100):
 
-    data = data_iter.next()
-    im_data.data.resize_(data[0].size()).copy_(data[0])
-    im_info.data.resize_(data[1].size()).copy_(data[1])
-    gt_boxes.data.resize_(data[2].size()).copy_(data[2])
-    num_boxes.data.resize_(data[3].size()).copy_(data[3])
+    # data = data_iter.next()
+    # im_data.data.resize_(data[0].size()).copy_(data[0])
+    # im_info.data.resize_(data[1].size()).copy_(data[1])
+    # gt_boxes.data.resize_(data[2].size()).copy_(data[2])
+    # num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
     fasterRCNN.zero_grad()
     cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
-    loss = (rpn_loss + rcnn_loss) / im_data.size(0)
+    loss = (rpn_loss.sum() + rcnn_loss.sum()) / im_data.size(0)
     loss_temp += loss.data[0]
     # backward
     optimizer.zero_grad()    
@@ -183,9 +186,13 @@ if __name__ == '__main__':
     optimizer.step()
 
     if step % 10 == 0:
-      print("[iter %4d] loss: [%.4f] rpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f] " \
-        % (step, loss_temp / 10, fasterRCNN.rpn_loss_cls.data[0], fasterRCNN.rpn_loss_bbox.data[0], \
-                              fasterRCNN.RCNN_loss_cls.data[0], fasterRCNN.RCNN_loss_bbox.data[0]))
+      if use_multiGPU:
+        print("[iter %4d] loss: [%.4f] rpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f] " \
+          % (step, loss_temp / 10, 0, 0, 0, 0))      
+      else:
+        print("[iter %4d] loss: [%.4f] rpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f] " \
+          % (step, loss_temp / 10, fasterRCNN.rpn_loss_cls.data[0], fasterRCNN.rpn_loss_bbox.data[0], \
+                                fasterRCNN.RCNN_loss_cls.data[0], fasterRCNN.RCNN_loss_bbox.data[0]))      
       loss_temp = 0
 
   end = time.time()
