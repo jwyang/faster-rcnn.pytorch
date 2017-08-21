@@ -135,7 +135,7 @@ if __name__ == '__main__':
     os.makedirs(output_dir)
 
   dataset = roibatchLoader(roidb, imdb.num_classes)
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=14,
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=6,
                             shuffle=False, num_workers=4)
 
   # initilize the tensor holder here.
@@ -163,8 +163,8 @@ if __name__ == '__main__':
   # initilize the network here.
   fasterRCNN = _fasterRCNN(args.net, imdb.classes)
   # weights_normal_init(fasterRCNN)
-  weights_normal_init(fasterRCNN.RCNN_rpn.RPN_cls_score)
-  weights_normal_init(fasterRCNN.RCNN_rpn.RPN_bbox_pred)  
+  weights_normal_init(fasterRCNN.RCNN_base.RCNN_rpn.RPN_cls_score)
+  weights_normal_init(fasterRCNN.RCNN_base.RCNN_rpn.RPN_bbox_pred)  
   weights_normal_init(fasterRCNN.RCNN_top_model)
   weights_normal_init(fasterRCNN.RCNN_cls_score)
   weights_normal_init(fasterRCNN.RCNN_bbox_pred)
@@ -175,23 +175,16 @@ if __name__ == '__main__':
   # optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=weight_decay)
 
   if use_multiGPU:
-    fasterRCNN = nn.DataParallel(fasterRCNN)
+    fasterRCNN.RCNN_base = nn.DataParallel(fasterRCNN.RCNN_base)
 
   if args.ngpu > 0:
     fasterRCNN.cuda()
 
   data_iter = iter(dataloader)
-  # training
-  # data = data_iter.next()
-  # im_data.data.resize_(data[0].size()).copy_(data[0])
-  # im_info.data.resize_(data[1].size()).copy_(data[1])
-  # gt_boxes.data.resize_(data[2].size()).copy_(data[2])
-  # num_boxes.data.resize_(data[3].size()).copy_(data[3])
-
   loss_temp = 0
 
   start = time.time()
-  for step in range(args.max_iters):
+  for step in range(100):
 
     data = data_iter.next()
     im_data.data.resize_(data[0].size()).copy_(data[0])
