@@ -38,12 +38,12 @@ class roibatchLoader(data.Dataset):
     # we need to random shuffle the bounding box.
     np.random.shuffle(blobs['gt_boxes'])
     gt_boxes = torch.from_numpy(blobs['gt_boxes'])
+    data_height, data_width = data.size(1), data.size(2)
 
     if self.training:
         ##################################################
         # we crop the input image to fixed size randomly #
         ##################################################
-        data_height, data_width = data.size(1), data.size(2)
         # trim_data = torch.FloatTensor(1, self.trim_height, self.trim_width, 3)
         if data_height > data_width:
             # if height > width, then crop on height
@@ -98,7 +98,7 @@ class roibatchLoader(data.Dataset):
 
         return trim_data, im_info, gt_boxes_padding, num_boxes
     else:
-        data = data.permute(0, 3, 1, 2).contiguous().view(3, self.trim_height, self.trim_width)
+        data = data.permute(0, 3, 1, 2).contiguous().view(3, data_height, data_width)
         num_boxes = 1
         im_info = im_info.view(3)               
         return data, im_info, gt_boxes, num_boxes

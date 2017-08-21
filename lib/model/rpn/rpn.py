@@ -40,11 +40,8 @@ class _RPN(nn.Module):
         # define anchor target layer
         self.RPN_anchor_target = _AnchorTargetLayer(self.feat_stride, self.anchor_scales)
 
-        # define classifcation loss bwtween cls_score and ground truth labels
-        self.loss_cls = 0
-
-        # define regression loss between bbox_pred and ground truth bboxes
-        self.loss_bbox = 0
+        self.rpn_loss_cls = 0
+        self.rpn_loss_box = 0
 
         shift_x = np.arange(0, feat_width) * self.feat_stride
         shift_y = np.arange(0, feat_height) * self.feat_stride
@@ -90,6 +87,9 @@ class _RPN(nn.Module):
         rois = self.RPN_proposal((rpn_cls_prob.data, rpn_bbox_pred.data,
                                  im_info, self.shifts, cfg_key))
 
+        self.rpn_loss_cls = 0
+        self.rpn_loss_box = 0
+        
         # generating training labels and build the rpn loss
         if self.training:
             assert gt_boxes is not None

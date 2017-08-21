@@ -196,7 +196,7 @@ __C.TEST.RPN_PRE_NMS_TOP_N = 6000
 __C.TEST.RPN_POST_NMS_TOP_N = 300
 
 # Proposal height and width both need to be greater than RPN_MIN_SIZE (at orig image scale)
-# __C.TEST.RPN_MIN_SIZE = 16
+__C.TEST.RPN_MIN_SIZE = 16
 
 # Testing mode, default to be 'nms', 'top' is slower but better
 # See report for details
@@ -297,6 +297,7 @@ __C.FEAT_STRIDE = [16, ]
 
 __C.CUDA = False
 
+import pdb
 def get_output_dir(imdb, weights_filename):
   """Return the directory where experimental artifacts are placed.
   If the directory does not exist, it is created.
