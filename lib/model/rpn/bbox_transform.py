@@ -105,16 +105,19 @@ def bbox_transform_inv(boxes, deltas, batch_size):
 
     return pred_boxes
 
-def clip_boxes(boxes, im_shape, batch_size):
+def clip_boxes_batch(boxes, im_shape, batch_size):
     """
     Clip boxes to image boundaries.
     """
     num_rois = boxes.size(1)
 
     boxes[boxes < 0] = 0
-    batch_x = (im_shape[:,0]-1).view(batch_size, 1).expand(batch_size, num_rois)
-    batch_y = (im_shape[:,1]-1).view(batch_size, 1).expand(batch_size, num_rois)
-    
+    # batch_x = (im_shape[:,0]-1).view(batch_size, 1).expand(batch_size, num_rois)
+    # batch_y = (im_shape[:,1]-1).view(batch_size, 1).expand(batch_size, num_rois)
+
+    batch_x = im_shape[:, 1] - 1
+    batch_y = im_shape[:, 0] - 1
+
     boxes[:,:,0][boxes[:,:,0] > batch_x] = batch_x
     boxes[:,:,1][boxes[:,:,1] > batch_y] = batch_y
     boxes[:,:,2][boxes[:,:,2] > batch_x] = batch_x
@@ -122,7 +125,15 @@ def clip_boxes(boxes, im_shape, batch_size):
 
     return boxes
 
+def clip_boxes(boxes, im_shape, batch_size):
 
+    for i in range(batch_size):
+        boxes[i,:,0::4].clamp_(0, im_shape[i, 1]-1)
+        boxes[i,:,1::4].clamp_(0, im_shape[i, 0]-1)
+        boxes[i,:,2::4].clamp_(0, im_shape[i, 1]-1)
+        boxes[i,:,3::4].clamp_(0, im_shape[i, 0]-1)    
+
+    return boxes
 
 
 def bbox_overlaps(anchors, gt_boxes):

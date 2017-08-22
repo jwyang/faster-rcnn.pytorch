@@ -15,7 +15,7 @@ import math
 import yaml
 from model.utils.config import cfg
 from generate_anchors import generate_anchors
-from bbox_transform import bbox_transform_inv, clip_boxes
+from bbox_transform import bbox_transform_inv, clip_boxes, clip_boxes_batch
 from model.nms.nms_wrapper import nms
 
 import pdb
@@ -118,7 +118,10 @@ class _ProposalLayer(nn.Module):
 
         # 2. clip predicted boxes to image
         proposals = clip_boxes(proposals, im_info, batch_size)
+        # proposals = clip_boxes_batch(proposals, im_info, batch_size)
+
         # assign the score to 0 if it's non keep.
+
         keep = self._filter_boxes(proposals, min_size * im_info[:, 2])
 
         # trim keep index to make it euqal over batch

@@ -9,10 +9,12 @@ import numpy as np
 from model.utils.config import cfg
 from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
+from model.roi_pooling_single.modules.roi_pool import _RoIPool
 from model.rpn.proposal_target_layer_batch import _ProposalTargetLayer
 import time
 import pdb
 
+from model.utils.vgg16 import VGG16
 
 class _RCNN_base(nn.Module):
     def __init__(self, baseModel, classes):
@@ -35,6 +37,8 @@ class _RCNN_base(nn.Module):
         else:
             raise RuntimeError('baseModel is not included.')
         
+        # self.RCNN_base_model = VGG16(bn=False)
+
         virtual_input = torch.randn(1, 3, cfg.TRAIN.TRIM_HEIGHT, cfg.TRAIN.TRIM_WIDTH)
         out = self.RCNN_base_model(Variable(virtual_input))
         self.feat_height = out.size(2)
@@ -43,7 +47,8 @@ class _RCNN_base(nn.Module):
         # define rpn
         self.RCNN_rpn = _RPN(self.feat_height, self.feat_width, self.dout_base_model)
         self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
-        self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
+        # self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
+        self.RCNN_roi_pool = _RoIPool(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
         im_info = im_info.data
