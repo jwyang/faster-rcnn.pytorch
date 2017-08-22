@@ -22,6 +22,8 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.optim as optim
 
+import torchvision.transforms as transforms
+
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
@@ -54,9 +56,12 @@ def parse_args():
   parser.add_argument('--disp_interval', dest='disp_interval',
                       help='number of iterations to display',
                       default=700, type=int)
+  parser.add_argument('--checkepoch', dest='checkepoch',
+                      help='checkepoch to load network',
+                      default=2, type=int)    
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load network',
-                      default=10000, type=int)  
+                      default=2000, type=int)  
   parser.add_argument('--tag', dest='tag',
                       help='tag of the model',
                       default=None, type=str)
@@ -207,7 +212,7 @@ if __name__ == '__main__':
   input_dir = args.load_dir + "/" + args.net
   if not os.path.exists(input_dir):
     raise Exception('There is no input directory for loading network')
-  load_name = os.path.join(input_dir, 'faster_rcnn_{}.pth'.format(args.checkpoint))
+  load_name = os.path.join(input_dir, 'faster_rcnn_{}_{}.pth'.format(args.checkepoch, args.checkpoint))
 
 
   dataset = roibatchLoader(roidb, imdb.num_classes, False)
@@ -273,9 +278,15 @@ if __name__ == '__main__':
   _t = {'im_detect': time.time(), 'misc': time.time()}
   det_file = os.path.join(output_dir, 'detections.pkl')
 
+  normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
   for i in range(num_images):
 
       data = data_iter.next()
+
+      # data[0] = (data[0] - data[0].min()) / 255.0
+      # data[0] = normalize(data[0])
+
       im_data.data.resize_(data[0].size()).copy_(data[0])
       im_info.data.resize_(data[1].size()).copy_(data[1])
       gt_boxes.data.resize_(data[2].size()).copy_(data[2])
@@ -331,7 +342,7 @@ if __name__ == '__main__':
           cls_dets = cls_dets[keep, :]
           cls_dets = cls_dets.cpu().numpy()          
           if vis:
-              im2show = vis_detections(im2show, imdb.classes[j], cls_dets, 0.3)
+              im2show = vis_detections(im2show, imdb.classes[j], cls_dets, 0.5)
           all_boxes[j][i] = cls_dets
       
       # Limit to max_per_image detections *over all classes*

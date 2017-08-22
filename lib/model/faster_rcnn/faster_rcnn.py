@@ -23,21 +23,8 @@ class _RCNN_base(nn.Module):
         if classes is not None:
             self.classes = classes
             self.n_classes = len(classes)
-
-        # define base model, e.g., VGG16, ResNet, etc.
-        if baseModel == "vgg16":
-            pretrained_model = models.vgg16(pretrained=True)
-            self.RCNN_base_model = nn.Sequential(*list(pretrained_model.features.children())[:-1])
-        elif baseModel == "res50":
-            pretrained_model = models.resnet50(pretrained=True)
-            self.RCNN_base_model = nn.Sequential(*list(pretrained_model.children())[:-2])
-        elif baseModel == "res101":
-            pretrained_model = models.resnet50(pretrained=True)
-            self.RCNN_base_model = nn.Sequential(*list(pretrained_model.children())[:-2])
-        else:
-            raise RuntimeError('baseModel is not included.')
         
-        # self.RCNN_base_model = VGG16(bn=False)
+        self.RCNN_base_model = baseModel
 
         virtual_input = torch.randn(1, 3, cfg.TRAIN.TRIM_HEIGHT, cfg.TRAIN.TRIM_WIDTH)
         out = self.RCNN_base_model(Variable(virtual_input))
@@ -97,17 +84,33 @@ class _fasterRCNN(nn.Module):
             self.classes = classes
             self.n_classes = len(classes)
 
-        self.RCNN_base = _RCNN_base(baseModel, classes)
+        # define base model, e.g., VGG16, ResNet, etc.
+        if baseModel == "vgg16":
+            pretrained_model = models.vgg16(pretrained=True)
+            RCNN_base_model = nn.Sequential(*list(pretrained_model.features.children())[:-1])
+        elif baseModel == "res50":
+            pretrained_model = models.resnet50(pretrained=True)
+            RCNN_base_model = nn.Sequential(*list(pretrained_model.children())[:-2])
+        elif baseModel == "res101":
+            pretrained_model = models.resnet50(pretrained=True)
+            RCNN_base_model = nn.Sequential(*list(pretrained_model.children())[:-2])
+        else:
+            raise RuntimeError('baseModel is not included.')
+
+        self.RCNN_base = _RCNN_base(RCNN_base_model, classes)
         self.dout_base_model = self.RCNN_base.dout_base_model
 
-        self.RCNN_top_model = nn.Sequential(
-            nn.Linear(self.dout_base_model*cfg.POOLING_SIZE*cfg.POOLING_SIZE, 4096),
-            nn.ReLU(True),
-            # nn.Dropout(0.5),
-            nn.Linear(4096, 4096),
-            nn.ReLU(True)      
-            # nn.Dropout(0.5)
-        )
+        self.RCNN_fc6 = pretrained_model.classifier[0]
+        self.RCNN_fc7 = pretrained_model.classifier[3]
+
+        # self.RCNN_top_model = nn.Sequential(
+        #     nn.Linear(self.dout_base_model*cfg.POOLING_SIZE*cfg.POOLING_SIZE, 4096),
+        #     nn.ReLU(True),
+        #     # nn.Dropout(0.5),
+        #     nn.Linear(4096, 4096),
+        #     nn.ReLU(True)      
+        #     # nn.Dropout(0.5)
+        # )
 
         self.RCNN_cls_score = nn.Sequential(
             nn.Linear(4096, self.n_classes)
@@ -134,7 +137,13 @@ class _fasterRCNN(nn.Module):
         rpn_loss = rpn_loss_cls + 10 * rpn_loss_bbox
 
         # feed pooled features to top model
-        x = self.RCNN_top_model(pooled_feat_all)
+        x = self.RCNN_fc6(pooled_feat_all)
+        x = F.ReLU(x, inplace = True)
+
+        x = self.RCNN_fc7(x)
+        x = F.ReLU(x, inplace = True)
+
+        # x = self.RCNN_top_model(pooled_feat_all)
 
         # compute classifcation loss
         cls_score = self.RCNN_cls_score(x)
