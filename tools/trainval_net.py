@@ -63,13 +63,13 @@ def parse_args():
                       default=2000, type=int)  
   parser.add_argument('--checksession', dest='checksession',
                       help='checksession to load model',
-                      default=2, type=int)  
+                      default=1, type=int)  
   parser.add_argument('--checkepoch', dest='checkepoch',
                       help='checkepoch to load model',
                       default=1, type=int)                          
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load model',
-                      default=4000, type=int)  
+                      default=0, type=int)  
   parser.add_argument('--tag', dest='tag',
                       help='tag of the model',
                       default=None, type=str)
@@ -227,15 +227,6 @@ if __name__ == '__main__':
   if args.ngpu > 0:
     fasterRCNN.cuda()
 
-  # data = data_iter.next()
-  # data = data_iter.next()
-
-  # im_data.data.resize_(data[0].size()).copy_(data[0])
-  # im_info.data.resize_(data[1].size()).copy_(data[1])
-  # gt_boxes.data.resize_(data[2].size()).copy_(data[2])
-  # num_boxes.data.resize_(data[3].size()).copy_(data[3])
-
-  # pdb.set_trace()
   normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
   for epoch in range(1, args.max_epochs):
@@ -261,24 +252,24 @@ if __name__ == '__main__':
       loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
       loss_temp += loss.data[0]
       # backward
-      optimizer.zero_grad()
+      optimizer4tr.zero_grad()
       optimizer4ft.zero_grad()
       loss.backward()
       network.clip_gradient(fasterRCNN, 10.)      
-      optimizer.step()
+      optimizer4tr.step()
       optimizer4ft.step()
 
       if step % args.disp_interval == 0:
         if use_multiGPU:
-          print("[epoch %2d][iter %4d] loss: [%.4f] lr4ft: [%.5f] lr4tr: [%.5d]" \
+          print("[epoch %2d][iter %4d] loss: %.4f, lr4ft: %.2e, lr4tr: %.2e" \
             % (epoch, step, loss_temp / args.disp_interval, lr4ft, lr4tr))     
-          print("\tfg/bg=(%d/%d)" % (0, 0))
-          print("\trpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f]" % (0, 0, 0, 0)) 
+          print("\t\t\tfg/bg=(%d/%d)" % (0, 0))
+          print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" % (0, 0, 0, 0)) 
         else:
-          print("[epoch %2d][iter %4d] loss: [%.4f] lr4ft: [%.5f] lr4tr: [%.5d]" \
+          print("[epoch %2d][iter %4d] loss: %.4f, lr4ft: %.2e, lr4tr: %.2e" \
             % (epoch, step, loss_temp / args.disp_interval, lr4ft, lr4tr))
-          print("\tfg/bg=(%d/%d)" % (fasterRCNN.fg_cnt, fasterRCNN.bg_cnt))          
-          print("\trpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f]" %
+          print("\t\t\tfg/bg=(%d/%d)" % (fasterRCNN.fg_cnt, fasterRCNN.bg_cnt))          
+          print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box: %.4f" %
             (fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0], \
              fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0], \
              fasterRCNN.RCNN_loss_cls.data[0], \
@@ -292,8 +283,8 @@ if __name__ == '__main__':
           print('save model: {}'.format(save_name))
 
     if epoch % args.lr_decay_step == 0:
-      lr4ft = adjust_learning_rate(optimizer4ft, epoch, lr4ft)
-      lr4tr = adjust_learning_rate(optimizer4tr, epoch, lr4tr)
+      lr4ft = adjust_learning_rate(optimizer4ft, lr4ft)
+      lr4tr = adjust_learning_rate(optimizer4tr, lr4tr)
 
     end = time.time()
     print(end - start)
