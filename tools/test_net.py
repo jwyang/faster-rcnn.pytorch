@@ -56,7 +56,7 @@ def parse_args():
                       default=700, type=int)
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load network',
-                      default=10, type=int)  
+                      default=10000, type=int)  
   parser.add_argument('--tag', dest='tag',
                       help='tag of the model',
                       default=None, type=str)
@@ -237,14 +237,11 @@ if __name__ == '__main__':
     cfg.CUDA = True
 
   # initilize the network here.
-  fasterRCNN = _fasterRCNN(args.net, imdb.classes)
-  params = list(fasterRCNN.parameters())
-  print(params[20].sum())
+  # fasterRCNN = _fasterRCNN(args.net, imdb.classes)
+  # params = list(fasterRCNN.parameters())
+  # print(params[25].sum())
   # load net
   fasterRCNN = torch.load(load_name)
-  print(params[20].sum())
-
-  exit()
   print('load model successfully!')
 
   if args.ngpu > 0:
@@ -334,7 +331,7 @@ if __name__ == '__main__':
           cls_dets = cls_dets[keep, :]
           cls_dets = cls_dets.cpu().numpy()          
           if vis:
-              im2show = vis_detections(im2show, imdb.classes[j], cls_dets, 0.1)
+              im2show = vis_detections(im2show, imdb.classes[j], cls_dets, 0.3)
           all_boxes[j][i] = cls_dets
       
       # Limit to max_per_image detections *over all classes*

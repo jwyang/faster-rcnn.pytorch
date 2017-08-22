@@ -40,7 +40,7 @@ class roibatchLoader(data.Dataset):
     gt_boxes = torch.from_numpy(blobs['gt_boxes'])
     data_height, data_width = data.size(1), data.size(2)
 
-    if self.training:
+    if False: #self.training:
         ##################################################
         # we crop the input image to fixed size randomly #
         ##################################################
@@ -96,10 +96,10 @@ class roibatchLoader(data.Dataset):
         trim_data = trim_data.permute(0, 3, 1, 2).contiguous().view(3, self.trim_height, self.trim_width)
         im_info = im_info.view(3)
 
-        return trim_data, im_info, gt_boxes_padding, num_boxes
+        return trim_data, im_info, gt_boxes, num_boxes
     else:
         data = data.permute(0, 3, 1, 2).contiguous().view(3, data_height, data_width)
-        num_boxes = 1
+        num_boxes = gt_boxes.size(0)
         im_info = im_info.view(3)               
         return data, im_info, gt_boxes, num_boxes
 

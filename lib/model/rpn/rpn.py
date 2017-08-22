@@ -123,6 +123,6 @@ class _RPN(nn.Module):
             rpn_bbox_pred = torch.mul(rpn_bbox_pred, rpn_bbox_inside_weights_v)
             rpn_bbox_targets_v = Variable(rpn_bbox_targets)
             self.rpn_loss_box = F.smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets_v, size_average=False) / (fg_cnt + 1e-4)
-            self.rpn_loss_box = self.rpn_loss_box / batch_size
+            self.rpn_loss_box = self.rpn_loss_box #/ batch_size
 
         return rois, self.rpn_loss_cls, self.rpn_loss_box

@@ -21,6 +21,8 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.optim as optim
 
+import torchvision.transforms as transforms
+
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
@@ -45,15 +47,21 @@ def parse_args():
   parser.add_argument('--imdbval', dest='imdbval_name',
                       help='dataset to validate on',
                       default='voc_2007_test', type=str)
+  parser.add_argument('--epochs', dest='max_epochs',
+                      help='number of epochs to train',
+                      default=20, type=int)                      
   parser.add_argument('--iters', dest='max_iters',
                       help='number of iterations to train',
-                      default=70000, type=int)
+                      default=100000, type=int)
   parser.add_argument('--disp_interval', dest='disp_interval',
                       help='number of iterations to display',
                       default=10, type=int)
   parser.add_argument('--checkpoint_interval', dest='checkpoint_interval',
                       help='number of iterations to display',
                       default=100, type=int)  
+  parser.add_argument('--checkpoint', dest='checkpoint',
+                      help='checkpoint to load model',
+                      default=0, type=int)  
   parser.add_argument('--tag', dest='tag',
                       help='tag of the model',
                       default=None, type=str)
@@ -69,7 +77,9 @@ def parse_args():
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
                       default=1, type=int)
-
+  parser.add_argument('--s', dest='session',
+                      help='training session',
+                      default=1, type=int)
 
   if len(sys.argv) == 1:
     parser.print_help()
@@ -92,7 +102,7 @@ def weights_normal_init(model, dev=0.01):
 lr = cfg.TRAIN.LEARNING_RATE
 momentum = cfg.TRAIN.MOMENTUM
 weight_decay = cfg.TRAIN.WEIGHT_DECAY
-use_multiGPU = True
+use_multiGPU = False
 
 def save_net(fname, net):
     import h5py
@@ -127,6 +137,7 @@ if __name__ == '__main__':
   # -- Note: Use validation set and disable the flipped to enable faster loading.
   cfg.TRAIN.USE_FLIPPED = True
   imdb, roidb = combined_roidb(args.imdb_name)
+  train_size = len(roidb)
 
   print('{:d} roidb entries'.format(len(roidb)))
 
@@ -135,8 +146,8 @@ if __name__ == '__main__':
     os.makedirs(output_dir)
 
   dataset = roibatchLoader(roidb, imdb.num_classes)
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=6,
-                            shuffle=False, num_workers=4)
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
+                            shuffle=False, num_workers=0)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -169,6 +180,10 @@ if __name__ == '__main__':
   weights_normal_init(fasterRCNN.RCNN_cls_score)
   weights_normal_init(fasterRCNN.RCNN_bbox_pred)
 
+  if args.checkpoint > 0:
+    load_name = os.path.join(output_dir, 'faster_rcnn_{}.pth'.format(args.checkpoint))
+    fasterRCNN = torch.load(load_name)
+    print("load checkpoint %s" % (load_name))
   # pdb.set_trace()
   params = list(fasterRCNN.parameters())
   optimizer = optim.Adam(params[8:], lr = lr * 0.1)
@@ -180,41 +195,66 @@ if __name__ == '__main__':
   if args.ngpu > 0:
     fasterRCNN.cuda()
 
-  data_iter = iter(dataloader)
-  loss_temp = 0
+  # data = data_iter.next()
+  # data = data_iter.next()
 
-  start = time.time()
-  for step in range(100):
+  # im_data.data.resize_(data[0].size()).copy_(data[0])
+  # im_info.data.resize_(data[1].size()).copy_(data[1])
+  # gt_boxes.data.resize_(data[2].size()).copy_(data[2])
+  # num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
-    data = data_iter.next()
-    im_data.data.resize_(data[0].size()).copy_(data[0])
-    im_info.data.resize_(data[1].size()).copy_(data[1])
-    gt_boxes.data.resize_(data[2].size()).copy_(data[2])
-    num_boxes.data.resize_(data[3].size()).copy_(data[3])
+  # pdb.set_trace()
+  normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-    fasterRCNN.zero_grad()
-    cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
-    loss = (rpn_loss.sum() + rcnn_loss.sum()) / im_data.size(0)
-    loss_temp += loss.data[0]
-    # backward
-    optimizer.zero_grad()    
-    loss.backward()
-    optimizer.step()
+  for epoch in range(1, args.max_epochs):
+    loss_temp = 0
+    start = time.time()
 
-    if step % args.disp_interval == 0:
-      if use_multiGPU:
-        print("[iter %4d] loss: [%.4f] rpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f] " \
-          % (step, loss_temp / 10, 0, 0, 0, 0))      
-      else:
-        print("[iter %4d] loss: [%.4f] rpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f] " \
-          % (step, loss_temp / 10, fasterRCNN.rpn_loss_cls.data[0], fasterRCNN.rpn_loss_bbox.data[0], \
-                                fasterRCNN.RCNN_loss_cls.data[0], fasterRCNN.RCNN_loss_bbox.data[0]))      
-      loss_temp = 0
+    data_iter = iter(dataloader)
 
-    if (step % args.checkpoint_interval == 0) and step > 0:
-        save_name = os.path.join(output_dir, 'faster_rcnn_{}.h5'.format(step))
-        save_net(save_name, fasterRCNN)
-        print('save model: {}'.format(save_name))
+    for step in range(train_size):
 
-  end = time.time()
-  print(end - start)
+      data = data_iter.next()
+
+      data[0] = (data[0] - data[0].min()) / 255.0
+      data[0] = normalize(data[0])
+
+      im_data.data.resize_(data[0].size()).copy_(data[0])
+      im_info.data.resize_(data[1].size()).copy_(data[1])
+      gt_boxes.data.resize_(data[2].size()).copy_(data[2])
+      num_boxes.data.resize_(data[3].size()).copy_(data[3])
+
+      fasterRCNN.zero_grad()
+      _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+      loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
+      loss_temp += loss.data[0]
+      # backward
+      optimizer.zero_grad()    
+      loss.backward()
+      optimizer.step()
+
+      if step % args.disp_interval == 0:
+        if use_multiGPU:
+          print("[epoch %2d][iter %4d] loss: [%.4f] " \
+            % (epoch, step, loss_temp / args.disp_interval))     
+          print("\tfg/bg=(%d/%d)" % (0, 0))
+          print("\trpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f]" % (0, 0, 0, 0)) 
+        else:
+          print("[epoch %2d][iter %4d] loss: [%.4f] " \
+            % (epoch, step, loss_temp / args.disp_interval))
+          print("\tfg/bg=(%d/%d)" % (fasterRCNN.fg_cnt, fasterRCNN.bg_cnt))          
+          print("\trpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f]" %
+            (fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0], \
+             fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0], \
+             fasterRCNN.RCNN_loss_cls.data[0], \
+             fasterRCNN.RCNN_loss_bbox.data[0]))
+
+        loss_temp = 0
+
+      if (step % args.checkpoint_interval == 0) and step > 0:
+          save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}.pth'.format(epoch, step))
+          torch.save(fasterRCNN, save_name)
+          print('save model: {}'.format(save_name))
+
+    end = time.time()
+    print(end - start)

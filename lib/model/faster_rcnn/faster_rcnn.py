@@ -67,13 +67,21 @@ class _RCNN_base(nn.Module):
             rois_target = Variable(rois_target.view(-1, rois_target.size(2)))
             rois_inside_ws = Variable(rois_inside_ws.view(-1, rois_inside_ws.size(2)))
 
+        else:
+            rois_label = None
+            rois_target = None
+            rois_inside_ws = None
+            rpn_loss_cls = 0
+            rpn_loss_bbox = 0
+
         rois_var = Variable(rois.view(-1,5))
         
         # do roi pooling based on predicted rois
+
         pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
         pooled_feat_all = pooled_feat.view(pooled_feat.size(0), -1)
 
-        return pooled_feat_all, rois_label, rois_target, rois_inside_ws, rpn_loss_cls, rpn_loss_bbox
+        return rois, pooled_feat_all, rois_label, rois_target, rois_inside_ws, rpn_loss_cls, rpn_loss_bbox
 
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
@@ -90,10 +98,10 @@ class _fasterRCNN(nn.Module):
         self.RCNN_top_model = nn.Sequential(
             nn.Linear(self.dout_base_model*cfg.POOLING_SIZE*cfg.POOLING_SIZE, 4096),
             nn.ReLU(True),
-            nn.Dropout(0.5),
+            # nn.Dropout(0.5),
             nn.Linear(4096, 4096),
-            nn.ReLU(True),            
-            nn.Dropout(0.5)
+            nn.ReLU(True)      
+            # nn.Dropout(0.5)
         )
 
         self.RCNN_cls_score = nn.Sequential(
@@ -115,9 +123,10 @@ class _fasterRCNN(nn.Module):
     
         
         batch_size = im_data.size(0)
-        pooled_feat_all, rois_label, rois_target, rois_inside_ws, rpn_loss_cls, rpn_loss_bbox = \
+        rois, pooled_feat_all, rois_label, rois_target, rois_inside_ws, rpn_loss_cls, rpn_loss_bbox = \
                             self.RCNN_base(im_data, im_info, gt_boxes, num_boxes)
 
+        rpn_loss = rpn_loss_cls + 10 * rpn_loss_bbox
 
         # feed pooled features to top model
         x = self.RCNN_top_model(pooled_feat_all)
@@ -126,32 +135,36 @@ class _fasterRCNN(nn.Module):
         cls_score = self.RCNN_cls_score(x)
         cls_prob = F.softmax(cls_score)
 
+        # pdb.set_trace()
+
         # compute regression loss
         bbox_pred = self.RCNN_bbox_pred(x)
+
+        self.RCNN_loss_cls = 0
+        self.RCNN_loss_bbox = 0
 
         if self.training:
             # classification loss
             label = rois_label.long()
-            fg_cnt = torch.sum(label.data.ne(0))
-            bg_cnt = label.data.numel() - fg_cnt
+            self.fg_cnt = torch.sum(label.data.ne(0))
+            self.bg_cnt = label.data.numel() - self.fg_cnt
 
             ce_weights = rois_label.data.new(cls_score.size(1)).fill_(1)
-            ce_weights[0] = float(fg_cnt) / bg_cnt
+            ce_weights[0] = float(self.fg_cnt) / self.bg_cnt
 
-            RCNN_loss_cls = F.cross_entropy(cls_score, label, weight=ce_weights)
+            # pdb.set_trace()
+            self.RCNN_loss_cls = F.cross_entropy(cls_score, label, weight=ce_weights)
 
             # bounding box regression L1 loss
             rois_target = torch.mul(rois_target, rois_inside_ws)
             bbox_pred = torch.mul(bbox_pred, rois_inside_ws)
 
-            RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, rois_target, size_average=False) / (fg_cnt + 1e-4)
-
+            self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, rois_target, size_average=False) / (self.fg_cnt + 1e-4)
         
-            rpn_loss = rpn_loss_cls + 10 * rpn_loss_bbox
-            rcnn_loss = RCNN_loss_cls + 10 * RCNN_loss_bbox
+        rcnn_loss = self.RCNN_loss_cls + 10 * self.RCNN_loss_bbox
 
-        cls_prob = cls_prob.view(batch_size, cfg.TRAIN.BATCH_SIZE, -1)
-        bbox_pred = bbox_pred.view(batch_size, cfg.TRAIN.BATCH_SIZE, -1)
+        cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
+        bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
 
-        return cls_prob, bbox_pred, rpn_loss, rcnn_loss
+        return rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss
 

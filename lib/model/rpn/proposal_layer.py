@@ -86,7 +86,7 @@ class _ProposalLayer(nn.Module):
 
         batch_size = bbox_deltas.size(0)
 
-        if cfg_key == "TEST":
+        if True: # cfg_key == "TEST":
             feat_height, feat_width = scores.size(2), scores.size(3)
             shift_x = np.arange(0, feat_width) * self._feat_stride
             shift_y = np.arange(0, feat_height) * self._feat_stride
@@ -105,7 +105,7 @@ class _ProposalLayer(nn.Module):
 
         # Transpose and reshape predicted bbox transformations to get them
         # into the same order as the anchors:
-        
+
         bbox_deltas = bbox_deltas.permute(0, 2, 3, 1).contiguous()
         bbox_deltas = bbox_deltas.view(batch_size, -1, 4)
 
@@ -137,7 +137,7 @@ class _ProposalLayer(nn.Module):
         
         _, order = torch.sort(scores_keep, 1, True)
 
-        output = scores.new(batch_size, post_nms_topN, 5).zero_()
+        # output = scores.new(batch_size, post_nms_topN, 5).zero_()
 
         for i in range(batch_size):
             # # 3. remove predicted boxes with either height or width < threshold
@@ -189,6 +189,8 @@ class _ProposalLayer(nn.Module):
             
             # padding 0 at the end.
             num_proposal = proposals_single.size(0)
+
+            output = scores.new(batch_size, num_proposal, 5).zero_()            
             output[i,:,0] = i
             output[i,:num_proposal,1:] = proposals_single
 
@@ -201,7 +203,6 @@ class _ProposalLayer(nn.Module):
         # if len(top) > 1:
         #     top[1].reshape(*(scores.shape))
         #     top[1].data[...] = scores
-
 
         return output
 

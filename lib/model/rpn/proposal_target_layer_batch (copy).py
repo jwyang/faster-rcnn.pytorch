@@ -43,6 +43,8 @@ class _ProposalTargetLayer(nn.Module):
         # Include ground-truth boxes in the set of candidate rois
         all_rois = torch.cat([all_rois, gt_boxes_append], 1)
 
+        print(all_rois)
+        
         num_images = 1
         rois_per_image = int(cfg.TRAIN.BATCH_SIZE / num_images)
         fg_rois_per_image = int(np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))
@@ -152,17 +154,17 @@ class _ProposalTargetLayer(nn.Module):
             bg_inds = torch.nonzero((max_overlaps[i] < cfg.TRAIN.BG_THRESH_HI) &
                                     (max_overlaps[i] >= cfg.TRAIN.BG_THRESH_LO)).squeeze()
 
-            bg_num_rois = bg_inds.size(0)
+            bg_num_rois = bg_inds.numel()
             # Compute number of background RoIs to take from this image (guarding
             # against there being fewer than desired)
             bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
             # bg_rois_per_this_image = min(bg_rois_per_this_image, bg_inds.size)
+
+            # pdb.set_trace()
             # Sample background regions without replacement
             if bg_num_rois > 0:
                 # rand_num = torch.randperm(bg_num_rois).type_as(all_rois).long()
-                # bg_inds = bg_inds[rand_num[:bg_rois_per_this_image]]
-                rand_num = torch.floor(torch.rand(bg_rois_per_this_image).type_as(all_rois) 
-                                         * bg_num_rois).long()
+                rand_num = torch.floor(torch.rand(bg_rois_per_this_image) * bg_num_rois).type_as(all_rois).long()
                 bg_inds = bg_inds[rand_num]
 
             # The indices that we're selecting (both fg and bg)
