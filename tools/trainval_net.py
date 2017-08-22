@@ -61,9 +61,15 @@ def parse_args():
   parser.add_argument('--checkpoint_interval', dest='checkpoint_interval',
                       help='number of iterations to display',
                       default=2000, type=int)  
+  parser.add_argument('--checksession', dest='checksession',
+                      help='checksession to load model',
+                      default=2, type=int)  
+  parser.add_argument('--checkepoch', dest='checkepoch',
+                      help='checkepoch to load model',
+                      default=1, type=int)                          
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load model',
-                      default=0, type=int)  
+                      default=4000, type=int)  
   parser.add_argument('--tag', dest='tag',
                       help='tag of the model',
                       default=None, type=str)
@@ -82,6 +88,13 @@ def parse_args():
   parser.add_argument('--s', dest='session',
                       help='training session',
                       default=2, type=int)
+
+  parser.add_argument('--o', dest='optimizer',
+                      help='training optimizer',
+                      default="adam", type=str)
+  parser.add_argument('--lr_decay_step', dest='lr_decay_step',
+                      help='step to do learning rate decay, unit is epoch',
+                      default=5, type=int)
 
   if len(sys.argv) == 1:
     parser.print_help()
@@ -119,6 +132,13 @@ def load_net(fname, net):
     for k, v in net.state_dict().items():
         param = torch.from_numpy(np.asarray(h5f[k]))
         v.copy_(param)
+
+def adjust_learning_rate(optimizer, lr):
+    """Sets the learning rate to the initial LR decayed by 0.5 every 20 epochs"""
+    lr = lr * 0.5
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+    return lr
 
 if __name__ == '__main__':
   args = parse_args()
@@ -183,15 +203,23 @@ if __name__ == '__main__':
   weights_normal_init(fasterRCNN.RCNN_bbox_pred)
 
   if args.checkpoint > 0:
-    load_name = os.path.join(output_dir, 'faster_rcnn_{}.pth'.format(args.checkpoint))
+    load_name = os.path.join(output_dir, 
+      'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
     fasterRCNN = torch.load(load_name)
     print("load checkpoint %s" % (load_name))
   # pdb.set_trace()
   params = list(fasterRCNN.parameters())
-  optimizer_ft = optim.Adam(params[:8], lr = lr * 0.01)
-  optimizer = optim.Adam(params[8:], lr = lr * 0.1)
 
-  # optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=weight_decay)
+  if args.optimizer == "adam":    
+    lr4ft = lr * 0.01
+    optimizer4ft = optim.Adam(params[4:8], lr = lr4ft)
+    lr4tr = lr * 0.1
+    optimizer4tr = optim.Adam(params[8:], lr = lr4tr)
+  elif args.optimizer == "sgd":
+    lr4ft = lr * 0.1
+    optimizer4ft = torch.optim.SGD(params[4:8], lr=lr4ft, momentum=momentum, weight_decay=weight_decay)
+    lr4tr = lr
+    optimizer4tr = torch.optim.SGD(params[8:], lr=lr4tr, momentum=momentum, weight_decay=weight_decay)
 
   if use_multiGPU:
     fasterRCNN.RCNN_base = nn.DataParallel(fasterRCNN.RCNN_base)
@@ -234,21 +262,21 @@ if __name__ == '__main__':
       loss_temp += loss.data[0]
       # backward
       optimizer.zero_grad()
-      optimizer_ft.zero_grad()
+      optimizer4ft.zero_grad()
       loss.backward()
       network.clip_gradient(fasterRCNN, 10.)      
       optimizer.step()
-      optimizer_ft.step()      
+      optimizer4ft.step()
 
       if step % args.disp_interval == 0:
         if use_multiGPU:
-          print("[epoch %2d][iter %4d] loss: [%.4f] " \
-            % (epoch, step, loss_temp / args.disp_interval))     
+          print("[epoch %2d][iter %4d] loss: [%.4f] lr4ft: [%.5f] lr4tr: [%.5d]" \
+            % (epoch, step, loss_temp / args.disp_interval, lr4ft, lr4tr))     
           print("\tfg/bg=(%d/%d)" % (0, 0))
           print("\trpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f]" % (0, 0, 0, 0)) 
         else:
-          print("[epoch %2d][iter %4d] loss: [%.4f] " \
-            % (epoch, step, loss_temp / args.disp_interval))
+          print("[epoch %2d][iter %4d] loss: [%.4f] lr4ft: [%.5f] lr4tr: [%.5d]" \
+            % (epoch, step, loss_temp / args.disp_interval, lr4ft, lr4tr))
           print("\tfg/bg=(%d/%d)" % (fasterRCNN.fg_cnt, fasterRCNN.bg_cnt))          
           print("\trpn_cls [%.4f] rpn_box [%.4f] rcnn_cls [%.4f] rcnn_box [%.4f]" %
             (fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0], \
@@ -262,6 +290,10 @@ if __name__ == '__main__':
           save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
           torch.save(fasterRCNN, save_name)
           print('save model: {}'.format(save_name))
+
+    if epoch % args.lr_decay_step == 0:
+      lr4ft = adjust_learning_rate(optimizer4ft, epoch, lr4ft)
+      lr4tr = adjust_learning_rate(optimizer4tr, epoch, lr4tr)
 
     end = time.time()
     print(end - start)
