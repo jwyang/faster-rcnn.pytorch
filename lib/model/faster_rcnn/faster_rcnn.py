@@ -7,6 +7,7 @@ from torch.autograd import Variable
 import numpy as np
 
 from model.utils.config import cfg
+
 from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
 from model.roi_pooling_single.modules.roi_pool import _RoIPool
@@ -34,8 +35,8 @@ class _RCNN_base(nn.Module):
         # define rpn
         self.RCNN_rpn = _RPN(self.feat_height, self.feat_width, self.dout_base_model)
         self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
-        # self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
-        self.RCNN_roi_pool = _RoIPool(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
+        self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
+        # self.RCNN_roi_pool = _RoIPool(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
         im_info = im_info.data
@@ -103,15 +104,6 @@ class _fasterRCNN(nn.Module):
         self.RCNN_fc6 = pretrained_model.classifier[0]
         self.RCNN_fc7 = pretrained_model.classifier[3]
 
-        # self.RCNN_top_model = nn.Sequential(
-        #     nn.Linear(self.dout_base_model*cfg.POOLING_SIZE*cfg.POOLING_SIZE, 4096),
-        #     nn.ReLU(True),
-        #     # nn.Dropout(0.5),
-        #     nn.Linear(4096, 4096),
-        #     nn.ReLU(True)      
-        #     # nn.Dropout(0.5)
-        # )
-
         self.RCNN_cls_score = nn.Sequential(
             nn.Linear(4096, self.n_classes)
         )
@@ -138,10 +130,11 @@ class _fasterRCNN(nn.Module):
 
         # feed pooled features to top model
         x = self.RCNN_fc6(pooled_feat_all)
-        x = F.ReLU(x, inplace = True)
+        x = F.relu(x, inplace = True)
+        x = F.dropout(x, 0.5)
 
         x = self.RCNN_fc7(x)
-        x = F.ReLU(x, inplace = True)
+        x = F.relu(x, inplace = True)
 
         # x = self.RCNN_top_model(pooled_feat_all)
 

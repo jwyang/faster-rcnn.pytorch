@@ -26,6 +26,8 @@ import torchvision.transforms as transforms
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
+from model.utils import network
+
 from model.faster_rcnn.faster_rcnn import _fasterRCNN
 
 import pdb
@@ -58,7 +60,7 @@ def parse_args():
                       default=10, type=int)
   parser.add_argument('--checkpoint_interval', dest='checkpoint_interval',
                       help='number of iterations to display',
-                      default=100, type=int)  
+                      default=2000, type=int)  
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load model',
                       default=0, type=int)  
@@ -79,7 +81,7 @@ def parse_args():
                       default=1, type=int)
   parser.add_argument('--s', dest='session',
                       help='training session',
-                      default=1, type=int)
+                      default=2, type=int)
 
   if len(sys.argv) == 1:
     parser.print_help()
@@ -147,7 +149,7 @@ if __name__ == '__main__':
 
   dataset = roibatchLoader(roidb, imdb.num_classes)
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
-                            shuffle=False, num_workers=0)
+                            shuffle=True, num_workers=0)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -176,7 +178,7 @@ if __name__ == '__main__':
   # weights_normal_init(fasterRCNN)
   weights_normal_init(fasterRCNN.RCNN_base.RCNN_rpn.RPN_cls_score)
   weights_normal_init(fasterRCNN.RCNN_base.RCNN_rpn.RPN_bbox_pred)  
-  weights_normal_init(fasterRCNN.RCNN_top_model)
+  # weights_normal_init(fasterRCNN.RCNN_top_model)
   weights_normal_init(fasterRCNN.RCNN_cls_score)
   weights_normal_init(fasterRCNN.RCNN_bbox_pred)
 
@@ -186,7 +188,9 @@ if __name__ == '__main__':
     print("load checkpoint %s" % (load_name))
   # pdb.set_trace()
   params = list(fasterRCNN.parameters())
+  optimizer_ft = optim.Adam(params[:8], lr = lr * 0.01)
   optimizer = optim.Adam(params[8:], lr = lr * 0.1)
+
   # optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=weight_decay)
 
   if use_multiGPU:
@@ -229,9 +233,12 @@ if __name__ == '__main__':
       loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
       loss_temp += loss.data[0]
       # backward
-      optimizer.zero_grad()    
+      optimizer.zero_grad()
+      optimizer_ft.zero_grad()
       loss.backward()
+      network.clip_gradient(fasterRCNN, 10.)      
       optimizer.step()
+      optimizer_ft.step()      
 
       if step % args.disp_interval == 0:
         if use_multiGPU:
@@ -252,7 +259,7 @@ if __name__ == '__main__':
         loss_temp = 0
 
       if (step % args.checkpoint_interval == 0) and step > 0:
-          save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}.pth'.format(epoch, step))
+          save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
           torch.save(fasterRCNN, save_name)
           print('save model: {}'.format(save_name))
 

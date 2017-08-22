@@ -30,6 +30,7 @@ from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.faster_rcnn.faster_rcnn import _fasterRCNN
 from model.rpn.bbox_transform import clip_boxes
 from model.nms.nms_wrapper import nms
+from model.fast_rcnn.nms_wrapper import nms
 
 import pdb
 
@@ -58,10 +59,10 @@ def parse_args():
                       default=700, type=int)
   parser.add_argument('--checkepoch', dest='checkepoch',
                       help='checkepoch to load network',
-                      default=2, type=int)    
+                      default=7, type=int)    
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load network',
-                      default=2000, type=int)  
+                      default=5000, type=int)  
   parser.add_argument('--tag', dest='tag',
                       help='tag of the model',
                       default=None, type=str)
@@ -204,7 +205,7 @@ if __name__ == '__main__':
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
   cfg.TRAIN.USE_FLIPPED = False
-  imdb, roidb = combined_roidb(args.imdb_name)
+  imdb, roidb = combined_roidb(args.imdbval_name)
   imdb.competition_mode(on=True)
 
   print('{:d} roidb entries'.format(len(roidb)))
@@ -258,7 +259,7 @@ if __name__ == '__main__':
 
   max_per_image = 300
   thresh = 0.05
-  vis = True
+  vis = False
 
   save_name = 'faster_rcnn_10'
 
@@ -308,8 +309,8 @@ if __name__ == '__main__':
           # Simply repeat the boxes, once for each class
           pred_boxes = np.tile(boxes, (1, scores.shape[1]))
 
-      scores = scores.squeeze()
-      pred_boxes = pred_boxes.squeeze()
+      scores = scores.squeeze().cpu().numpy()
+      pred_boxes = pred_boxes.squeeze().cpu().numpy()
       # _t['im_detect'].tic()
       det_toc = time.time()      
       detect_time = det_toc - det_tic
@@ -325,35 +326,47 @@ if __name__ == '__main__':
           # im2show = np.copy(im_data.data.cpu().squeeze().numpy())
           # im2show = im2show.transpose(1, 2, 0)
 
-      # skip j = 0, because it's the background class
       for j in xrange(1, imdb.num_classes):
-          num_candidate = torch.sum(scores[:, j] > thresh)
-          if num_candidate == 0:
-            continue
-          inds = torch.nonzero(scores[:, j] > thresh)
-          inds = inds.squeeze()
-          cls_scores = scores[:, j][inds]
-          cls_boxes = pred_boxes[:, j * 4:(j + 1) * 4][inds]
-
-          cls_dets = torch.cat((cls_boxes, cls_scores.unsqueeze(1)), 1)
+          inds = np.where(scores[:, j] > thresh)[0]
+          cls_scores = scores[inds, j]
+          cls_boxes = pred_boxes[inds, j * 4:(j + 1) * 4]
+          cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
+              .astype(np.float32, copy=False)
           keep = nms(cls_dets, cfg.TEST.NMS)
-          keep = keep.squeeze().long()
-
           cls_dets = cls_dets[keep, :]
-          cls_dets = cls_dets.cpu().numpy()          
           if vis:
-              im2show = vis_detections(im2show, imdb.classes[j], cls_dets, 0.5)
+              im2show = vis_detections(im2show, imdb.classes[j], cls_dets)
           all_boxes[j][i] = cls_dets
+
+      # # skip j = 0, because it's the background class
+      # for j in xrange(1, imdb.num_classes):
+      #     num_candidate = torch.sum(scores[:, j] > thresh)
+      #     if num_candidate == 0:
+      #       continue
+      #     inds = torch.nonzero(scores[:, j] > thresh)
+      #     inds = inds.squeeze()
+      #     cls_scores = scores[:, j][inds]
+      #     cls_boxes = pred_boxes[:, j * 4:(j + 1) * 4][inds]
+
+      #     cls_dets = torch.cat((cls_boxes, cls_scores.unsqueeze(1)), 1)
+      #     keep = nms(cls_dets, cfg.TEST.NMS)
+      #     keep = keep.squeeze().long()
+
+      #     cls_dets = cls_dets[keep, :]
+      #     cls_dets = cls_dets.cpu().numpy()          
+      #     if vis:
+      #         im2show = vis_detections(im2show, imdb.classes[j], cls_dets, 0.6)
+      #     all_boxes[j][i] = cls_dets
       
       # Limit to max_per_image detections *over all classes*
-      # if max_per_image > 0:
-      #     image_scores = np.hstack([all_boxes[j][i][:, -1]
-      #                               for j in xrange(1, imdb.num_classes)])
-      #     if len(image_scores) > max_per_image:
-      #         image_thresh = np.sort(image_scores)[-max_per_image]
-      #         for j in xrange(1, imdb.num_classes):
-      #             keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
-      #             all_boxes[j][i] = all_boxes[j][i][keep, :]
+      if max_per_image > 0:
+          image_scores = np.hstack([all_boxes[j][i][:, -1]
+                                    for j in xrange(1, imdb.num_classes)])
+          if len(image_scores) > max_per_image:
+              image_thresh = np.sort(image_scores)[-max_per_image]
+              for j in xrange(1, imdb.num_classes):
+                  keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
+                  all_boxes[j][i] = all_boxes[j][i][keep, :]
 
       misc_toc = time.time()
       nms_time = misc_toc - misc_tic
