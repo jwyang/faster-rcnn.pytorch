@@ -10,11 +10,11 @@ put VOCdevkit2007 under data folder.
 
 To train a resnet101, run:
 ```
-./experiments/scripts/train_faster_rcnn.sh 0 pascal_voc res101
-```
+ CUDA_VISIBLE_DEVICES=0 python trainval_net.py --set ANCHOR_SCALES "[8, 16, 32]" ANCHOR_RATIOS "[0.5,1,2]
+ ```
 Alternatively, to train a vgg16, run:
 ```
-./experiments/scripts/train_faster_rcnn.sh 0 pascal_voc vgg16
+CUDA_VISIBLE_DEVICES=0 python test_net.py --set ANCHOR_SCALES "[8, 16, 32]" ANCHOR_RATIOS "[0.5,1,2]"
 ```
 
 #### Faster-RCNN
