@@ -31,7 +31,7 @@ from model.utils.network import weights_normal_init, save_net, load_net, \
       adjust_learning_rate, save_checkpoint
 
 from model.faster_rcnn.faster_rcnn import _fasterRCNN
-  
+
 import pdb
 
 def parse_args():
@@ -39,9 +39,9 @@ def parse_args():
   Parse input arguments
   """
   parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
-  parser.add_argument('--cfg', dest='cfg_file',
-                      help='optional config file',
-                      default='cfgs/vgg16.yml', type=str)
+  parser.add_argument('--dataset', dest='dataset',
+                      help='training dataset',
+                      default='pascal_voc', type=str)
   parser.add_argument('--net', dest='net',
                     help='vgg16, res50, res101, res152',
                     default='vgg16', type=str)
@@ -67,10 +67,6 @@ def parse_args():
                       help='number of iterations to display',
                       default=10000, type=int)
 
-
-  parser.add_argument('--set', dest='set_cfgs',
-                      help='set config keys', default=None,
-                      nargs=argparse.REMAINDER)
   parser.add_argument('--save_dir', dest='save_dir',
                       help='directory to save models', default="models",
                       nargs=argparse.REMAINDER)
@@ -128,6 +124,21 @@ if __name__ == '__main__':
 
   print('Called with args:')
   print(args)
+
+  if args.dataset == "pascal_voc":
+      args.imdb_name = "voc_2007_trainval"
+      args.imdbval_name = "voc_2007_test"
+      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+  elif args.dataset == "pascal_voc_0712":
+      args.imdb_name = "voc_2007_trainval+voc_2012_trainval"
+      args.imdbval_name = "voc_2007_test"
+      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+  elif args.dataset == "coco":
+      args.imdb_name = "coco_2014_train+coco_2014_valminusminival"
+      args.imdbval_name = "coco_2014_minival"
+      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+
+  args.cfg_file = "cfgs/{}.yml".format(args.net)
 
   if args.cfg_file is not None:
     cfg_from_file(args.cfg_file)
