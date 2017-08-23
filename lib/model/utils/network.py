@@ -79,3 +79,12 @@ def load_baseModel(model_name):
         return slice_vgg16(pretrained_model)
     elif model_name == "resnet50":
         return None
+
+def adjust_learning_rate(optimizer, decay=0.1):
+    """Sets the learning rate to the initial LR decayed by 0.5 every 20 epochs"""
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = decay * param_group['lr']
+
+
+def save_checkpoint(state, filename):
+    torch.save(state, filename)
