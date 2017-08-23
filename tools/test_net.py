@@ -58,12 +58,6 @@ def parse_args():
   parser.add_argument('--disp_interval', dest='disp_interval',
                       help='number of iterations to display',
                       default=700, type=int)
-  parser.add_argument('--checkepoch', dest='checkepoch',
-                      help='checkepoch to load network',
-                      default=8, type=int)    
-  parser.add_argument('--checkpoint', dest='checkpoint',
-                      help='checkpoint to load network',
-                      default=10000, type=int)  
   parser.add_argument('--tag', dest='tag',
                       help='tag of the model',
                       default=None, type=str)
@@ -75,14 +69,19 @@ def parse_args():
                       nargs=argparse.REMAINDER)
   parser.add_argument('--load_dir', dest='load_dir',
                       help='directory to load models', default="models",
-                      nargs=argparse.REMAINDER)  
+                      nargs=argparse.REMAINDER)
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
                       default=1, type=int)
   parser.add_argument('--checksession', dest='checksession',
                       help='checksession to load model',
-                      default=2, type=int)  
-
+                      default=1, type=int)
+  parser.add_argument('--checkepoch', dest='checkepoch',
+                      help='checkepoch to load network',
+                      default=1, type=int)
+  parser.add_argument('--checkpoint', dest='checkpoint',
+                      help='checkpoint to load network',
+                      default=10000, type=int)
   if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
@@ -121,9 +120,13 @@ if __name__ == '__main__':
   input_dir = args.load_dir + "/" + args.net
   if not os.path.exists(input_dir):
     raise Exception('There is no input directory for loading network')
-  load_name = os.path.join(input_dir, 
+  load_name = os.path.join(input_dir,
     'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
-  fasterRCNN = torch.load(load_name)
+
+  pdb.set_trace()
+  checkpoint = torch.load(load_name)
+  fasterRCNN = checkpoint['model']
+
   print("load checkpoint %s" % (load_name))
 
   # initilize the tensor holder here.
@@ -171,11 +174,11 @@ if __name__ == '__main__':
 
   dataset = roibatchLoader(roidb, imdb.num_classes, training=False,
                         normalize = transforms.Normalize(
-                        mean=[0.485, 0.456, 0.406], 
+                        mean=[0.485, 0.456, 0.406],
                         std=[0.229, 0.224, 0.225]))
 
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
-                            shuffle=False, num_workers=0, 
+                            shuffle=False, num_workers=0,
                             pin_memory=True)
 
   data_iter = iter(dataloader)
@@ -208,14 +211,14 @@ if __name__ == '__main__':
       scores = scores.squeeze().cpu().numpy()
       pred_boxes = pred_boxes.squeeze().cpu().numpy()
       # _t['im_detect'].tic()
-      det_toc = time.time()      
+      det_toc = time.time()
       detect_time = det_toc - det_tic
 
       misc_tic = time.time()
 
       if vis:
           im = cv2.imread(imdb.image_path_at(i))
-          im2show = np.copy(im)          
+          im2show = np.copy(im)
 
       for j in xrange(1, imdb.num_classes):
           inds = np.where(scores[:, j] > thresh)[0]
@@ -228,7 +231,7 @@ if __name__ == '__main__':
           if vis:
               im2show = vis_detections(im2show, imdb.classes[j], cls_dets)
           all_boxes[j][i] = cls_dets
-      
+
       # Limit to max_per_image detections *over all classes*
       if max_per_image > 0:
           image_scores = np.hstack([all_boxes[j][i][:, -1]
@@ -255,6 +258,6 @@ if __name__ == '__main__':
 
   print('Evaluating detections')
   imdb.evaluate_detections(all_boxes, output_dir)
-  
+
   end = time.time()
   print("test time: %0.4fs" % (end - start))
