@@ -51,9 +51,6 @@ def parse_args():
   parser.add_argument('--imdbval', dest='imdbval_name',
                       help='dataset to validate on',
                       default='voc_2007_test', type=str)
-  parser.add_argument('--iters', dest='max_iters',
-                      help='number of iterations to train',
-                      default=70000, type=int)
   parser.add_argument('--start_epoch', dest='start_epoch',
                       help='starting epoch',
                       default=1, type=int)
@@ -68,7 +65,7 @@ def parse_args():
                       default=10000, type=int)
 
   parser.add_argument('--save_dir', dest='save_dir',
-                      help='directory to save models', default="models",
+                      help='directory to save models', default="/srv/share/models",
                       nargs=argparse.REMAINDER)
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
