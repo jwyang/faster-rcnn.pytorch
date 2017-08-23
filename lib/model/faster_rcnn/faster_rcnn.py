@@ -10,12 +10,12 @@ from model.utils.config import cfg
 
 from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
-from model.roi_pooling_single.modules.roi_pool import _RoIPool
+# from model.roi_pooling_single.modules.roi_pool import _RoIPool
 from model.rpn.proposal_target_layer_batch import _ProposalTargetLayer
 import time
 import pdb
 
-from model.utils.vgg16 import VGG16
+# from model.utils.vgg16 import VGG16
 
 class _RCNN_base(nn.Module):
     def __init__(self, baseModel, classes):
@@ -24,7 +24,7 @@ class _RCNN_base(nn.Module):
         if classes is not None:
             self.classes = classes
             self.n_classes = len(classes)
-        
+
         self.RCNN_base_model = baseModel
 
         virtual_input = torch.randn(1, 3, cfg.TRAIN.TRIM_HEIGHT, cfg.TRAIN.TRIM_WIDTH)
@@ -49,7 +49,7 @@ class _RCNN_base(nn.Module):
 
         # feed base feature map tp RPN to obtain rois
         rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
-        
+
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
 
@@ -68,7 +68,7 @@ class _RCNN_base(nn.Module):
             rpn_loss_bbox = 0
 
         rois_var = Variable(rois.view(-1,5))
-        
+
         # do roi pooling based on predicted rois
 
         pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
@@ -111,17 +111,17 @@ class _fasterRCNN(nn.Module):
         self.RCNN_bbox_pred = nn.Sequential(
             nn.Linear(4096, self.n_classes * 4)
         )
-        
+
         # loss
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
-        
+
         # for log
         self.debug = debug
-        
+
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
-    
-        
+
+
         batch_size = im_data.size(0)
         rois, pooled_feat_all, rois_label, rois_target, rois_inside_ws, rpn_loss_cls, rpn_loss_bbox = \
                             self.RCNN_base(im_data, im_info, gt_boxes, num_boxes)
@@ -167,11 +167,10 @@ class _fasterRCNN(nn.Module):
             bbox_pred = torch.mul(bbox_pred, rois_inside_ws)
 
             self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, rois_target, size_average=False) / (self.fg_cnt + 1e-4)
-        
+
         rcnn_loss = self.RCNN_loss_cls + 10 * self.RCNN_loss_bbox
 
         cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
         bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
 
         return rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss
-
