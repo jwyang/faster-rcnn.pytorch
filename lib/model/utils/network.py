@@ -3,43 +3,11 @@ import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
 
-
-class Conv2d(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, relu=True, same_padding=False, bn=False):
-        super(Conv2d, self).__init__()
-        padding = int((kernel_size - 1) / 2) if same_padding else 0
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding=padding)
-        self.bn = nn.BatchNorm2d(out_channels, eps=0.001, momentum=0, affine=True) if bn else None
-        self.relu = nn.ReLU(inplace=True) if relu else None
-
-    def forward(self, x):
-        x = self.conv(x)
-        if self.bn is not None:
-            x = self.bn(x)
-        if self.relu is not None:
-            x = self.relu(x)
-        return x
-
-
-class FC(nn.Module):
-    def __init__(self, in_features, out_features, relu=True):
-        super(FC, self).__init__()
-        self.fc = nn.Linear(in_features, out_features)
-        self.relu = nn.ReLU(inplace=True) if relu else None
-
-    def forward(self, x):
-        x = self.fc(x)
-        if self.relu is not None:
-            x = self.relu(x)
-        return x
-
-
 def save_net(fname, net):
     import h5py
     h5f = h5py.File(fname, mode='w')
     for k, v in net.state_dict().items():
         h5f.create_dataset(k, data=v.cpu().numpy())
-
 
 def load_net(fname, net):
     import h5py
@@ -47,52 +15,6 @@ def load_net(fname, net):
     for k, v in net.state_dict().items():
         param = torch.from_numpy(np.asarray(h5f[k]))
         v.copy_(param)
-
-
-def load_pretrained_npy(faster_rcnn_model, fname):
-    params = np.load(fname).item()
-    # vgg16
-    vgg16_dict = faster_rcnn_model.rpn.features.state_dict()
-    for name, val in vgg16_dict.items():
-        # # print name
-        # # print val.size()
-        # # print param.size()
-        if name.find('bn.') >= 0:
-            continue
-        i, j = int(name[4]), int(name[6]) + 1
-        ptype = 'weights' if name[-1] == 't' else 'biases'
-        key = 'conv{}_{}'.format(i, j)
-        param = torch.from_numpy(params[key][ptype])
-
-        if ptype == 'weights':
-            param = param.permute(3, 2, 0, 1)
-
-        val.copy_(param)
-
-    # fc6 fc7
-    frcnn_dict = faster_rcnn_model.state_dict()
-    pairs = {'fc6.fc': 'fc6', 'fc7.fc': 'fc7'}
-    for k, v in pairs.items():
-        key = '{}.weight'.format(k)
-        param = torch.from_numpy(params[v]['weights']).permute(1, 0)
-        frcnn_dict[key].copy_(param)
-
-        key = '{}.bias'.format(k)
-        param = torch.from_numpy(params[v]['biases'])
-        frcnn_dict[key].copy_(param)
-
-
-def np_to_variable(x, is_cuda=True, dtype=torch.FloatTensor):
-    v = Variable(torch.from_numpy(x).type(dtype))
-    if is_cuda:
-        v = v.cuda()
-    return v
-
-
-def set_trainable(model, requires_grad):
-    for param in model.parameters():
-        param.requires_grad = requires_grad
-
 
 def weights_normal_init(model, dev=0.01):
     if isinstance(model, list):
@@ -119,3 +41,15 @@ def clip_gradient(model, clip_norm):
     for p in model.parameters():
         if p.requires_grad:
             p.grad.mul_(norm)
+
+
+def vis_detections(im, class_name, dets, thresh=0.8):
+    """Visual debugging of detections."""
+    for i in range(np.minimum(10, dets.shape[0])):
+        bbox = tuple(int(np.round(x)) for x in dets[i, :4])
+        score = dets[i, -1]
+        if score > thresh:
+            cv2.rectangle(im, bbox[0:2], bbox[2:4], (0, 204, 0), 2)
+            cv2.putText(im, '%s: %.3f' % (class_name, score), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN,
+                        1.0, (0, 0, 255), thickness=1)
+    return im
