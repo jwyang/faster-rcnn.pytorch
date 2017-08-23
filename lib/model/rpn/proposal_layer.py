@@ -121,32 +121,33 @@ class _ProposalLayer(nn.Module):
         # proposals = clip_boxes_batch(proposals, im_info, batch_size)
 
         # assign the score to 0 if it's non keep.
-
-        keep = self._filter_boxes(proposals, min_size * im_info[:, 2])
+        # keep = self._filter_boxes(proposals, min_size * im_info[:, 2])
 
         # trim keep index to make it euqal over batch
-        keep_num = torch.sum(keep.int(), 1)
-        trim_size = torch.min(keep_num)
-        keep_idx = []
-        for i in range(batch_size):
-        	keep_idx_i = torch.nonzero(keep[i]).squeeze()
-        	keep_idx_i = keep_idx_i[:trim_size]
-        	keep_idx.append(keep_idx_i + i * scores.size(1))
+        # keep_num = torch.sum(keep.int(), 1)
+        # trim_size = torch.min(keep_num)
+        # keep_idx = []
+        # for i in range(batch_size):
+        #     pdb.set_trace()
+        #     keep_idx_i = torch.nonzero(keep[i]).view(-1)
+        #     keep_idx_i = keep_idx_i[:trim_size]
+        #     keep_idx.append(keep_idx_i + i * scores.size(1))
 
-        keep_idx = torch.cat(tuple(keep_idx), 0)
+        # keep_idx = torch.cat(tuple(keep_idx), 0)
 
-        scores_keep = scores.view(-1)[keep_idx].view(batch_size, trim_size)
-        proposals_keep = proposals.view(-1, 4)[keep_idx, :].contiguous().view(batch_size, trim_size, 4)
+        # scores_keep = scores.view(-1)[keep_idx].view(batch_size, trim_size)
+        # proposals_keep = proposals.view(-1, 4)[keep_idx, :].contiguous().view(batch_size, trim_size, 4)
         
+        # _, order = torch.sort(scores_keep, 1, True)
+        
+        scores_keep = scores
+        proposals_keep = proposals
         _, order = torch.sort(scores_keep, 1, True)
 
         # output = scores.new(batch_size, post_nms_topN, 5).zero_()
-
         for i in range(batch_size):
             # # 3. remove predicted boxes with either height or width < threshold
             # # (NOTE: convert min_size to input image scale stored in im_info[2])
-            # keep = self._filter_boxes(proposals_single, min_size * im_info[i, 2]).squeeze()
-            # keep_idx = torch.nonzero(keep[i]).squeeze()
             proposals_single = proposals_keep[i]
             scores_single = scores_keep[i]
 
@@ -154,10 +155,7 @@ class _ProposalLayer(nn.Module):
             # # 5. take top pre_nms_topN (e.g. 6000)
             order_single = order[i]
 
-            # _, order = torch.sort(scores_single, 0, True)
-            # order = order.squeeze()
-            # # order = scores.ravel().argsort()[::-1]
-            if pre_nms_topN > 0 and pre_nms_topN < trim_size:
+            if pre_nms_topN > 0 and pre_nms_topN < scores_keep.numel():
                 order_single = order_single[:pre_nms_topN]
 
             proposals_single = proposals_single[order_single, :]
@@ -167,45 +165,20 @@ class _ProposalLayer(nn.Module):
             # 7. take after_nms_topN (e.g. 300)
             # 8. return the top proposals (-> RoIs top)
 
-            # ---numpy version---
-            # proposals_np = proposals.cpu().numpy()
-            # scores_np = scores.cpu().numpy()
-            # keep_np = nms(np.hstack((proposals_np, scores_np)), nms_thresh)
-            # keep = torch.from_numpy(np.asarray(keep_np))
-            # ---pytorch version---
             keep_idx_i = nms(torch.cat((proposals_single, scores_single), 1), nms_thresh)
-            keep_idx_i = keep_idx_i.type_as(scores).long().squeeze()
+            keep_idx_i = keep_idx_i.long().view(-1)
 
             if post_nms_topN > 0:
                 keep_idx_i = keep_idx_i[:post_nms_topN]
             proposals_single = proposals_single[keep_idx_i, :]
             scores_single = scores_single[keep_idx_i, :]
 
-            # Output rois blob
-            # Our RPN implementation only supports a single input image, so all
-            # batch inds are 0
-            # blob = np.hstack((batch_inds, proposals.astype(np.float32, copy=False)))
-            # top[0].reshape(*(blob.shape))
-            # top[0].data[...] = blob
-            # NOTE here we assume there is just one image in each batch
-            # batch_inds = scores_single.new(proposals_single.size(0), 1).fill_(i)
-            
             # padding 0 at the end.
             num_proposal = proposals_single.size(0)
 
             output = scores.new(batch_size, num_proposal, 5).zero_()            
             output[i,:,0] = i
             output[i,:num_proposal,1:] = proposals_single
-
-            #pdb.set_trace()
-            #output_single = torch.cat((batch_inds, proposals_single), 1)
-
-
-            #output.append(output_single)
-        # [Optional] output scores blob
-        # if len(top) > 1:
-        #     top[1].reshape(*(scores.shape))
-        #     top[1].data[...] = scores
 
         return output
 
