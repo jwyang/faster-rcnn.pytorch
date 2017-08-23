@@ -132,11 +132,11 @@ class _fasterRCNN(nn.Module):
         # feed pooled features to top model
         x = self.RCNN_fc6(pooled_feat_all)
         x = F.relu(x, inplace = True)
-        x = F.dropout(x, 0.5)
+        x = F.dropout(x, training=self.training)
 
         x = self.RCNN_fc7(x)
         x = F.relu(x, inplace = True)
-        x = F.dropout(x, 0.5)
+        x = F.dropout(x, training=self.training)
 
         # x = self.RCNN_top_model(pooled_feat_all)
 

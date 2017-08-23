@@ -55,7 +55,7 @@ class roibatchLoader(data.Dataset):
 
             # shift y coordiante of gt_boxes
             gt_boxes[:, 1] = gt_boxes[:, 1] - y_s
-            gt_boxes[:, 3] = gt_boxes[:, 3] - y_s        
+            gt_boxes[:, 3] = gt_boxes[:, 3] - y_s
 
             # update gt bounding box according the trip
             gt_boxes[:, 1].clamp_(0, self.trim_height - 1)
@@ -91,18 +91,18 @@ class roibatchLoader(data.Dataset):
         im_info = im_info.view(3)
 
         if self.normalize:
-            trim_data = (trim_data - trim_data.min()) / 255.0
-            trim_data = self.normalize(trim_data)            
+            trim_data = trim_data / 255.0
+            trim_data = self.normalize(trim_data)
 
         return trim_data, im_info, gt_boxes, num_boxes
     else:
         data = data.permute(0, 3, 1, 2).contiguous().view(3, data_height, data_width)
         num_boxes = gt_boxes.size(0)
-        im_info = im_info.view(3)               
+        im_info = im_info.view(3)
 
         if self.normalize:
-            data = (data - data.min()) / 255.0
-            data = self.normalize(data)             
+            data = data / 255.0
+            data = self.normalize(data)
 
         return data, im_info, gt_boxes, num_boxes
 
