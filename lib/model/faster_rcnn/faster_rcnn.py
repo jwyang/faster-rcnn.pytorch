@@ -11,7 +11,7 @@ from model.utils.config import cfg
 from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
 # from model.roi_pooling_single.modules.roi_pool import _RoIPool
-from model.rpn.proposal_target_layer_batch import _ProposalTargetLayer
+from model.rpn.proposal_target_layer import _ProposalTargetLayer
 from model.utils import network
 import time
 import pdb

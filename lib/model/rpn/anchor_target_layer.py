@@ -94,7 +94,8 @@ class _AnchorTargetLayer(nn.Module):
                 (all_anchors[:, 1] >= -self._allowed_border) &
                 (all_anchors[:, 2] < long(im_info[0][1]) + self._allowed_border) &
                 (all_anchors[:, 3] < long(im_info[0][0]) + self._allowed_border))
-        inds_inside = torch.nonzero(keep).squeeze()
+
+        inds_inside = torch.nonzero(keep).view(-1)
 
         # keep only inside anchors
         anchors = all_anchors[inds_inside, :]
@@ -131,7 +132,7 @@ class _AnchorTargetLayer(nn.Module):
         for i in range(batch_size):
             # subsample positive labels if we have too many
             if sum_fg[i] > num_fg:
-                fg_inds = torch.nonzero(labels[i] == 1).squeeze()                
+                fg_inds = torch.nonzero(labels[i] == 1).view(-1)             
                 rand_num = torch.randperm(fg_inds.size(0)).type_as(gt_boxes).long()
                 disable_inds = fg_inds[rand_num[:fg_inds.size(0)-num_fg]]
                 labels[i][disable_inds] = -1
@@ -140,7 +141,7 @@ class _AnchorTargetLayer(nn.Module):
 
             # subsample negative labels if we have too many
             if sum_bg[i] > num_bg:
-                bg_inds = torch.nonzero(labels[i] == 0).squeeze()
+                bg_inds = torch.nonzero(labels[i] == 0).view(-1)
                 rand_num = torch.randperm(bg_inds.size(0)).type_as(gt_boxes).long()
                 disable_inds = bg_inds[rand_num[:bg_inds.size(0)-num_bg]]
                 labels[i][disable_inds] = -1
