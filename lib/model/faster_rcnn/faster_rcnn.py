@@ -12,20 +12,23 @@ from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
 # from model.roi_pooling_single.modules.roi_pool import _RoIPool
 from model.rpn.proposal_target_layer_batch import _ProposalTargetLayer
+from model.utils import network
 import time
 import pdb
 
 # from model.utils.vgg16 import VGG16
 
 class _RCNN_base(nn.Module):
-    def __init__(self, baseModel, classes):
+    def __init__(self, baseModels, classes):
         super(_RCNN_base, self).__init__()
 
         if classes is not None:
             self.classes = classes
             self.n_classes = len(classes)
 
-        self.RCNN_base_model = baseModel
+        self.RCNN_base_model = nn.Sequential()
+        for i in range(len(baseModels)):
+            self.RCNN_base_model.add_module('part{}'.format(i), baseModels[i])
 
         virtual_input = torch.randn(1, 3, cfg.TRAIN.TRIM_HEIGHT, cfg.TRAIN.TRIM_WIDTH)
         out = self.RCNN_base_model(Variable(virtual_input))
@@ -87,8 +90,10 @@ class _fasterRCNN(nn.Module):
 
         # define base model, e.g., VGG16, ResNet, etc.
         if baseModel == "vgg16":
-            pretrained_model = models.vgg16(pretrained=True)
-            RCNN_base_model = nn.Sequential(*list(pretrained_model.features.children())[:-1])
+            slices = network.load_baseModel(baseModel)
+            self.RCNN_base = _RCNN_base(slices[:3], classes)
+            self.RCNN_fc6 = slices[3]
+            self.RCNN_fc7 = slices[4]
         elif baseModel == "res50":
             pretrained_model = models.resnet50(pretrained=True)
             RCNN_base_model = nn.Sequential(*list(pretrained_model.children())[:-2])
@@ -98,11 +103,7 @@ class _fasterRCNN(nn.Module):
         else:
             raise RuntimeError('baseModel is not included.')
 
-        self.RCNN_base = _RCNN_base(RCNN_base_model, classes)
         self.dout_base_model = self.RCNN_base.dout_base_model
-
-        self.RCNN_fc6 = pretrained_model.classifier[0]
-        self.RCNN_fc7 = pretrained_model.classifier[3]
 
         self.RCNN_cls_score = nn.Sequential(
             nn.Linear(4096, self.n_classes)
@@ -135,6 +136,7 @@ class _fasterRCNN(nn.Module):
 
         x = self.RCNN_fc7(x)
         x = F.relu(x, inplace = True)
+        x = F.dropout(x, 0.5)
 
         # x = self.RCNN_top_model(pooled_feat_all)
 

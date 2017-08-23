@@ -53,3 +53,28 @@ def vis_detections(im, class_name, dets, thresh=0.8):
             cv2.putText(im, '%s: %.3f' % (class_name, score), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN,
                         1.0, (0, 0, 255), thickness=1)
     return im
+
+def slice_vgg16(model):
+
+    slices = []
+    # we fix conv1_1, conv1_2, conv2_1, conv2_2
+    slices.append(nn.Sequential(*list(model.features.children())[:10]))
+    # we finetune conv3_1, conv3_2, conv3_3
+    slices.append(nn.Sequential(*list(model.features.children())[10:17]))
+    # we retrain conv4_1, conv4_2, conv4_3, conv5_1, conv5_2, conv5_3
+    slices.append(nn.Sequential(*list(model.features.children())[17:-1]))
+
+    # we copy fc6
+    slices.append(model.classifier[0])
+
+    # we copy fc7
+    slices.append(model.classifier[3])
+
+    return slices
+
+def load_baseModel(model_name):
+    if model_name == "vgg16":
+        pretrained_model = models.vgg16(pretrained=True)
+        return slice_vgg16(pretrained_model)
+    elif model_name == "resnet50":
+        return None
