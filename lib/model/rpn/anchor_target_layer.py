@@ -103,6 +103,7 @@ class _AnchorTargetLayer(nn.Module):
         # label: 1 is positive, 0 is negative, -1 is dont care
         labels = gt_boxes.new(batch_size, inds_inside.size(0)).fill_(-1)
         bbox_inside_weights = gt_boxes.new(batch_size, inds_inside.size(0)).zero_()
+        bbox_outside_weights = gt_boxes.new(batch_size, inds_inside.size(0)).zero_()
 
         overlaps = bbox_overlaps_batch(anchors, gt_boxes)
 
@@ -151,10 +152,21 @@ class _AnchorTargetLayer(nn.Module):
         # use a single value instead of 4 values for easy index.
         bbox_inside_weights[labels==1] = cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS[0]
 
+        if cfg.TRAIN.RPN_POSITIVE_WEIGHT < 0:
+            num_examples = torch.sum(labels[i] >= 0)
+            positive_weights = 1.0 / num_examples
+            negative_weights = 1.0 / num_examples
+        else:
+            assert ((cfg.TRAIN.RPN_POSITIVE_WEIGHT > 0) &
+                    (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))            
+
+        bbox_outside_weights[labels == 1] = positive_weights
+        bbox_outside_weights[labels == 0] = negative_weights
+
         labels = _unmap(labels, total_anchors, inds_inside, batch_size, fill=-1)
         bbox_targets = _unmap(bbox_targets, total_anchors, inds_inside, batch_size, fill=0)
         bbox_inside_weights = _unmap(bbox_inside_weights, total_anchors, inds_inside, batch_size, fill=0)
-        #bbox_outside_weights = _unmap(bbox_outside_weights, total_anchors, inds_inside, batch_size, fill=0)
+        bbox_outside_weights = _unmap(bbox_outside_weights, total_anchors, inds_inside, batch_size, fill=0)
 
         outputs = []
 
@@ -172,6 +184,11 @@ class _AnchorTargetLayer(nn.Module):
                             .permute(0,3,1,2).contiguous()
 
         outputs.append(bbox_inside_weights)
+
+        bbox_outside_weights = bbox_outside_weights.view(batch_size,anchors_count,1).expand(batch_size, anchors_count, 4)
+        bbox_outside_weights = bbox_outside_weights.contiguous().view(batch_size, height, width, 4*A)\
+                            .permute(0,3,1,2).contiguous()
+        outputs.append(bbox_outside_weights)
 
         return outputs
 

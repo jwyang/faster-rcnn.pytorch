@@ -6,6 +6,7 @@ from torch.autograd import Variable
 from model.utils.config import cfg
 from proposal_layer import _ProposalLayer
 from anchor_target_layer import _AnchorTargetLayer
+from model.utils.network import _smooth_l1_loss
 
 import numpy as np
 import math
@@ -115,14 +116,15 @@ class _RPN(nn.Module):
 
             self.rpn_loss_cls = self.rpn_loss_cls / batch_size
 
-            rpn_bbox_targets, rpn_bbox_inside_weights = rpn_data[1:]
+            rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights = rpn_data[1:]
+            
             # compute bbox regression loss
-            rpn_bbox_targets = torch.mul(rpn_bbox_targets, rpn_bbox_inside_weights)
-            rpn_bbox_inside_weights_v = Variable(rpn_bbox_inside_weights)
+            rpn_bbox_inside_weights = Variable(rpn_bbox_inside_weights)
+            rpn_bbox_outside_weights = Variable(rpn_bbox_outside_weights)
+            rpn_bbox_targets = Variable(rpn_bbox_targets)
 
-            rpn_bbox_pred = torch.mul(rpn_bbox_pred, rpn_bbox_inside_weights_v)
-            rpn_bbox_targets_v = Variable(rpn_bbox_targets)
-            self.rpn_loss_box = F.smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets_v, size_average=False) / (fg_cnt + 1e-4)
-            self.rpn_loss_box = self.rpn_loss_box #/ batch_size
+            #self.rpn_loss_box = _smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets_v, size_average=False) / (fg_cnt + 1e-4)
+            self.rpn_loss_box = _smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights, 
+                                                            rpn_bbox_outside_weights, sigma=3, dim=[1,2,3])
 
         return rois, self.rpn_loss_cls, self.rpn_loss_box
