@@ -56,17 +56,17 @@ def parse_args():
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
   parser.add_argument('--load_dir', dest='load_dir',
-                      help='directory to load models', default="models",
+                      help='directory to load models', default="/srv/share/models",
                       nargs=argparse.REMAINDER)
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
                       default=1, type=int)
   parser.add_argument('--checksession', dest='checksession',
                       help='checksession to load model',
-                      default=1, type=int)
+                      default=4, type=int)
   parser.add_argument('--checkepoch', dest='checkepoch',
                       help='checkepoch to load network',
-                      default=1, type=int)
+                      default=6, type=int)
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load network',
                       default=10000, type=int)
@@ -108,9 +108,12 @@ if __name__ == '__main__':
   load_name = os.path.join(input_dir,
     'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
 
-  pdb.set_trace()
+  fasterRCNN = _fasterRCNN(args.net, imdb.classes)
   checkpoint = torch.load(load_name)
-  fasterRCNN = checkpoint['model']
+  fasterRCNN.load_state_dict(checkpoint['model'])
+  print('load model successfully!')
+
+  # pdb.set_trace()
 
   print("load checkpoint %s" % (load_name))
 
@@ -135,9 +138,6 @@ if __name__ == '__main__':
 
   if args.ngpu > 0:
     cfg.CUDA = True
-
-  fasterRCNN = torch.load(load_name)
-  print('load model successfully!')
 
   if args.ngpu > 0:
     fasterRCNN.cuda()
@@ -187,6 +187,11 @@ if __name__ == '__main__':
       if cfg.TEST.BBOX_REG:
           # Apply bounding-box regression deltas
           box_deltas = bbox_pred.data
+          if cfg.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED:
+          # Optionally normalize targets by a precomputed mean and stdev
+                box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS).cuda() \
+                           + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS).cuda()
+                box_deltas = box_deltas.view(1, -1, 84)
           pred_boxes = bbox_transform_inv(boxes, box_deltas, 1)
           pred_boxes = clip_boxes(pred_boxes, im_info.data, 1)
       else:

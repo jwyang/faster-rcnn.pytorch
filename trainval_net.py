@@ -195,15 +195,11 @@ if __name__ == '__main__':
   weights_normal_init(fasterRCNN.RCNN_base.RCNN_rpn.RPN_cls_score)
   weights_normal_init(fasterRCNN.RCNN_base.RCNN_rpn.RPN_bbox_pred)
   weights_normal_init(fasterRCNN.RCNN_cls_score)
-  weights_normal_init(fasterRCNN.RCNN_bbox_pred)
+  weights_normal_init(fasterRCNN.RCNN_bbox_pred, 0.001)
 
   params = list(fasterRCNN.parameters())
 
   if args.optimizer == "adam":
-    # lr4ft = lr * 0.01
-    # optimizer4ft = torch.optim.Adam(params[4:8], lr = lr4ft)
-    # lr4tr = lr * 0.1
-    # optimizer4tr = torch.optim.Adam(params[8:], lr = lr4tr)
     lr = lr * 0.1
     optimizer = torch.optim.Adam([
       {'params': fasterRCNN.RCNN_base.RCNN_base_model[0].parameters(), 'lr': lr * 0.0},
@@ -217,10 +213,6 @@ if __name__ == '__main__':
     ], lr = lr)
 
   elif args.optimizer == "sgd":
-    # lr4ft = lr * 0.1
-    # optimizer4ft = torch.optim.SGD(params[4:8], lr=lr4ft, momentum=momentum, weight_decay=weight_decay)
-    # lr4tr = lr
-    # optimizer4tr = torch.optim.SGD(params[8:], lr=lr4tr, momentum=momentum, weight_decay=weight_decay)
     optimizer = torch.optim.SGD([
       {'params': fasterRCNN.RCNN_base.RCNN_base_model[0].parameters(), 'lr': lr * 0.0},
       {'params': fasterRCNN.RCNN_base.RCNN_base_model[1].parameters(), 'lr': lr * 0.1},
@@ -239,10 +231,8 @@ if __name__ == '__main__':
     checkpoint = torch.load(load_name)
     args.session = checkpoint['session']
     args.start_epoch = checkpoint['epoch']
-    fasterRCNN = load_state_dict(checkpoint['model'])
-    optimizer = load_state_dict(checkpoint['optimizer'])
-    # optimizer4ft.load_state_dict(checkpoint['optimizer4ft'])
-    # optimizer4tr.load_state_dict(checkpoint['optimizer4tr'])
+    fasterRCNN.load_state_dict(checkpoint['model'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
     print("loaded checkpoint %s" % (load_name))
 
   if use_multiGPU:
@@ -270,16 +260,10 @@ if __name__ == '__main__':
       loss_temp += loss.data[0]
 
       # backward
-      # optimizer4tr.zero_grad()
-      # optimizer4ft.zero_grad()
-
       optimizer.zero_grad()
       loss.backward()
       network.clip_gradient(fasterRCNN, 10.)
       optimizer.step()
-
-      # optimizer4tr.step()
-      # optimizer4ft.step()
 
       if step % args.disp_interval == 0:
         if use_multiGPU:
@@ -308,15 +292,10 @@ if __name__ == '__main__':
             "optimizer": optimizer.state_dict(),
           }, save_name)
           print('save model: {}'.format(save_name))
-        #   torch.save(fasterRCNN, save_name)
-      step += 1
 
     if epoch % args.lr_decay_step == 0:
         adjust_learning_rate(optimizer, args.lr_decay_gamma)
         lr *= args.lr_decay_gamma
-
-    #   lr4ft = adjust_learning_rate(optimizer4ft)
-    #   lr4tr = adjust_learning_rate(optimizer4tr)
 
     end = time.time()
     print(end - start)

@@ -51,7 +51,7 @@ class _ProposalTargetLayer(nn.Module):
             all_rois, gt_boxes, fg_rois_per_image,
             rois_per_image, self._num_classes)
 
-        return rois, labels, bbox_targets, bbox_inside_weights, 
+        return rois, labels, bbox_targets, bbox_inside_weights,
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
@@ -78,9 +78,11 @@ class _ProposalTargetLayer(nn.Module):
         clss = labels_batch
         bbox_targets = bbox_target_data.new(batch_size, rois_per_image, 4*num_classes).zero_()
         bbox_inside_weights = bbox_target_data.new(bbox_targets.size()).zero_()
-        
+
         for b in range(batch_size):
-            assert clss[b].sum() > 0
+            # assert clss[b].sum() > 0
+            if clss[b].sum() == 0:
+                continue
             inds = torch.nonzero(clss[b] > 0).view(-1)
             for i in range(inds.numel()):
                 ind = inds[i]
@@ -138,47 +140,62 @@ class _ProposalTargetLayer(nn.Module):
         labels_batch = labels.new(batch_size, rois_per_image).zero_()
         rois_batch  = all_rois.new(batch_size, rois_per_image, 5).zero_()
         gt_rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
-        # Guard against the case when an image has fewer than fg_rois_per_image
+        # Guard against the case when an image has fewer than max_fg_rois_per_image
         # foreground RoIs
         for i in range(batch_size):
+            
             fg_inds = torch.nonzero(max_overlaps[i] >= cfg.TRAIN.FG_THRESH).view(-1)
             fg_num_rois = fg_inds.numel()
-            fg_rois_per_this_image = min(fg_rois_per_image, fg_num_rois)
-            # Sample foreground regions without replacement
-            if fg_num_rois > fg_rois_per_image:            
-                rand_num = torch.randperm(fg_num_rois).type_as(all_rois).long()
-                fg_inds = fg_inds[rand_num[:fg_rois_per_image]]
 
             # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
             bg_inds = torch.nonzero((max_overlaps[i] < cfg.TRAIN.BG_THRESH_HI) &
                                     (max_overlaps[i] >= cfg.TRAIN.BG_THRESH_LO)).view(-1)
+            bg_num_rois = bg_inds.numel()
 
-            bg_num_rois = bg_inds.size(0)
-            # Compute number of background RoIs to take from this image (guarding
-            # against there being fewer than desired)
-            bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
-            # bg_rois_per_this_image = min(bg_rois_per_this_image, bg_inds.size)
-            # Sample background regions without replacement
-            if bg_num_rois > 0:
-                # rand_num = torch.randperm(bg_num_rois).type_as(all_rois).long()
-                # bg_inds = bg_inds[rand_num[:bg_rois_per_this_image]]
-                rand_num = torch.floor(torch.rand(bg_rois_per_this_image).type_as(all_rois) 
+            pdb.set_trace()
+
+            if fg_num_rois > 0 and bg_num_rois > 0:
+                # sampling fg
+                fg_rois_per_this_image = min(fg_rois_per_image, fg_num_rois)
+                rand_num = torch.randperm(fg_num_rois).type_as(all_rois).long()
+                fg_inds = fg_inds[rand_num[:fg_rois_per_this_image]]
+
+                # sampling bg
+                bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
+                rand_num = torch.floor(torch.rand(bg_rois_per_this_image).type_as(all_rois)
                                          * bg_num_rois).long()
                 bg_inds = bg_inds[rand_num]
+            elif fg_num_rois > 0 and bg_num_rois == 0:
+                # sampling fg
+                rand_num = torch.floor(torch.rand(rois_per_image).type_as(all_rois)
+                                         * fg_num_rois).long()
+                fg_inds = fg_inds[rand_num]
+                fg_rois_per_this_image = rois_per_image
+                bg_rois_per_this_image = 0
+            elif bg_num_rois > 0 and fg_num_rois == 0:
+                # sampling bg
+                rand_num = torch.floor(torch.rand(rois_per_image).type_as(all_rois)
+                                         * bg_num_rois).long()
+                bg_inds = bg_inds[rand_num]
+                bg_rois_per_this_image = rois_per_image
+                fg_rois_per_this_image = 0
+            else:
+                print("bg_num_rois = 0 and fg_num_rois = 0, this should not happen!")
+                pdb.set_trace()
 
             # The indices that we're selecting (both fg and bg)
             keep_inds = torch.cat([fg_inds, bg_inds], 0)
-        
+
             # Select sampled values from various arrays:
             labels_batch[i].copy_(labels[i][keep_inds])
-            
+
             # Clamp labels for the background RoIs to 0
             labels_batch[i][fg_rois_per_this_image:] = 0
+
             rois_batch[i].copy_(all_rois[i][keep_inds])
             rois_batch[i,:,0] = i
 
             gt_rois_batch[i].copy_(gt_boxes[i][gt_assignment[i][keep_inds]])
-
 
         bbox_target_data = self._compute_targets_pytorch(
                 rois_batch[:,:,1:5], gt_rois_batch[:,:,:4])
@@ -187,5 +204,3 @@ class _ProposalTargetLayer(nn.Module):
                 self._get_bbox_regression_labels_pytorch(bbox_target_data, labels_batch, num_classes)
 
         return labels_batch, rois_batch, bbox_targets, bbox_inside_weights
-
-
