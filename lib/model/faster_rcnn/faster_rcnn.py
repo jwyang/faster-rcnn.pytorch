@@ -127,7 +127,7 @@ class _fasterRCNN(nn.Module):
         rois, pooled_feat_all, rois_label, rois_target, rois_inside_ws, rpn_loss_cls, rpn_loss_bbox = \
                             self.RCNN_base(im_data, im_info, gt_boxes, num_boxes)
 
-        rpn_loss = rpn_loss_cls + 10 * rpn_loss_bbox
+        rpn_loss = rpn_loss_cls + rpn_loss_bbox
 
         # feed pooled features to top model
         x = self.RCNN_fc6(pooled_feat_all)
@@ -170,7 +170,7 @@ class _fasterRCNN(nn.Module):
 
             self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, rois_target, size_average=False) / (self.fg_cnt + 1e-4)
 
-        rcnn_loss = self.RCNN_loss_cls + 10 * self.RCNN_loss_bbox
+        rcnn_loss = self.RCNN_loss_cls + self.RCNN_loss_bbox
 
         cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
         bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
