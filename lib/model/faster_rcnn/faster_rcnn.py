@@ -15,6 +15,7 @@ from model.rpn.proposal_target_layer import _ProposalTargetLayer
 from model.utils import network
 import time
 import pdb
+from model.utils.network import _smooth_l1_loss
 
 # from model.utils.vgg16 import VGG16
 
@@ -57,16 +58,18 @@ class _RCNN_base(nn.Module):
         if self.training:
 
             roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes)
-            rois, rois_label, rois_target, rois_inside_ws = roi_data
+            rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws = roi_data
 
             rois_label = Variable(rois_label.view(-1))
             rois_target = Variable(rois_target.view(-1, rois_target.size(2)))
             rois_inside_ws = Variable(rois_inside_ws.view(-1, rois_inside_ws.size(2)))
+            rois_outside_ws = Variable(rois_outside_ws.view(-1, rois_outside_ws.size(2)))
 
         else:
             rois_label = None
             rois_target = None
             rois_inside_ws = None
+            rois_outside_ws = None
             rpn_loss_cls = 0
             rpn_loss_bbox = 0
 
@@ -77,7 +80,7 @@ class _RCNN_base(nn.Module):
         pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
         pooled_feat_all = pooled_feat.view(pooled_feat.size(0), -1)
 
-        return rois, pooled_feat_all, rois_label, rois_target, rois_inside_ws, rpn_loss_cls, rpn_loss_bbox
+        return rois, pooled_feat_all, rois_label, rois_target, rois_inside_ws, rois_outside_ws, rpn_loss_cls, rpn_loss_bbox
 
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
@@ -124,8 +127,8 @@ class _fasterRCNN(nn.Module):
 
 
         batch_size = im_data.size(0)
-        rois, pooled_feat_all, rois_label, rois_target, rois_inside_ws, rpn_loss_cls, rpn_loss_bbox = \
-                            self.RCNN_base(im_data, im_info, gt_boxes, num_boxes)
+        rois, pooled_feat_all, rois_label, rois_target, rois_inside_ws, rois_outside_ws, \
+                rpn_loss_cls, rpn_loss_bbox = self.RCNN_base(im_data, im_info, gt_boxes, num_boxes)
 
         rpn_loss = rpn_loss_cls + rpn_loss_bbox
 
@@ -161,14 +164,15 @@ class _fasterRCNN(nn.Module):
             ce_weights = rois_label.data.new(cls_score.size(1)).fill_(1)
             ce_weights[0] = float(self.fg_cnt) / self.bg_cnt
 
-            # pdb.set_trace()
             self.RCNN_loss_cls = F.cross_entropy(cls_score, label, weight=ce_weights)
 
             # bounding box regression L1 loss
-            rois_target = torch.mul(rois_target, rois_inside_ws)
-            bbox_pred = torch.mul(bbox_pred, rois_inside_ws)
+            # rois_target = torch.mul(rois_target, rois_inside_ws)
+            # bbox_pred = torch.mul(bbox_pred, rois_inside_ws)
 
-            self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, rois_target, size_average=False) / (self.fg_cnt + 1e-4)
+            # self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, rois_target, size_average=False) / (self.fg_cnt + 1e-4)
+
+            self.RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
 
         rcnn_loss = self.RCNN_loss_cls + self.RCNN_loss_bbox
 
