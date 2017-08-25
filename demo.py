@@ -23,6 +23,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 import torchvision.transforms as transforms
+import torchvision.datasets as dset
 
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
@@ -77,6 +78,63 @@ def parse_args():
 lr = cfg.TRAIN.LEARNING_RATE
 momentum = cfg.TRAIN.MOMENTUM
 weight_decay = cfg.TRAIN.WEIGHT_DECAY
+
+def _get_image_blob(im):
+  """Converts an image into a network input.
+  Arguments:
+    im (ndarray): a color image in BGR order
+  Returns:
+    blob (ndarray): a data blob holding an image pyramid
+    im_scale_factors (list): list of image scales (relative to im) used
+      in the image pyramid
+  """
+  im_orig = im.astype(np.float32, copy=True)
+  im_orig -= cfg.PIXEL_MEANS
+
+  im_shape = im_orig.shape
+  im_size_min = np.min(im_shape[0:2])
+  im_size_max = np.max(im_shape[0:2])
+
+  processed_ims = []
+  im_scale_factors = []
+
+  for target_size in cfg.TEST.SCALES:
+    im_scale = float(target_size) / float(im_size_min)
+    # Prevent the biggest axis from being more than MAX_SIZE
+    if np.round(im_scale * im_size_max) > cfg.TEST.MAX_SIZE:
+      im_scale = float(cfg.TEST.MAX_SIZE) / float(im_size_max)
+    im = cv2.resize(im_orig, None, None, fx=im_scale, fy=im_scale,
+            interpolation=cv2.INTER_LINEAR)
+    im_scale_factors.append(im_scale)
+    processed_ims.append(im)
+
+  # Create a blob to hold the input images
+  blob = im_list_to_blob(processed_ims)
+
+  return blob, np.array(im_scale_factors)
+
+def im_detect(net, im):
+  blobs, im_scales = _get_blobs(im)
+  assert len(im_scales) == 1, "Only single-image batch implemented"
+
+  im_blob = blobs['data']
+  blobs['im_info'] = np.array([[im_blob.shape[1], im_blob.shape[2], im_scales[0]]], dtype=np.float32)
+
+  _, scores, bbox_pred, rois = net.test_image(blobs['data'], blobs['im_info'])
+  
+  boxes = rois[:, 1:5] / im_scales[0]
+  scores = np.reshape(scores, [scores.shape[0], -1])
+  bbox_pred = np.reshape(bbox_pred, [bbox_pred.shape[0], -1])
+  if cfg.TEST.BBOX_REG:
+    # Apply bounding-box regression deltas
+    box_deltas = bbox_pred
+    pred_boxes = bbox_transform_inv(torch.from_numpy(boxes), torch.from_numpy(box_deltas)).numpy()
+    pred_boxes = _clip_boxes(pred_boxes, im.shape)
+  else:
+    # Simply repeat the boxes, once for each class
+    pred_boxes = np.tile(boxes, (1, scores.shape[1]))
+
+  return scores, pred_boxes
 
 if __name__ == '__main__':
 
@@ -149,38 +207,21 @@ if __name__ == '__main__':
   thresh = 0.05
   vis = False
 
-  save_name = 'faster_rcnn_10'
-  num_images = len(imdb.image_index)
-  all_boxes = [[[] for _ in xrange(num_images)]
-               for _ in xrange(imdb.num_classes)]
+  imglist = os.listdir(args.demo_root_folder)
+  num_images = len(imglist)
 
-  output_dir = get_output_dir(imdb, save_name)
-
-
-  # dataset = roibatchLoader(roidb, imdb.num_classes, training=False,
-  #                       normalize = transforms.Normalize(
-  #                       mean=[0.485, 0.456, 0.406],
-  #                       std=[0.229, 0.224, 0.225]))
-
-  dataset = roibatchLoader(roidb, imdb.num_classes, training=False,
-                        normalize = False)
-
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
-                            shuffle=False, num_workers=0,
-                            pin_memory=True)
-
-  data_iter = iter(dataloader)
-
-  _t = {'im_detect': time.time(), 'misc': time.time()}
-  det_file = os.path.join(output_dir, 'detections.pkl')
+  print('Loaded Photo: {} images.'.format(num_images))
 
   for i in range(num_images):
 
-      data = data_iter.next()
-      im_data.data.resize_(data[0].size()).copy_(data[0])
-      im_info.data.resize_(data[1].size()).copy_(data[1])
-      gt_boxes.data.resize_(data[2].size()).copy_(data[2])
-      num_boxes.data.resize_(data[3].size()).copy_(data[3])
+      # Load the demo image
+      im_file = os.path.join(cfg.DATA_DIR, 'images', imglist[i])
+      im = cv2.imread(im_file)
+
+      # Detect all object classes and regress object bounds
+      scores, boxes = im_detect(net, im)
+
+      blobs['im_info'] = np.array([[im_blob.shape[1], im_blob.shape[2], im_scales[0]]], dtype=np.float32)
 
       det_tic = time.time()
       rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
@@ -245,12 +286,3 @@ if __name__ == '__main__':
       if vis:
           cv2.imshow('test', im2show)
           cv2.waitKey(0)
-
-  with open(det_file, 'wb') as f:
-      cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
-
-  print('Evaluating detections')
-  imdb.evaluate_detections(all_boxes, output_dir)
-
-  end = time.time()
-  print("test time: %0.4fs" % (end - start))

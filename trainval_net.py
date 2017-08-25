@@ -31,7 +31,6 @@ from model.utils.network import weights_normal_init, save_net, load_net, \
       adjust_learning_rate, save_checkpoint
 
 from model.faster_rcnn.faster_rcnn import _fasterRCNN
-
 import pdb
 
 def parse_args():
@@ -65,7 +64,7 @@ def parse_args():
                       default=10000, type=int)
 
   parser.add_argument('--save_dir', dest='save_dir',
-                      help='directory to save models', default="/srv/share/models",
+                      help='directory to save models', default="models",
                       nargs=argparse.REMAINDER)
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
@@ -78,7 +77,7 @@ def parse_args():
                       default="sgd", type=str)
   parser.add_argument('--lr_decay_step', dest='lr_decay_step',
                       help='step to do learning rate decay, unit is epoch',
-                      default=4, type=int)
+                      default=5, type=int)
   parser.add_argument('--lr_decay_gamma', dest='lr_decay_gamma',
                       help='learning rate decay ratio',
                       default=0.1, type=float)
@@ -86,7 +85,7 @@ def parse_args():
 # set training session
   parser.add_argument('--s', dest='session',
                       help='training session',
-                      default=4, type=int)
+                      default=1, type=int)
 
 # resume trained model
   parser.add_argument('--r', dest='resume',
@@ -101,6 +100,10 @@ def parse_args():
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load model',
                       default=0, type=int)
+# log and diaplay
+  parser.add_argument('--use_tfboard', dest='use_tfboard',
+                      help='whether use tensorflow tensorboard',
+                      default=False, type=bool)
 
   # if len(sys.argv) == 1:
   #   parser.print_help()
@@ -122,6 +125,11 @@ if __name__ == '__main__':
   print('Called with args:')
   print(args)
 
+  if args.use_tfboard:
+    from model.utils.logger import Logger
+    # Set the logger
+    logger = Logger('./logs')
+  
   if args.dataset == "pascal_voc":
       args.imdb_name = "voc_2007_trainval"
       args.imdbval_name = "voc_2007_test"
@@ -159,9 +167,7 @@ if __name__ == '__main__':
     os.makedirs(output_dir)
 
   dataset = roibatchLoader(roidb, imdb.num_classes, training=False,
-                        normalize = transforms.Normalize(
-                        mean=[0.485, 0.456, 0.406],
-                        std=[0.229, 0.224, 0.225]))
+                        normalize = False)
 
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
                             shuffle=True, num_workers=0)
@@ -202,8 +208,7 @@ if __name__ == '__main__':
   if args.optimizer == "adam":
     lr = lr * 0.1
     optimizer = torch.optim.Adam([
-      {'params': fasterRCNN.RCNN_base.RCNN_base_model[0].parameters(), 'lr': lr * 0.0},
-      {'params': fasterRCNN.RCNN_base.RCNN_base_model[1].parameters(), 'lr': lr * 0.1},
+      {'params': fasterRCNN.RCNN_base.RCNN_base_model[1].parameters(), 'lr': lr},
       {'params': fasterRCNN.RCNN_base.RCNN_base_model[2].parameters()},
       {'params': fasterRCNN.RCNN_base.RCNN_rpn.parameters()},
       {'params': fasterRCNN.RCNN_fc6.parameters()},
@@ -214,8 +219,7 @@ if __name__ == '__main__':
 
   elif args.optimizer == "sgd":
     optimizer = torch.optim.SGD([
-      {'params': fasterRCNN.RCNN_base.RCNN_base_model[0].parameters(), 'lr': lr * 0.0},
-      {'params': fasterRCNN.RCNN_base.RCNN_base_model[1].parameters(), 'lr': lr * 0.1},
+      {'params': fasterRCNN.RCNN_base.RCNN_base_model[1].parameters(), 'lr': lr},
       {'params': fasterRCNN.RCNN_base.RCNN_base_model[2].parameters()},
       {'params': fasterRCNN.RCNN_base.RCNN_rpn.parameters()},
       {'params': fasterRCNN.RCNN_fc6.parameters(), 'lr': lr},
@@ -271,6 +275,13 @@ if __name__ == '__main__':
             % (args.session, epoch, step, loss_temp / args.disp_interval, lr * 0.1, lr))
           print("\t\t\tfg/bg=(%d/%d)" % (0, 0))
           print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" % (0, 0, 0, 0))
+          if args.use_tfboard:
+            info = {
+              'loss': loss_temp / args.disp_interval
+            }
+            for tag, value in info.items():
+              logger.scalar_summary(tag, value, step)
+
         else:
           print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr4ft: %.2e, lr4tr: %.2e" \
             % (args.session, epoch, step, loss_temp / args.disp_interval, lr * 0.1, lr))
@@ -280,8 +291,19 @@ if __name__ == '__main__':
              fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0], \
              fasterRCNN.RCNN_loss_cls.data[0], \
              fasterRCNN.RCNN_loss_bbox.data[0]))
+          if args.use_tfboard:
+            info = {
+              'loss': loss_temp / args.disp_interval,
+              'loss_rpn_cls': fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0],
+              'loss_rpn_box': fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0],
+              'loss_rcnn_cls': fasterRCNN.RCNN_loss_cls.data[0],
+              'loss_rcnn_box': fasterRCNN.RCNN_loss_bbox.data[0]
+            }
+            for tag, value in info.items():
+              logger.scalar_summary(tag, value, step)
 
         loss_temp = 0
+
       if (step % args.checkpoint_interval == 0) and step > 0:
         #   pdb.set_trace()
           save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
@@ -292,6 +314,7 @@ if __name__ == '__main__':
             "optimizer": optimizer.state_dict(),
           }, save_name)
           print('save model: {}'.format(save_name))
+
 
     if epoch % args.lr_decay_step == 0:
         adjust_learning_rate(optimizer, args.lr_decay_gamma)
