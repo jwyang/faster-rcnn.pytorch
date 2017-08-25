@@ -3,6 +3,8 @@ import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
 import torchvision.models as models
+from vgg16 import vgg16
+import cv2
 import pdb
 
 def save_net(fname, net):
@@ -56,28 +58,13 @@ def vis_detections(im, class_name, dets, thresh=0.8):
                         1.0, (0, 0, 255), thickness=1)
     return im
 
-def slice_vgg16(model):
-
-    slices = []
-    # we fix conv1_1, conv1_2, conv2_1, conv2_2
-    slices.append(nn.Sequential(*list(model.features.children())[:10]))
-    # we finetune conv3_1, conv3_2, conv3_3
-    slices.append(nn.Sequential(*list(model.features.children())[10:17]))
-    # we retrain conv4_1, conv4_2, conv4_3, conv5_1, conv5_2, conv5_3
-    slices.append(nn.Sequential(*list(model.features.children())[17:-1]))
-
-    # we copy fc6
-    slices.append(model.classifier[0])
-
-    # we copy fc7
-    slices.append(model.classifier[3])
-
-    return slices
 
 def load_baseModel(model_name):
     if model_name == "vgg16":
-        pretrained_model = models.vgg16(pretrained=True)
-        return slice_vgg16(pretrained_model)
+        net = vgg16()
+        model_path = 'data/pretrained_model/{}_caffe.pth'.format(model_name)
+        net.load_pretrained_cnn(torch.load(model_path))
+        return net.slice()
     elif model_name == "resnet50":
         return None
 
