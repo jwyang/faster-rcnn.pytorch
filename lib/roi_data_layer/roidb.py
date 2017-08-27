@@ -5,10 +5,9 @@ from __future__ import print_function
 
 import numpy as np
 from model.utils.config import cfg
-from model.rpn.bbox_transform import bbox_transform
-from model.utils.cython_bbox import bbox_overlaps
 from datasets.factory import get_imdb
 import PIL
+import pdb
 
 def prepare_roidb(imdb):
   """Enrich the imdb's roidb by adding some derived quantities that
@@ -17,6 +16,7 @@ def prepare_roidb(imdb):
   each ground-truth box. The class with maximum overlap is also
   recorded.
   """
+
   roidb = imdb.roidb
   if not (imdb.name.startswith('coco')):
     sizes = [PIL.Image.open(imdb.image_path_at(i)).size
@@ -44,6 +44,19 @@ def prepare_roidb(imdb):
     assert all(max_classes[nonzero_inds] != 0)
 
 
+def rank_roidb_ratio(roidb):
+    # rank roidb based on the ratio between width and height.
+    ratio_list = []
+    for i in range(len(roidb)):
+      width = roidb[i]['width']
+      height = roidb[i]['height']
+      ratio = width / float(height)
+      ratio_list.append(ratio)
+
+    ratio_list = np.array(ratio_list)
+    ratio_index = np.argsort(ratio_list)
+    return ratio_index
+
 def combined_roidb(imdb_names):
   """
   Combine multiple roidbs
@@ -59,6 +72,7 @@ def combined_roidb(imdb_names):
     print('Preparing training data...')
 
     prepare_roidb(imdb)
+    #ratio_index = rank_roidb_ratio(imdb)
     print('done')
 
     return imdb.roidb
@@ -73,6 +87,9 @@ def combined_roidb(imdb_names):
 
   roidbs = [get_roidb(s) for s in imdb_names.split('+')]
   roidb = roidbs[0]
+
+  ratio_list = rank_roidb_ratio(roidb)
+
   if len(roidbs) > 1:
     for r in roidbs[1:]:
       roidb.extend(r)
@@ -80,4 +97,4 @@ def combined_roidb(imdb_names):
     imdb = datasets.imdb.imdb(imdb_names, tmp.classes)
   else:
     imdb = get_imdb(imdb_names)
-  return imdb, roidb
+  return imdb, roidb, ratio_list

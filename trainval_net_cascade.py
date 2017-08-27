@@ -22,6 +22,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 import torchvision.transforms as transforms
+from torch.utils.data.sampler import Sampler
 
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
@@ -70,6 +71,9 @@ def parse_args():
                       help='number of gpu',
                       default=1, type=int)
 
+  parser.add_argument('--bs', dest='batch_size',
+                      help='batch_size',
+                      default=1, type=int)
 
 # config optimization
   parser.add_argument('--o', dest='optimizer',
@@ -111,6 +115,31 @@ def parse_args():
 
   args = parser.parse_args()
   return args
+
+
+class sampler(Sampler):
+  def __init__(self, data_source, batch_size):
+    num_data = len(data_source)
+    self.num_batch = int(num_data / batch_size)
+    self.batch_size = batch_size
+    self.range = torch.arange(0,batch_size).view(1, batch_size).long()
+    self.leftover_flag = False
+    if num_data % batch_size:
+      self.leftover = torch.arange(self.num_batch*batch_size, num_data).long()
+      self.leftover_flag = True
+
+  def __iter__(self):
+    rand_num = torch.randperm(self.num_batch).view(-1,1)\
+            .expand(self.num_batch, self.batch_size) + self.range
+    rand_num = rand_num.view(-1)
+
+    if self.leftover_flag:
+      rand_num = torch.cat((rand_num, self.leftover),0)
+
+    return iter(rand_num)
+
+  def __len__(self):
+    return len(self.data_source) 
 
 
 lr = cfg.TRAIN.LEARNING_RATE
@@ -157,7 +186,7 @@ if __name__ == '__main__':
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
   cfg.TRAIN.USE_FLIPPED = True
-  imdb, roidb = combined_roidb(args.imdb_name)
+  imdb, roidb, ratio_list = combined_roidb(args.imdb_name)
   train_size = len(roidb)
 
   print('{:d} roidb entries'.format(len(roidb)))
@@ -166,11 +195,11 @@ if __name__ == '__main__':
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-  dataset = roibatchLoader(roidb, imdb.num_classes, training=False,
+  dataset = roibatchLoader(roidb, ratio_list, imdb.num_classes, training=False,
                         normalize = False)
 
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
-                            shuffle=True, num_workers=0)
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
+                            sampler=sampler(dataset, args.batch_size), num_workers=0)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)

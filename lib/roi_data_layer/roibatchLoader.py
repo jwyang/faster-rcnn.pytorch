@@ -20,7 +20,7 @@ import time
 import pdb
 
 class roibatchLoader(data.Dataset):
-  def __init__(self, roidb, num_classes, training=True, normalize=None):
+  def __init__(self, roidb, ratio_list, num_classes, training=True, normalize=None):
     self._roidb = roidb
     self._num_classes = num_classes
     # we make the height of image consistent to trim_height, trim_width
@@ -29,6 +29,7 @@ class roibatchLoader(data.Dataset):
     self.max_num_box = 20
     self.training = training
     self.normalize = normalize
+    self.ratio_list = ratio_list
 
   def __getitem__(self, index):
 
