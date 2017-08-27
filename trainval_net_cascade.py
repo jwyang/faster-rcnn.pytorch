@@ -30,7 +30,7 @@ from model.utils import network
 from model.utils.network import weights_normal_init, save_net, load_net, \
       adjust_learning_rate, save_checkpoint
 
-from model.faster_rcnn.faster_rcnn import _fasterRCNN
+from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
 import pdb
 
 def parse_args():
@@ -129,7 +129,7 @@ if __name__ == '__main__':
     from model.utils.logger import Logger
     # Set the logger
     logger = Logger('./logs')
-
+  
   if args.dataset == "pascal_voc":
       args.imdb_name = "voc_2007_trainval"
       args.imdbval_name = "voc_2007_test"
@@ -166,7 +166,7 @@ if __name__ == '__main__':
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-  dataset = roibatchLoader(roidb, imdb.num_classes, training=True,
+  dataset = roibatchLoader(roidb, imdb.num_classes, training=False,
                         normalize = False)
 
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,

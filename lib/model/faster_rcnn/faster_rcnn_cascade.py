@@ -11,7 +11,7 @@ from model.utils.config import cfg
 from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
 # from model.roi_pooling_single.modules.roi_pool import _RoIPool
-from model.rpn.proposal_target_layer import _ProposalTargetLayer
+from model.rpn.proposal_target_layer_4 import _ProposalTargetLayer
 from model.utils import network
 import time
 import pdb
@@ -73,10 +73,8 @@ class _RCNN_base(nn.Module):
             rpn_loss_cls = 0
             rpn_loss_bbox = 0
 
-        rois_var = Variable(rois.view(-1,5))
-
         # do roi pooling based on predicted rois
-
+        rois_var = Variable(rois.view(-1,5))
         pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
         pooled_feat_all = pooled_feat.view(pooled_feat.size(0), -1)
 
@@ -113,7 +111,7 @@ class _fasterRCNN(nn.Module):
         )
 
         self.RCNN_bbox_pred = nn.Sequential(
-            nn.Linear(4096, self.n_classes * 4)
+            nn.Linear(4096, 4)
         )
 
         # loss
@@ -141,16 +139,39 @@ class _fasterRCNN(nn.Module):
         x = F.relu(x, inplace = True)
         x = F.dropout(x, training=self.training)
 
-        # x = self.RCNN_top_model(pooled_feat_all)
+        # compute bbox offset
+        bbox_pred = self.RCNN_bbox_pred(x)
 
-        # compute classifcation loss
+        # compute object classification probability
         cls_score = self.RCNN_cls_score(x)
         cls_prob = F.softmax(cls_score)
 
-        # pdb.set_trace()
+        # if not self.training:
+        #     pdb.set_trace()
+        #     from model.rpn.bbox_transform import bbox_transform_inv, clip_boxes
+        #     if cfg.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED:
+        #     # Optionally normalize targets by a precomputed mean and stdev
+        #         box_deltas = bbox_pred.data.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS).cuda() \
+        #                    + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS).cuda()
+        #         box_deltas = box_deltas.view(1, -1, 84)
+        #     pred_boxes = bbox_transform_inv(rois, box_deltas, 1)
+        #     pred_boxes = clip_boxes(pred_boxes, im_info.data, 1)
 
-        # compute regression loss
-        bbox_pred = self.RCNN_bbox_pred(x)
+        #     # perform roi pooling again on pred_boxes
+        #     rois_var = Variable(pred_boxes.view(-1,5))
+
+        #     # do roi pooling based on predicted rois
+
+        #     pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
+        #     pooled_feat_all = pooled_feat.view(pooled_feat.size(0), -1)
+        #     # feed pooled features to top model
+        #     x = self.RCNN_fc6(pooled_feat_all)
+        #     x = F.relu(x, inplace = True)
+        #     x = F.dropout(x, training=self.training)
+
+        #     x = self.RCNN_fc7(x)
+        #     x = F.relu(x, inplace = True)
+        #     x = F.dropout(x, training=self.training)
 
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
@@ -171,10 +192,7 @@ class _fasterRCNN(nn.Module):
             # bounding box regression L1 loss
             # rois_target = torch.mul(rois_target, rois_inside_ws)
             # bbox_pred = torch.mul(bbox_pred, rois_inside_ws)
-
-            # self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, rois_target, size_average=False) / (self.fg_cnt + 1e-4)
-
-            self.RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
+            self.RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)            
 
         rcnn_loss = self.RCNN_loss_cls + self.RCNN_loss_bbox
 
