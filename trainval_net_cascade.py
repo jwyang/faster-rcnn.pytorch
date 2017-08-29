@@ -73,7 +73,7 @@ def parse_args():
 
   parser.add_argument('--bs', dest='batch_size',
                       help='batch_size',
-                      default=1, type=int)
+                      default=4, type=int)
 
 # config optimization
   parser.add_argument('--o', dest='optimizer',
@@ -118,28 +118,28 @@ def parse_args():
 
 
 class sampler(Sampler):
-  def __init__(self, data_source, batch_size):
-    num_data = len(data_source)
-    self.num_batch = int(num_data / batch_size)
+  def __init__(self, train_size, batch_size):
+    num_data = train_size    
+    self.num_per_batch = int(num_data / batch_size)
     self.batch_size = batch_size
     self.range = torch.arange(0,batch_size).view(1, batch_size).long()
     self.leftover_flag = False
     if num_data % batch_size:
-      self.leftover = torch.arange(self.num_batch*batch_size, num_data).long()
+      self.leftover = torch.arange(self.num_per_batch*batch_size, num_data).long()
       self.leftover_flag = True
-
   def __iter__(self):
-    rand_num = torch.randperm(self.num_batch).view(-1,1)\
-            .expand(self.num_batch, self.batch_size) + self.range
-    rand_num = rand_num.view(-1)
+    rand_num = torch.randperm(self.num_per_batch).view(-1,1) * self.batch_size
+    self.rand_num = rand_num.expand(self.num_per_batch, self.batch_size) + self.range
+
+    self.rand_num_view = self.rand_num.view(-1)
 
     if self.leftover_flag:
-      rand_num = torch.cat((rand_num, self.leftover),0)
+      self.rand_num_view = torch.cat((self.rand_num_view, self.leftover),0)
 
-    return iter(rand_num)
+    return iter(self.rand_num_view)
 
   def __len__(self):
-    return len(self.data_source) 
+    return num_data
 
 
 lr = cfg.TRAIN.LEARNING_RATE
@@ -186,7 +186,7 @@ if __name__ == '__main__':
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
   cfg.TRAIN.USE_FLIPPED = True
-  imdb, roidb, ratio_list = combined_roidb(args.imdb_name)
+  imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdb_name)
   train_size = len(roidb)
 
   print('{:d} roidb entries'.format(len(roidb)))
@@ -195,11 +195,13 @@ if __name__ == '__main__':
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-  dataset = roibatchLoader(roidb, ratio_list, imdb.num_classes, training=False,
-                        normalize = False)
+  sampler_batch = sampler(train_size, args.batch_size)
+
+  dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
+                           imdb.num_classes, training=True, normalize = False)
 
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                            sampler=sampler(dataset, args.batch_size), num_workers=0)
+                            sampler=sampler_batch, num_workers=2)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -280,8 +282,9 @@ if __name__ == '__main__':
 
     data_iter = iter(dataloader)
 
-    for step in range(train_size):
+    for step in range(int(train_size / args.batch_size)):
       data = data_iter.next()
+
       im_data.data.resize_(data[0].size()).copy_(data[0])
       im_info.data.resize_(data[1].size()).copy_(data[1])
       gt_boxes.data.resize_(data[2].size()).copy_(data[2])

@@ -197,16 +197,18 @@ if __name__ == '__main__':
 
   print('Loaded Photo: {} images.'.format(num_images))
 
+  im_file_target = os.path.join(args.image_dir, imglist[0])
+  im_target = cv2.imread(im_file_target)
 
   for i in range(num_images):
 
       # Load the demo image
       im_file = os.path.join(args.image_dir, imglist[i])
-      # im = cv2.imread(im_file)
-      im = np.array(Image.open(im_file))
-      if len(im.shape) == 2:
-        im = im[:,:,np.newaxis]
-        im = np.concatenate((im,im,im), axis=2)
+      im = cv2.imread(im_file)
+      # im = np.array(Image.open(im_file))
+      # if len(im.shape) == 2:
+      #   im = im[:,:,np.newaxis]
+      #   im = np.concatenate((im,im,im), axis=2)
 
       blobs, im_scales = _get_image_blob(im)
       assert len(im_scales) == 1, "Only single-image batch implemented"

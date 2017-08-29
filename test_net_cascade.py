@@ -70,7 +70,9 @@ def parse_args():
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load network',
                       default=10000, type=int)
-
+  parser.add_argument('--bs', dest='batch_size',
+                      help='batch_size',
+                      default=1, type=int)
   args = parser.parse_args()
   return args
 
@@ -97,7 +99,7 @@ if __name__ == '__main__':
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
   cfg.TRAIN.USE_FLIPPED = False
-  imdb, roidb = combined_roidb(args.imdbval_name)
+  imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdbval_name)
   imdb.competition_mode(on=True)
 
   print('{:d} roidb entries'.format(len(roidb)))
@@ -162,10 +164,10 @@ if __name__ == '__main__':
   #                       mean=[0.485, 0.456, 0.406],
   #                       std=[0.229, 0.224, 0.225]))
 
-  dataset = roibatchLoader(roidb, imdb.num_classes, training=False,
-                        normalize = False)
+  dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
+                        imdb.num_classes, training=False, normalize = False)
 
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
                             shuffle=False, num_workers=0,
                             pin_memory=True)
 
