@@ -285,7 +285,7 @@ if __name__ == '__main__':
       im_info.data.resize_(data[1].size()).copy_(data[1])
       gt_boxes.data.resize_(data[2].size()).copy_(data[2])
       num_boxes.data.resize_(data[3].size()).copy_(data[3])
-      
+
       fasterRCNN.zero_grad()
       _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
       loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
@@ -298,9 +298,11 @@ if __name__ == '__main__':
       optimizer.step()
 
       if step % args.disp_interval == 0:
+        if step > 0:
+          loss_temp = loss_temp / args.disp_interval        
         if use_multiGPU:
           print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
-            % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
+            % (args.session, epoch, step, loss_temp, lr))
           print("\t\t\tfg/bg=(%d/%d)" % (0, 0))
           print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" % (0, 0, 0, 0))
           if args.use_tfboard:
@@ -312,7 +314,7 @@ if __name__ == '__main__':
 
         else:
           print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
-            % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
+            % (args.session, epoch, step, loss_temp, lr))
           print("\t\t\tfg/bg=(%d/%d)" % (fasterRCNN.fg_cnt, fasterRCNN.bg_cnt))
           print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box: %.4f" %
             (fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0], \
