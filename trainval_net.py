@@ -122,27 +122,27 @@ use_multiGPU = False
 
 class sampler(Sampler):
   def __init__(self, train_size, batch_size):
-    num_data = train_size    
-    self.num_per_batch = int(num_data / batch_size)
-    self.batch_size = batch_size
-    self.range = torch.arange(0,batch_size).view(1, batch_size).long()
-    self.leftover_flag = False
-    if num_data % batch_size:
-      self.leftover = torch.arange(self.num_per_batch*batch_size, num_data).long()
-      self.leftover_flag = True
+      num_data = train_size
+      self.num_per_batch = int(num_data / batch_size)
+      self.batch_size = batch_size
+      self.range = torch.arange(0,batch_size).view(1, batch_size).long()
+      self.leftover_flag = False
+      if num_data % batch_size:
+          self.leftover = torch.arange(self.num_per_batch*batch_size, num_data).long()
+          self.leftover_flag = True
   def __iter__(self):
-    rand_num = torch.randperm(self.num_per_batch).view(-1,1) * self.batch_size
-    self.rand_num = rand_num.expand(self.num_per_batch, self.batch_size) + self.range
+      rand_num = torch.randperm(self.num_per_batch).long().view(-1,1) * self.batch_size
+      self.rand_num = rand_num.expand(self.num_per_batch, self.batch_size) + self.range
 
-    self.rand_num_view = self.rand_num.view(-1)
+      self.rand_num_view = self.rand_num.view(-1)
 
-    if self.leftover_flag:
-      self.rand_num_view = torch.cat((self.rand_num_view, self.leftover),0)
+      if self.leftover_flag:
+          self.rand_num_view = torch.cat((self.rand_num_view, self.leftover),0)
 
-    return iter(self.rand_num_view)
+      return iter(self.rand_num_view)
 
   def __len__(self):
-    return num_data
+      return num_data
 
 if __name__ == '__main__':
 
@@ -265,6 +265,8 @@ if __name__ == '__main__':
     args.start_epoch = checkpoint['epoch']
     fasterRCNN.load_state_dict(checkpoint['model'])
     optimizer.load_state_dict(checkpoint['optimizer'])
+    lr = optimizer.param_groups[0]['lr']
+    # lr = checkpoint['lr']
     print("loaded checkpoint %s" % (load_name))
 
   if use_multiGPU:
@@ -288,6 +290,7 @@ if __name__ == '__main__':
 
       fasterRCNN.zero_grad()
       _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+
       loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
       loss_temp += loss.data[0]
 
@@ -299,7 +302,7 @@ if __name__ == '__main__':
 
       if step % args.disp_interval == 0:
         if step > 0:
-          loss_temp = loss_temp / args.disp_interval        
+          loss_temp = loss_temp / args.disp_interval
         if use_multiGPU:
           print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
             % (args.session, epoch, step, loss_temp, lr))
@@ -338,13 +341,13 @@ if __name__ == '__main__':
         adjust_learning_rate(optimizer, args.lr_decay_gamma)
         lr *= args.lr_decay_gamma
 
-
     save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
     save_checkpoint({
       'session': args.session,
       'epoch': epoch + 1,
       'model': fasterRCNN.state_dict(),
       "optimizer": optimizer.state_dict(),
+      "lr": lr,
     }, save_name)
     print('save model: {}'.format(save_name))
 

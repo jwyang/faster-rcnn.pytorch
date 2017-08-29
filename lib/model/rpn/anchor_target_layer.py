@@ -80,7 +80,7 @@ class _AnchorTargetLayer(nn.Module):
             shifts = torch.from_numpy(np.vstack((shift_x.ravel(), shift_y.ravel(),
                                       shift_x.ravel(), shift_y.ravel())).transpose())
             shifts = shifts.contiguous().type_as(rpn_cls_score).float()
-                    
+
         A = self._num_anchors
         K = shifts.size(0)
 
@@ -115,7 +115,7 @@ class _AnchorTargetLayer(nn.Module):
 
         gt_max_overlaps[gt_max_overlaps==0] = 1e-5
         keep = torch.sum(overlaps.eq(gt_max_overlaps.view(batch_size,1,-1).expand_as(overlaps)), 2)
-        
+
         if torch.sum(keep) > 0:
             labels[keep>0] = 1
 
@@ -126,14 +126,14 @@ class _AnchorTargetLayer(nn.Module):
             labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
         num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
-        
+
         sum_fg = torch.sum((labels == 1).int(), 1)
         sum_bg = torch.sum((labels == 0).int(), 1)
 
         for i in range(batch_size):
             # subsample positive labels if we have too many
             if sum_fg[i] > num_fg:
-                fg_inds = torch.nonzero(labels[i] == 1).view(-1)             
+                fg_inds = torch.nonzero(labels[i] == 1).view(-1)
                 rand_num = torch.randperm(fg_inds.size(0)).type_as(gt_boxes).long()
                 disable_inds = fg_inds[rand_num[:fg_inds.size(0)-num_fg]]
                 labels[i][disable_inds] = -1
@@ -147,6 +147,8 @@ class _AnchorTargetLayer(nn.Module):
                 disable_inds = bg_inds[rand_num[:bg_inds.size(0)-num_bg]]
                 labels[i][disable_inds] = -1
 
+        offset = torch.arange(0, batch_size)*20
+        argmax_overlaps = argmax_overlaps + offset.view(batch_size, 1).type_as(argmax_overlaps)
         bbox_targets = _compute_targets_batch(anchors, gt_boxes.view(-1,5)[argmax_overlaps.view(-1), :].view(batch_size, -1, 5))
 
         # use a single value instead of 4 values for easy index.
@@ -158,7 +160,7 @@ class _AnchorTargetLayer(nn.Module):
             negative_weights = 1.0 / num_examples
         else:
             assert ((cfg.TRAIN.RPN_POSITIVE_WEIGHT > 0) &
-                    (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))            
+                    (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))
 
         bbox_outside_weights[labels == 1] = positive_weights
         bbox_outside_weights[labels == 0] = negative_weights
