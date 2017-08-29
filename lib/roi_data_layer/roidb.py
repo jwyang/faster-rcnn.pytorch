@@ -55,7 +55,7 @@ def rank_roidb_ratio(roidb):
 
     ratio_list = np.array(ratio_list)
     ratio_index = np.argsort(ratio_list)
-    return ratio_index
+    return ratio_list[ratio_index], ratio_index
 
 def combined_roidb(imdb_names):
   """
@@ -88,7 +88,7 @@ def combined_roidb(imdb_names):
   roidbs = [get_roidb(s) for s in imdb_names.split('+')]
   roidb = roidbs[0]
 
-  ratio_list = rank_roidb_ratio(roidb)
+  ratio_list, ratio_index = rank_roidb_ratio(roidb)
 
   if len(roidbs) > 1:
     for r in roidbs[1:]:
@@ -97,4 +97,4 @@ def combined_roidb(imdb_names):
     imdb = datasets.imdb.imdb(imdb_names, tmp.classes)
   else:
     imdb = get_imdb(imdb_names)
-  return imdb, roidb, ratio_list
+  return imdb, roidb, ratio_list, ratio_index

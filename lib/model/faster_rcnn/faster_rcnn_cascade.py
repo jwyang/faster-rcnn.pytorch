@@ -182,16 +182,9 @@ class _fasterRCNN(nn.Module):
             self.fg_cnt = torch.sum(label.data.ne(0))
             self.bg_cnt = label.data.numel() - self.fg_cnt
 
-            ce_weights = rois_label.data.new(cls_score.size(1)).fill_(1)
-            ce_weights[0] = float(self.fg_cnt) / self.bg_cnt
-
-            # self.RCNN_loss_cls = F.cross_entropy(cls_score, label, weight=ce_weights)
-
             self.RCNN_loss_cls = F.cross_entropy(cls_score, label)
 
             # bounding box regression L1 loss
-            # rois_target = torch.mul(rois_target, rois_inside_ws)
-            # bbox_pred = torch.mul(bbox_pred, rois_inside_ws)
             self.RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)            
 
         rcnn_loss = self.RCNN_loss_cls + self.RCNN_loss_bbox

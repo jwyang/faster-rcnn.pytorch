@@ -73,10 +73,15 @@ class _RCNN_base(nn.Module):
             rpn_loss_cls = 0
             rpn_loss_bbox = 0
 
+
+        # pooled_feats = []
+        # for i in range(rois.size(0)):
+        #     rois_var_i = Variable(rois[i])
+        #     base_feat_i = base_feat[i]
+        #     pooled_feat = self.RCNN_roi_pool(base_feat_i.unsqueeze(0), rois_var_i)
+        #     pooled_feats.append(pooled_feat)
+        # pooled_feat_all = torch.cat(pooled_feats, 0)
         rois_var = Variable(rois.view(-1,5))
-
-        # do roi pooling based on predicted rois
-
         pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
         pooled_feat_all = pooled_feat.view(pooled_feat.size(0), -1)
 
