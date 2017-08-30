@@ -81,6 +81,7 @@ class _RCNN_base(nn.Module):
         #     pooled_feat = self.RCNN_roi_pool(base_feat_i.unsqueeze(0), rois_var_i)
         #     pooled_feats.append(pooled_feat)
         # pooled_feat_all = torch.cat(pooled_feats, 0)
+        rois = Variable(rois)
         rois_var = Variable(rois.view(-1,5))
         pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
         pooled_feat_all = pooled_feat.view(pooled_feat.size(0), -1)
@@ -166,18 +167,7 @@ class _fasterRCNN(nn.Module):
             self.fg_cnt = torch.sum(label.data.ne(0))
             self.bg_cnt = label.data.numel() - self.fg_cnt
 
-            ce_weights = rois_label.data.new(cls_score.size(1)).fill_(1)
-            ce_weights[0] = float(self.fg_cnt) / self.bg_cnt
-
-            # self.RCNN_loss_cls = F.cross_entropy(cls_score, label, weight=ce_weights)
-
             self.RCNN_loss_cls = F.cross_entropy(cls_score, label)
-
-            # bounding box regression L1 loss
-            # rois_target = torch.mul(rois_target, rois_inside_ws)
-            # bbox_pred = torch.mul(bbox_pred, rois_inside_ws)
-
-            # self.RCNN_loss_bbox = F.smooth_l1_loss(bbox_pred, rois_target, size_average=False) / (self.fg_cnt + 1e-4)
 
             self.RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
 

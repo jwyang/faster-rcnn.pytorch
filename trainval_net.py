@@ -69,6 +69,9 @@ def parse_args():
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
                       default=1, type=int)
+  parser.add_argument('--mGPUs', dest='mGPUs',
+                      help='use multiple GPUs',
+                      default=False, type=bool)
   parser.add_argument('--bs', dest='batch_size',
                       help='batch_size',
                       default=1, type=int)
@@ -118,7 +121,6 @@ def parse_args():
 lr = cfg.TRAIN.LEARNING_RATE
 momentum = cfg.TRAIN.MOMENTUM
 weight_decay = cfg.TRAIN.WEIGHT_DECAY
-use_multiGPU = False
 
 class sampler(Sampler):
   def __init__(self, train_size, batch_size):
@@ -269,6 +271,7 @@ if __name__ == '__main__':
     # lr = checkpoint['lr']
     print("loaded checkpoint %s" % (load_name))
 
+  use_multiGPU = args.mGPUs
   if use_multiGPU:
     fasterRCNN.RCNN_base = nn.DataParallel(fasterRCNN.RCNN_base)
 
@@ -338,7 +341,7 @@ if __name__ == '__main__':
         loss_temp = 0
 
     if epoch % args.lr_decay_step == 0:
-      
+
         adjust_learning_rate(optimizer, args.lr_decay_gamma)
         lr *= args.lr_decay_gamma
 
