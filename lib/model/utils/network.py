@@ -3,7 +3,6 @@ import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
 import torchvision.models as models
-from vgg16 import vgg16
 import cv2
 import pdb
 
@@ -58,15 +57,6 @@ def vis_detections(im, class_name, dets, thresh=0.8):
                         1.0, (0, 0, 255), thickness=1)
     return im
 
-
-def load_baseModel(model_name):
-    if model_name == "vgg16":
-        net = vgg16()
-        model_path = 'data/pretrained_model/{}_caffe.pth'.format(model_name)
-        net.load_pretrained_cnn(torch.load(model_path))
-        return net.slice()
-    elif model_name == "resnet50":
-        return None
 
 def adjust_learning_rate(optimizer, decay=0.1):
     """Sets the learning rate to the initial LR decayed by 0.5 every 20 epochs"""

@@ -22,10 +22,7 @@ class _RPN(nn.Module):
         self.feat_stride = cfg.FEAT_STRIDE[0]
 
         # define the convrelu layers processing input feature map
-        self.RPN_ConvReLU = nn.Sequential(
-                        nn.Conv2d(self.din, 512, 3, 1, 1, bias=True),
-                        nn.ReLU(True)
-        )
+        self.RPN_Conv = nn.Conv2d(self.din, 512, 3, 1, 1, bias=True)
 
         # define bg/fg classifcation score layer
         self.nc_score_out = len(self.anchor_scales) * 3 * 2 # 2(bg/fg) * 9 (anchors)
@@ -71,7 +68,7 @@ class _RPN(nn.Module):
         self.shifts = self.shifts.type_as(im_info)
 
         # return feature map after convrelu layer
-        rpn_conv1 = self.RPN_ConvReLU(base_feat)
+        rpn_conv1 = F.relu(self.RPN_Conv(base_feat), inplace=True)
         # get rpn classification score
         rpn_cls_score = self.RPN_cls_score(rpn_conv1)
 

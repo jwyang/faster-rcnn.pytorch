@@ -7,8 +7,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from nets.network import Network
-from model.config import cfg
+from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN, _RCNN_base
+from model.utils.config import cfg
 
 import utils.timer
 
@@ -224,37 +224,27 @@ def resnet152(pretrained=False):
   return model
 
 class resnetv1(Network):
-  def __init__(self, batch_size=1, num_layers=50):
-    Network.__init__(self, batch_size=batch_size)
-    self._num_layers = num_layers
+  def __init__(self, classes, num_layers=50):
+    _fasterRCNN.__init__(self, classes)    
+    self.model_path = 'data/pretrained_model/resnet101_caffe.pth'
 
-  def _crop_pool_layer(self, bottom, rois):
-    return Network._crop_pool_layer(self, bottom, rois, cfg.RESNET.MAX_POOL)
+  # def _crop_pool_layer(self, bottom, rois):
+  #   return Network._crop_pool_layer(self, bottom, rois, cfg.RESNET.MAX_POOL)
 
-  def _image_to_head(self):
-    net_conv = self._layers['head'](self._image)
-    self._act_summaries['conv']['value'] = net_conv
+  # def _image_to_head(self):
+  #   net_conv = self._layers['head'](self._image)
+  #   self._act_summaries['conv']['value'] = net_conv
 
-    return net_conv
+  #   return net_conv
 
-  def _head_to_tail(self, pool5):
-    fc7 = self.resnet.layer4(pool5).mean(3).mean(2) # average pooling after layer4
-    return fc7
+  # def _head_to_tail(self, pool5):
+  #   fc7 = self.resnet.layer4(pool5).mean(3).mean(2) # average pooling after layer4
+  #   return fc7
 
   def _init_modules(self):
-    # choose different blocks for different number of layers
-    if self._num_layers == 50:
-      self.resnet = resnet50()
 
-    elif self._num_layers == 101:
-      self.resnet = resnet101()
-
-    elif self._num_layers == 152:
-      self.resnet = resnet152()
-
-    else:
-      # other numbers are not supported
-      raise NotImplementedError
+    self.resnet = resnet101()
+    self.load_pretrained_cnn()
 
     # Fix blocks 
     for p in self.resnet.bn1.parameters(): p.requires_grad=False
@@ -311,5 +301,6 @@ class resnetv1(Network):
 
       self.resnet.apply(set_bn_eval)
 
-  def load_pretrained_cnn(self, state_dict):
-    self.resnet.load_state_dict(state_dict)
+  def load_pretrained_cnn(self):
+    state_dict = torch.load(self.model_path)
+    self.resnet.load_state_dict({k:v for k,v in state_dict.items() if k in self.vgg.state_dict()})

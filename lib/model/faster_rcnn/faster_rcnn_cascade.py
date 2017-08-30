@@ -27,9 +27,7 @@ class _RCNN_base(nn.Module):
             self.classes = classes
             self.n_classes = len(classes)
 
-        self.RCNN_base_model = nn.Sequential()
-        for i in range(len(baseModels)):
-            self.RCNN_base_model.add_module('part{}'.format(i), baseModels[i])
+        self.RCNN_base_model = baseModels
 
         virtual_input = torch.randn(1, 3, cfg.TRAIN.TRIM_HEIGHT, cfg.TRAIN.TRIM_WIDTH)
         out = self.RCNN_base_model(Variable(virtual_input))
@@ -40,7 +38,6 @@ class _RCNN_base(nn.Module):
         self.RCNN_rpn = _RPN(self.feat_height, self.feat_width, self.dout_base_model)
         self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
         self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
-        # self.RCNN_roi_pool = _RoIPool(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
         im_info = im_info.data
@@ -82,62 +79,47 @@ class _RCNN_base(nn.Module):
 
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
-    def __init__(self, baseModel, classes, debug=False):
+    def __init__(self, classes):
         super(_fasterRCNN, self).__init__()
-
-        if classes is not None:
-            self.classes = classes
-            self.n_classes = len(classes)
-
-        # define base model, e.g., VGG16, ResNet, etc.
-        if baseModel == "vgg16":
-            slices = network.load_baseModel(baseModel)
-            self.RCNN_base = _RCNN_base(slices[:3], classes)
-            self.RCNN_fc6 = slices[3]
-            self.RCNN_fc7 = slices[4]
-        elif baseModel == "res50":
-            pretrained_model = models.resnet50(pretrained=True)
-            RCNN_base_model = nn.Sequential(*list(pretrained_model.children())[:-2])
-        elif baseModel == "res101":
-            pretrained_model = models.resnet50(pretrained=True)
-            RCNN_base_model = nn.Sequential(*list(pretrained_model.children())[:-2])
-        else:
-            raise RuntimeError('baseModel is not included.')
-
-        self.dout_base_model = self.RCNN_base.dout_base_model
-
-        self.RCNN_cls_score = nn.Sequential(
-            nn.Linear(4096, self.n_classes)
-        )
-
-        self.RCNN_bbox_pred = nn.Sequential(
-            nn.Linear(4096, 4)
-        )
-
+        self.classes = classes
+        self.n_classes = len(classes)
         # loss
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
 
-        # for log
-        self.debug = debug
+    def _init_weights(self):
+        def normal_init(m, mean, stddev, truncated=False):
+            """
+            weight initalizer: truncated normal and random normal.
+            """
+            # x is a parameter
+            if truncated:
+                m.weight.data.normal_().fmod_(2).mul_(stddev).add_(mean) # not a perfect approximation
+            else:
+                m.weight.data.normal_(mean, stddev)
+                m.bias.data.zero_()
+
+        normal_init(self.RCNN_base.RCNN_rpn.RPN_Conv, 0, 0.01, cfg.TRAIN.TRUNCATED)
+        normal_init(self.RCNN_base.RCNN_rpn.RPN_cls_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
+        normal_init(self.RCNN_base.RCNN_rpn.RPN_bbox_pred, 0, 0.01, cfg.TRAIN.TRUNCATED)
+        normal_init(self.RCNN_cls_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
+        normal_init(self.RCNN_bbox_pred, 0, 0.001, cfg.TRAIN.TRUNCATED)
+
+    def create_architecture(self):
+        self._init_modules()
+        self._init_weights()
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
-
 
         batch_size = im_data.size(0)
         rois, pooled_feat_all, rois_label, rois_target, rois_inside_ws, rois_outside_ws, \
                 rpn_loss_cls, rpn_loss_bbox = self.RCNN_base(im_data, im_info, gt_boxes, num_boxes)
 
+        # get the rpn loss.
         rpn_loss = rpn_loss_cls + rpn_loss_bbox
 
         # feed pooled features to top model
-        x = self.RCNN_fc6(pooled_feat_all)
-        x = F.relu(x, inplace = True)
-        x = F.dropout(x, training=self.training)
-
-        x = self.RCNN_fc7(x)
-        x = F.relu(x, inplace = True)
-        x = F.dropout(x, training=self.training)
+        x = self.RCNN_top(pooled_feat_all)
 
         # compute bbox offset
         bbox_pred = self.RCNN_bbox_pred(x)
@@ -146,32 +128,6 @@ class _fasterRCNN(nn.Module):
         cls_score = self.RCNN_cls_score(x)
         cls_prob = F.softmax(cls_score)
 
-        # if not self.training:
-        #     pdb.set_trace()
-        #     from model.rpn.bbox_transform import bbox_transform_inv, clip_boxes
-        #     if cfg.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED:
-        #     # Optionally normalize targets by a precomputed mean and stdev
-        #         box_deltas = bbox_pred.data.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS).cuda() \
-        #                    + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS).cuda()
-        #         box_deltas = box_deltas.view(1, -1, 84)
-        #     pred_boxes = bbox_transform_inv(rois, box_deltas, 1)
-        #     pred_boxes = clip_boxes(pred_boxes, im_info.data, 1)
-
-        #     # perform roi pooling again on pred_boxes
-        #     rois_var = Variable(pred_boxes.view(-1,5))
-
-        #     # do roi pooling based on predicted rois
-
-        #     pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
-        #     pooled_feat_all = pooled_feat.view(pooled_feat.size(0), -1)
-        #     # feed pooled features to top model
-        #     x = self.RCNN_fc6(pooled_feat_all)
-        #     x = F.relu(x, inplace = True)
-        #     x = F.dropout(x, training=self.training)
-
-        #     x = self.RCNN_fc7(x)
-        #     x = F.relu(x, inplace = True)
-        #     x = F.dropout(x, training=self.training)
 
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0

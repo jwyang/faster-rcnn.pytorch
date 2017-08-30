@@ -31,7 +31,7 @@ from model.utils import network
 from model.utils.network import weights_normal_init, save_net, load_net, \
       adjust_learning_rate, save_checkpoint
 
-from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
+from model.faster_rcnn.vgg16 import vgg16
 import pdb
 
 def parse_args():
@@ -141,10 +141,6 @@ class sampler(Sampler):
   def __len__(self):
     return num_data
 
-
-lr = cfg.TRAIN.LEARNING_RATE
-momentum = cfg.TRAIN.MOMENTUM
-weight_decay = cfg.TRAIN.WEIGHT_DECAY
 use_multiGPU = False
 
 if __name__ == '__main__':
@@ -226,38 +222,25 @@ if __name__ == '__main__':
     cfg.CUDA = True
 
   # initilize the network here.
-  fasterRCNN = _fasterRCNN(args.net, imdb.classes)
-  # weights_normal_init(fasterRCNN)
-  weights_normal_init(fasterRCNN.RCNN_base.RCNN_rpn.RPN_ConvReLU)
-  weights_normal_init(fasterRCNN.RCNN_base.RCNN_rpn.RPN_cls_score)
-  weights_normal_init(fasterRCNN.RCNN_base.RCNN_rpn.RPN_bbox_pred)
-  weights_normal_init(fasterRCNN.RCNN_cls_score)
-  weights_normal_init(fasterRCNN.RCNN_bbox_pred, 0.001)
+  fasterRCNN = vgg16(imdb.classes)
+  fasterRCNN.create_architecture()
 
-  params = list(fasterRCNN.parameters())
+  lr = cfg.TRAIN.LEARNING_RATE
+  params = []
+  for key, value in dict(fasterRCNN.named_parameters()).items():
+    if value.requires_grad:
+      if 'bias' in key:
+        params += [{'params':[value],'lr':lr*(cfg.TRAIN.DOUBLE_BIAS + 1), \
+                'weight_decay': cfg.TRAIN.BIAS_DECAY and cfg.TRAIN.WEIGHT_DECAY or 0}]
+      else:
+        params += [{'params':[value],'lr':lr, 'weight_decay': cfg.TRAIN.WEIGHT_DECAY}]
 
   if args.optimizer == "adam":
     lr = lr * 0.1
-    optimizer = torch.optim.Adam([
-      {'params': fasterRCNN.RCNN_base.RCNN_base_model[1].parameters(), 'lr': lr},
-      {'params': fasterRCNN.RCNN_base.RCNN_base_model[2].parameters()},
-      {'params': fasterRCNN.RCNN_base.RCNN_rpn.parameters()},
-      {'params': fasterRCNN.RCNN_fc6.parameters()},
-      {'params': fasterRCNN.RCNN_fc7.parameters()},
-      {'params': fasterRCNN.RCNN_cls_score.parameters()},
-      {'params': fasterRCNN.RCNN_bbox_pred.parameters()},
-    ], lr = lr)
+    optimizer = torch.optim.Adam(params)
 
   elif args.optimizer == "sgd":
-    optimizer = torch.optim.SGD([
-      {'params': fasterRCNN.RCNN_base.RCNN_base_model[1].parameters(), 'lr': lr},
-      {'params': fasterRCNN.RCNN_base.RCNN_base_model[2].parameters()},
-      {'params': fasterRCNN.RCNN_base.RCNN_rpn.parameters()},
-      {'params': fasterRCNN.RCNN_fc6.parameters(), 'lr': lr},
-      {'params': fasterRCNN.RCNN_fc7.parameters(), 'lr': lr},
-      {'params': fasterRCNN.RCNN_cls_score.parameters()},
-      {'params': fasterRCNN.RCNN_bbox_pred.parameters()},
-    ], lr = lr, momentum=momentum, weight_decay=weight_decay)
+    optimizer = torch.optim.SGD(params, momentum=cfg.TRAIN.MOMENTUM)
 
   if args.resume:
     load_name = os.path.join(output_dir,
@@ -303,8 +286,8 @@ if __name__ == '__main__':
 
       if step % args.disp_interval == 0:
         if use_multiGPU:
-          print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr4ft: %.2e, lr4tr: %.2e" \
-            % (args.session, epoch, step, loss_temp / args.disp_interval, lr * 0.1, lr))
+          print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
+            % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
           print("\t\t\tfg/bg=(%d/%d)" % (0, 0))
           print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" % (0, 0, 0, 0))
           if args.use_tfboard:
@@ -315,8 +298,8 @@ if __name__ == '__main__':
               logger.scalar_summary(tag, value, step)
 
         else:
-          print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr4ft: %.2e, lr4tr: %.2e" \
-            % (args.session, epoch, step, loss_temp / args.disp_interval, lr * 0.1, lr))
+          print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
+            % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
           print("\t\t\tfg/bg=(%d/%d)" % (fasterRCNN.fg_cnt, fasterRCNN.bg_cnt))
           print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box: %.4f" %
             (fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0], \
