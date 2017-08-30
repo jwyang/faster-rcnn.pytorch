@@ -154,25 +154,33 @@ class _ProposalTargetLayer(nn.Module):
             if fg_num_rois > 0 and bg_num_rois > 0:
                 # sampling fg
                 fg_rois_per_this_image = min(fg_rois_per_image, fg_num_rois)
-                rand_num = torch.randperm(fg_num_rois).type_as(all_rois).long()
+                rand_num = torch.randperm(fg_num_rois).long().cuda()
                 fg_inds = fg_inds[rand_num[:fg_rois_per_this_image]]
 
                 # sampling bg
                 bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
-                rand_num = torch.floor(torch.rand(bg_rois_per_this_image).type_as(all_rois)
-                                         * bg_num_rois).long()
+
+                # Seems torch.rand has a bug, it will generate very large number and make an error. 
+                # We use numpy rand instead. 
+                #rand_num = (torch.rand(bg_rois_per_this_image) * bg_num_rois).long().cuda()
+                rand_num = np.floor(np.random.rand(bg_rois_per_this_image) * bg_num_rois)
+                rand_num = torch.from_numpy(rand_num).long().cuda()
                 bg_inds = bg_inds[rand_num]
+
             elif fg_num_rois > 0 and bg_num_rois == 0:
                 # sampling fg
-                rand_num = torch.floor(torch.rand(rois_per_image).type_as(all_rois)
-                                         * fg_num_rois).long()
+                #rand_num = torch.floor(torch.rand(rois_per_image) * fg_num_rois).long().cuda()
+                rand_num = np.floor(np.random.rand(rois_per_image) * fg_num_rois)
+                rand_num = torch.from_numpy(rand_num).long().cuda()
                 fg_inds = fg_inds[rand_num]
                 fg_rois_per_this_image = rois_per_image
                 bg_rois_per_this_image = 0
             elif bg_num_rois > 0 and fg_num_rois == 0:
                 # sampling bg
-                rand_num = torch.floor(torch.rand(rois_per_image).type_as(all_rois)
-                                         * bg_num_rois).long()
+                #rand_num = torch.floor(torch.rand(rois_per_image) * bg_num_rois).long().cuda()
+                rand_num = np.floor(np.random.rand(rois_per_image) * bg_num_rois)
+                rand_num = torch.from_numpy(rand_num).long().cuda()
+
                 bg_inds = bg_inds[rand_num]
                 bg_rois_per_this_image = rois_per_image
                 fg_rois_per_this_image = 0
