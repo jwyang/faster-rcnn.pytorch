@@ -23,6 +23,7 @@ import torch.optim as optim
 
 import torchvision.transforms as transforms
 from torch.utils.data.sampler import Sampler
+
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
@@ -30,7 +31,7 @@ from model.utils import network
 from model.utils.network import weights_normal_init, save_net, load_net, \
       adjust_learning_rate, save_checkpoint
 
-from model.faster_rcnn.faster_rcnn import _fasterRCNN
+from model.faster_rcnn.vgg16 import vgg16
 import pdb
 
 def parse_args():
@@ -69,9 +70,10 @@ def parse_args():
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
                       default=1, type=int)
+
   parser.add_argument('--bs', dest='batch_size',
                       help='batch_size',
-                      default=1, type=int)
+                      default=4, type=int)
 
 # config optimization
   parser.add_argument('--o', dest='optimizer',
@@ -115,34 +117,31 @@ def parse_args():
   return args
 
 
-lr = cfg.TRAIN.LEARNING_RATE
-momentum = cfg.TRAIN.MOMENTUM
-weight_decay = cfg.TRAIN.WEIGHT_DECAY
-use_multiGPU = False
-
 class sampler(Sampler):
   def __init__(self, train_size, batch_size):
-      num_data = train_size
-      self.num_per_batch = int(num_data / batch_size)
-      self.batch_size = batch_size
-      self.range = torch.arange(0,batch_size).view(1, batch_size).long()
-      self.leftover_flag = False
-      if num_data % batch_size:
-          self.leftover = torch.arange(self.num_per_batch*batch_size, num_data).long()
-          self.leftover_flag = True
+    num_data = train_size    
+    self.num_per_batch = int(num_data / batch_size)
+    self.batch_size = batch_size
+    self.range = torch.arange(0,batch_size).view(1, batch_size).long()
+    self.leftover_flag = False
+    if num_data % batch_size:
+      self.leftover = torch.arange(self.num_per_batch*batch_size, num_data).long()
+      self.leftover_flag = True
   def __iter__(self):
-      rand_num = torch.randperm(self.num_per_batch).long().view(-1,1) * self.batch_size
-      self.rand_num = rand_num.expand(self.num_per_batch, self.batch_size) + self.range
+    rand_num = torch.randperm(self.num_per_batch).view(-1,1) * self.batch_size
+    self.rand_num = rand_num.expand(self.num_per_batch, self.batch_size) + self.range
 
-      self.rand_num_view = self.rand_num.view(-1)
+    self.rand_num_view = self.rand_num.view(-1)
 
-      if self.leftover_flag:
-          self.rand_num_view = torch.cat((self.rand_num_view, self.leftover),0)
+    if self.leftover_flag:
+      self.rand_num_view = torch.cat((self.rand_num_view, self.leftover),0)
 
-      return iter(self.rand_num_view)
+    return iter(self.rand_num_view)
 
   def __len__(self):
-      return num_data
+    return num_data
+
+use_multiGPU = False
 
 if __name__ == '__main__':
 
@@ -155,7 +154,7 @@ if __name__ == '__main__':
     from model.utils.logger import Logger
     # Set the logger
     logger = Logger('./logs')
-
+  
   if args.dataset == "pascal_voc":
       args.imdb_name = "voc_2007_trainval"
       args.imdbval_name = "voc_2007_test"
@@ -198,7 +197,7 @@ if __name__ == '__main__':
                            imdb.num_classes, training=True, normalize = False)
 
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                            sampler=sampler_batch, num_workers=args.batch_size)
+                            sampler=sampler_batch, num_workers=2)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -223,38 +222,25 @@ if __name__ == '__main__':
     cfg.CUDA = True
 
   # initilize the network here.
-  fasterRCNN = _fasterRCNN(args.net, imdb.classes)
-  # weights_normal_init(fasterRCNN)
-  weights_normal_init(fasterRCNN.RCNN_base.RCNN_rpn.RPN_ConvReLU)
-  weights_normal_init(fasterRCNN.RCNN_base.RCNN_rpn.RPN_cls_score)
-  weights_normal_init(fasterRCNN.RCNN_base.RCNN_rpn.RPN_bbox_pred)
-  weights_normal_init(fasterRCNN.RCNN_cls_score)
-  weights_normal_init(fasterRCNN.RCNN_bbox_pred, 0.001)
+  fasterRCNN = vgg16(imdb.classes)
+  fasterRCNN.create_architecture()
 
-  params = list(fasterRCNN.parameters())
+  lr = cfg.TRAIN.LEARNING_RATE
+  params = []
+  for key, value in dict(fasterRCNN.named_parameters()).items():
+    if value.requires_grad:
+      if 'bias' in key:
+        params += [{'params':[value],'lr':lr*(cfg.TRAIN.DOUBLE_BIAS + 1), \
+                'weight_decay': cfg.TRAIN.BIAS_DECAY and cfg.TRAIN.WEIGHT_DECAY or 0}]
+      else:
+        params += [{'params':[value],'lr':lr, 'weight_decay': cfg.TRAIN.WEIGHT_DECAY}]
 
   if args.optimizer == "adam":
     lr = lr * 0.1
-    optimizer = torch.optim.Adam([
-      {'params': fasterRCNN.RCNN_base.RCNN_base_model[1].parameters(), 'lr': lr},
-      {'params': fasterRCNN.RCNN_base.RCNN_base_model[2].parameters()},
-      {'params': fasterRCNN.RCNN_base.RCNN_rpn.parameters()},
-      {'params': fasterRCNN.RCNN_fc6.parameters()},
-      {'params': fasterRCNN.RCNN_fc7.parameters()},
-      {'params': fasterRCNN.RCNN_cls_score.parameters()},
-      {'params': fasterRCNN.RCNN_bbox_pred.parameters()},
-    ], lr = lr)
+    optimizer = torch.optim.Adam(params)
 
   elif args.optimizer == "sgd":
-    optimizer = torch.optim.SGD([
-      {'params': fasterRCNN.RCNN_base.RCNN_base_model[1].parameters(), 'lr': lr},
-      {'params': fasterRCNN.RCNN_base.RCNN_base_model[2].parameters()},
-      {'params': fasterRCNN.RCNN_base.RCNN_rpn.parameters()},
-      {'params': fasterRCNN.RCNN_fc6.parameters(), 'lr': lr},
-      {'params': fasterRCNN.RCNN_fc7.parameters(), 'lr': lr},
-      {'params': fasterRCNN.RCNN_cls_score.parameters()},
-      {'params': fasterRCNN.RCNN_bbox_pred.parameters()},
-    ], lr = lr, momentum=momentum, weight_decay=weight_decay)
+    optimizer = torch.optim.SGD(params, momentum=cfg.TRAIN.MOMENTUM)
 
   if args.resume:
     load_name = os.path.join(output_dir,
@@ -265,8 +251,7 @@ if __name__ == '__main__':
     args.start_epoch = checkpoint['epoch']
     fasterRCNN.load_state_dict(checkpoint['model'])
     optimizer.load_state_dict(checkpoint['optimizer'])
-    lr = optimizer.param_groups[0]['lr']
-    # lr = checkpoint['lr']
+    lr = optimizer.param_groups[0]['lr']    
     print("loaded checkpoint %s" % (load_name))
 
   if use_multiGPU:
@@ -283,6 +268,7 @@ if __name__ == '__main__':
 
     for step in range(int(train_size / args.batch_size)):
       data = data_iter.next()
+
       im_data.data.resize_(data[0].size()).copy_(data[0])
       im_info.data.resize_(data[1].size()).copy_(data[1])
       gt_boxes.data.resize_(data[2].size()).copy_(data[2])
@@ -290,7 +276,6 @@ if __name__ == '__main__':
 
       fasterRCNN.zero_grad()
       _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
-
       loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
       loss_temp += loss.data[0]
 
@@ -301,11 +286,9 @@ if __name__ == '__main__':
       optimizer.step()
 
       if step % args.disp_interval == 0:
-        if step > 0:
-          loss_temp = loss_temp / args.disp_interval
         if use_multiGPU:
           print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
-            % (args.session, epoch, step, loss_temp, lr))
+            % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
           print("\t\t\tfg/bg=(%d/%d)" % (0, 0))
           print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" % (0, 0, 0, 0))
           if args.use_tfboard:
@@ -317,7 +300,7 @@ if __name__ == '__main__':
 
         else:
           print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
-            % (args.session, epoch, step, loss_temp, lr))
+            % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
           print("\t\t\tfg/bg=(%d/%d)" % (fasterRCNN.fg_cnt, fasterRCNN.bg_cnt))
           print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box: %.4f" %
             (fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0], \
@@ -337,6 +320,7 @@ if __name__ == '__main__':
 
         loss_temp = 0
 
+
     if epoch % args.lr_decay_step == 0:
       
         adjust_learning_rate(optimizer, args.lr_decay_gamma)
@@ -351,7 +335,6 @@ if __name__ == '__main__':
           "optimizer": optimizer.state_dict(),
         }, save_name)
         print('save model: {}'.format(save_name))
-
 
     end = time.time()
     print(end - start)

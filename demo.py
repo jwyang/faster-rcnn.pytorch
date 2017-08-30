@@ -23,6 +23,8 @@ import torch.nn as nn
 import torch.optim as optim
 
 import torchvision.transforms as transforms
+import torchvision.datasets as dset
+from PIL import Image
 
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
@@ -33,6 +35,7 @@ from model.nms.nms_wrapper import nms
 from model.fast_rcnn.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
 from model.utils.network import save_net, load_net, vis_detections
+from model.utils.blob import im_list_to_blob
 import pdb
 
 def parse_args():
@@ -58,6 +61,9 @@ def parse_args():
   parser.add_argument('--load_dir', dest='load_dir',
                       help='directory to load models', default="models",
                       nargs=argparse.REMAINDER)
+  parser.add_argument('--image_dir', dest='image_dir',
+                      help='directory to load images', default="data/images",
+                      type=str)  
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
                       default=1, type=int)
@@ -70,9 +76,6 @@ def parse_args():
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load network',
                       default=10000, type=int)
-  parser.add_argument('--bs', dest='batch_size',
-                      help='batch_size',
-                      default=1, type=int)
 
   args = parser.parse_args()
   return args
@@ -80,6 +83,40 @@ def parse_args():
 lr = cfg.TRAIN.LEARNING_RATE
 momentum = cfg.TRAIN.MOMENTUM
 weight_decay = cfg.TRAIN.WEIGHT_DECAY
+
+def _get_image_blob(im):
+  """Converts an image into a network input.
+  Arguments:
+    im (ndarray): a color image in BGR order
+  Returns:
+    blob (ndarray): a data blob holding an image pyramid
+    im_scale_factors (list): list of image scales (relative to im) used
+      in the image pyramid
+  """
+  im_orig = im.astype(np.float32, copy=True)
+  im_orig -= cfg.PIXEL_MEANS
+
+  im_shape = im_orig.shape
+  im_size_min = np.min(im_shape[0:2])
+  im_size_max = np.max(im_shape[0:2])
+
+  processed_ims = []
+  im_scale_factors = []
+
+  for target_size in cfg.TEST.SCALES:
+    im_scale = float(target_size) / float(im_size_min)
+    # Prevent the biggest axis from being more than MAX_SIZE
+    if np.round(im_scale * im_size_max) > cfg.TEST.MAX_SIZE:
+      im_scale = float(cfg.TEST.MAX_SIZE) / float(im_size_max)
+    im = cv2.resize(im_orig, None, None, fx=im_scale, fy=im_scale,
+            interpolation=cv2.INTER_LINEAR)
+    im_scale_factors.append(im_scale)
+    processed_ims.append(im)
+
+  # Create a blob to hold the input images
+  blob = im_list_to_blob(processed_ims)
+
+  return blob, np.array(im_scale_factors)
 
 if __name__ == '__main__':
 
@@ -99,11 +136,6 @@ if __name__ == '__main__':
 
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
-  cfg.TRAIN.USE_FLIPPED = False
-  imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdbval_name)
-  imdb.competition_mode(on=True)
-
-  print('{:d} roidb entries'.format(len(roidb)))
 
   input_dir = args.load_dir + "/" + args.net
   if not os.path.exists(input_dir):
@@ -111,7 +143,15 @@ if __name__ == '__main__':
   load_name = os.path.join(input_dir,
     'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
 
-  fasterRCNN = _fasterRCNN(args.net, imdb.classes)
+
+  classes = np.asarray(['__background__',
+                       'aeroplane', 'bicycle', 'bird', 'boat',
+                       'bottle', 'bus', 'car', 'cat', 'chair',
+                       'cow', 'diningtable', 'dog', 'horse',
+                       'motorbike', 'person', 'pottedplant',
+                       'sheep', 'sofa', 'train', 'tvmonitor'])
+
+  fasterRCNN = _fasterRCNN(args.net, classes)
   checkpoint = torch.load(load_name)
   fasterRCNN.load_state_dict(checkpoint['model'])
   print('load model successfully!')
@@ -150,39 +190,49 @@ if __name__ == '__main__':
   start = time.time()
   max_per_image = 100
   thresh = 0.05
-  vis = False
+  vis = True
 
-  save_name = 'faster_rcnn_10'
-  num_images = len(imdb.image_index)
-  all_boxes = [[[] for _ in xrange(num_images)]
-               for _ in xrange(imdb.num_classes)]
+  imglist = os.listdir(args.image_dir)
+  num_images = len(imglist)
 
-  output_dir = get_output_dir(imdb, save_name)
+  print('Loaded Photo: {} images.'.format(num_images))
 
-  dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
-                        imdb.num_classes, training=False, normalize = False)
-
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                            shuffle=False, num_workers=0,
-                            pin_memory=True)
-
-  data_iter = iter(dataloader)
-
-  _t = {'im_detect': time.time(), 'misc': time.time()}
-  det_file = os.path.join(output_dir, 'detections.pkl')
+  im_file_target = os.path.join(args.image_dir, imglist[0])
+  im_target = cv2.imread(im_file_target)
 
   for i in range(num_images):
 
-      data = data_iter.next()
-      im_data.data.resize_(data[0].size()).copy_(data[0])
-      im_info.data.resize_(data[1].size()).copy_(data[1])
-      gt_boxes.data.resize_(data[2].size()).copy_(data[2])
-      num_boxes.data.resize_(data[3].size()).copy_(data[3])
+      # Load the demo image
+      im_file = os.path.join(args.image_dir, imglist[i])
+      im = cv2.imread(im_file)
+      # im = np.array(Image.open(im_file))
+      # if len(im.shape) == 2:
+      #   im = im[:,:,np.newaxis]
+      #   im = np.concatenate((im,im,im), axis=2)
+
+      blobs, im_scales = _get_image_blob(im)
+      assert len(im_scales) == 1, "Only single-image batch implemented"
+      im_blob = blobs
+      im_info_np = np.array([[im_blob.shape[1], im_blob.shape[2], im_scales[0]]], dtype=np.float32)
+
+      im_data_pt = torch.from_numpy(im_blob)
+      im_data_pt = im_data_pt.permute(0, 3, 1, 2)
+      im_info_pt = torch.from_numpy(im_info_np)
+
+      im_data.data.resize_(im_data_pt.size()).copy_(im_data_pt)
+      im_info.data.resize_(im_info_pt.size()).copy_(im_info_pt)
+      gt_boxes.data.resize_(1, 1, 5).zero_()
+      num_boxes.data.resize_(1).zero_()
+
+      # pdb.set_trace()
+
 
       det_tic = time.time()
-      rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+      rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss = \
+          fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+
       scores = cls_prob.data
-      boxes = rois[:, :, 1:5] / data[1][0][2]
+      boxes = rois[:, :, 1:5] / im_scales[0]
 
       if cfg.TEST.BBOX_REG:
           # Apply bounding-box regression deltas
@@ -207,10 +257,9 @@ if __name__ == '__main__':
       misc_tic = time.time()
 
       if vis:
-          im = cv2.imread(imdb.image_path_at(i))
           im2show = np.copy(im)
 
-      for j in xrange(1, imdb.num_classes):
+      for j in xrange(1, 21):
           inds = np.where(scores[:, j] > thresh)[0]
           cls_scores = scores[inds, j]
           cls_boxes = pred_boxes[inds, j * 4:(j + 1) * 4]
@@ -219,18 +268,7 @@ if __name__ == '__main__':
           keep = nms(cls_dets, cfg.TEST.NMS)
           cls_dets = cls_dets[keep, :]
           if vis:
-              im2show = vis_detections(im2show, imdb.classes[j], cls_dets)
-          all_boxes[j][i] = cls_dets
-
-      # Limit to max_per_image detections *over all classes*
-      if max_per_image > 0:
-          image_scores = np.hstack([all_boxes[j][i][:, -1]
-                                    for j in xrange(1, imdb.num_classes)])
-          if len(image_scores) > max_per_image:
-              image_thresh = np.sort(image_scores)[-max_per_image]
-              for j in xrange(1, imdb.num_classes):
-                  keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
-                  all_boxes[j][i] = all_boxes[j][i][keep, :]
+              im2show = vis_detections(im2show, classes[j], cls_dets)
 
       misc_toc = time.time()
       nms_time = misc_toc - misc_tic
@@ -242,12 +280,3 @@ if __name__ == '__main__':
       if vis:
           cv2.imshow('test', im2show)
           cv2.waitKey(0)
-
-  with open(det_file, 'wb') as f:
-      cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
-
-  print('Evaluating detections')
-  imdb.evaluate_detections(all_boxes, output_dir)
-
-  end = time.time()
-  print("test time: %0.4fs" % (end - start))

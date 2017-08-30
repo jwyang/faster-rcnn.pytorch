@@ -22,7 +22,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 import torchvision.transforms as transforms
-from torch.utils.data.sampler import Sampler
+
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
@@ -30,7 +30,7 @@ from model.utils import network
 from model.utils.network import weights_normal_init, save_net, load_net, \
       adjust_learning_rate, save_checkpoint
 
-from model.faster_rcnn.faster_rcnn import _fasterRCNN
+from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
 import pdb
 
 def parse_args():
@@ -69,9 +69,7 @@ def parse_args():
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
                       default=1, type=int)
-  parser.add_argument('--bs', dest='batch_size',
-                      help='batch_size',
-                      default=1, type=int)
+
 
 # config optimization
   parser.add_argument('--o', dest='optimizer',
@@ -101,7 +99,7 @@ def parse_args():
                       default=1, type=int)
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load model',
-                      default=0, type=int)
+                      default=10000, type=int)
 # log and diaplay
   parser.add_argument('--use_tfboard', dest='use_tfboard',
                       help='whether use tensorflow tensorboard',
@@ -120,30 +118,6 @@ momentum = cfg.TRAIN.MOMENTUM
 weight_decay = cfg.TRAIN.WEIGHT_DECAY
 use_multiGPU = False
 
-class sampler(Sampler):
-  def __init__(self, train_size, batch_size):
-      num_data = train_size
-      self.num_per_batch = int(num_data / batch_size)
-      self.batch_size = batch_size
-      self.range = torch.arange(0,batch_size).view(1, batch_size).long()
-      self.leftover_flag = False
-      if num_data % batch_size:
-          self.leftover = torch.arange(self.num_per_batch*batch_size, num_data).long()
-          self.leftover_flag = True
-  def __iter__(self):
-      rand_num = torch.randperm(self.num_per_batch).long().view(-1,1) * self.batch_size
-      self.rand_num = rand_num.expand(self.num_per_batch, self.batch_size) + self.range
-
-      self.rand_num_view = self.rand_num.view(-1)
-
-      if self.leftover_flag:
-          self.rand_num_view = torch.cat((self.rand_num_view, self.leftover),0)
-
-      return iter(self.rand_num_view)
-
-  def __len__(self):
-      return num_data
-
 if __name__ == '__main__':
 
   args = parse_args()
@@ -155,7 +129,7 @@ if __name__ == '__main__':
     from model.utils.logger import Logger
     # Set the logger
     logger = Logger('./logs')
-
+  
   if args.dataset == "pascal_voc":
       args.imdb_name = "voc_2007_trainval"
       args.imdbval_name = "voc_2007_test"
@@ -183,7 +157,7 @@ if __name__ == '__main__':
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
   cfg.TRAIN.USE_FLIPPED = True
-  imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdb_name)
+  imdb, roidb = combined_roidb(args.imdb_name)
   train_size = len(roidb)
 
   print('{:d} roidb entries'.format(len(roidb)))
@@ -192,13 +166,11 @@ if __name__ == '__main__':
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-  sampler_batch = sampler(train_size, args.batch_size)
+  dataset = roibatchLoader(roidb, imdb.num_classes, training=False,
+                        normalize = False)
 
-  dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
-                           imdb.num_classes, training=True, normalize = False)
-
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                            sampler=sampler_batch, num_workers=args.batch_size)
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
+                            shuffle=True, num_workers=0)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -265,8 +237,6 @@ if __name__ == '__main__':
     args.start_epoch = checkpoint['epoch']
     fasterRCNN.load_state_dict(checkpoint['model'])
     optimizer.load_state_dict(checkpoint['optimizer'])
-    lr = optimizer.param_groups[0]['lr']
-    # lr = checkpoint['lr']
     print("loaded checkpoint %s" % (load_name))
 
   if use_multiGPU:
@@ -275,83 +245,24 @@ if __name__ == '__main__':
   if args.ngpu > 0:
     fasterRCNN.cuda()
 
-  for epoch in range(args.start_epoch, args.max_epochs):
-    loss_temp = 0
-    start = time.time()
+  loss_temp = 0
+  start = time.time()
 
-    data_iter = iter(dataloader)
+  data_iter = iter(dataloader)
 
-    for step in range(int(train_size / args.batch_size)):
-      data = data_iter.next()
-      im_data.data.resize_(data[0].size()).copy_(data[0])
-      im_info.data.resize_(data[1].size()).copy_(data[1])
-      gt_boxes.data.resize_(data[2].size()).copy_(data[2])
-      num_boxes.data.resize_(data[3].size()).copy_(data[3])
+  aspect_ratio = torch.FloatTensor(train_size).zero_()
+  for step in range(train_size):
+    data = data_iter.next()
+    im_data.data.resize_(data[0].size()).copy_(data[0])
+    im_info.data.resize_(data[1].size()).copy_(data[1])
+    gt_boxes.data.resize_(data[2].size()).copy_(data[2])
+    num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
-      fasterRCNN.zero_grad()
-      _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
-
-      loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
-      loss_temp += loss.data[0]
-
-      # backward
-      optimizer.zero_grad()
-      loss.backward()
-      network.clip_gradient(fasterRCNN, 10.)
-      optimizer.step()
-
-      if step % args.disp_interval == 0:
-        if step > 0:
-          loss_temp = loss_temp / args.disp_interval
-        if use_multiGPU:
-          print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
-            % (args.session, epoch, step, loss_temp, lr))
-          print("\t\t\tfg/bg=(%d/%d)" % (0, 0))
-          print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" % (0, 0, 0, 0))
-          if args.use_tfboard:
-            info = {
-              'loss': loss_temp / args.disp_interval
-            }
-            for tag, value in info.items():
-              logger.scalar_summary(tag, value, step)
-
-        else:
-          print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
-            % (args.session, epoch, step, loss_temp, lr))
-          print("\t\t\tfg/bg=(%d/%d)" % (fasterRCNN.fg_cnt, fasterRCNN.bg_cnt))
-          print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box: %.4f" %
-            (fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0], \
-             fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0], \
-             fasterRCNN.RCNN_loss_cls.data[0], \
-             fasterRCNN.RCNN_loss_bbox.data[0]))
-          if args.use_tfboard:
-            info = {
-              'loss': loss_temp / args.disp_interval,
-              'loss_rpn_cls': fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0],
-              'loss_rpn_box': fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0],
-              'loss_rcnn_cls': fasterRCNN.RCNN_loss_cls.data[0],
-              'loss_rcnn_box': fasterRCNN.RCNN_loss_bbox.data[0]
-            }
-            for tag, value in info.items():
-              logger.scalar_summary(tag, value, step)
-
-        loss_temp = 0
-
-    if epoch % args.lr_decay_step == 0:
-      
-        adjust_learning_rate(optimizer, args.lr_decay_gamma)
-        lr *= args.lr_decay_gamma
-
-        #   pdb.set_trace()
-        save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
-        save_checkpoint({
-          'session': args.session,
-          'epoch': epoch + 1,
-          'model': fasterRCNN.state_dict(),
-          "optimizer": optimizer.state_dict(),
-        }, save_name)
-        print('save model: {}'.format(save_name))
+    # aspect_ratio = height / width
+    aspect_ratio[step] = data[1][0][0] / data[1][0][1]
 
 
-    end = time.time()
-    print(end - start)
+  pdb.set_trace()
+
+  end = time.time()
+  print(end - start)

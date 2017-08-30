@@ -27,7 +27,7 @@ import torchvision.transforms as transforms
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
-from model.faster_rcnn.faster_rcnn import _fasterRCNN
+from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
 from model.rpn.bbox_transform import clip_boxes
 from model.nms.nms_wrapper import nms
 from model.fast_rcnn.nms_wrapper import nms
@@ -73,7 +73,6 @@ def parse_args():
   parser.add_argument('--bs', dest='batch_size',
                       help='batch_size',
                       default=1, type=int)
-
   args = parser.parse_args()
   return args
 
@@ -159,6 +158,12 @@ if __name__ == '__main__':
 
   output_dir = get_output_dir(imdb, save_name)
 
+
+  # dataset = roibatchLoader(roidb, imdb.num_classes, training=False,
+  #                       normalize = transforms.Normalize(
+  #                       mean=[0.485, 0.456, 0.406],
+  #                       std=[0.229, 0.224, 0.225]))
+
   dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
                         imdb.num_classes, training=False, normalize = False)
 
@@ -191,7 +196,7 @@ if __name__ == '__main__':
           # Optionally normalize targets by a precomputed mean and stdev
                 box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS).cuda() \
                            + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS).cuda()
-                box_deltas = box_deltas.view(1, -1, 84)
+                box_deltas = box_deltas.view(1, -1, 4)
           pred_boxes = bbox_transform_inv(boxes, box_deltas, 1)
           pred_boxes = clip_boxes(pred_boxes, im_info.data, 1)
       else:
@@ -213,7 +218,7 @@ if __name__ == '__main__':
       for j in xrange(1, imdb.num_classes):
           inds = np.where(scores[:, j] > thresh)[0]
           cls_scores = scores[inds, j]
-          cls_boxes = pred_boxes[inds, j * 4:(j + 1) * 4]
+          cls_boxes = pred_boxes[inds, :]
           cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
               .astype(np.float32, copy=False)
           keep = nms(cls_dets, cfg.TEST.NMS)
