@@ -13,7 +13,6 @@ import xml.dom.minidom as minidom
 import numpy as np
 import scipy.sparse
 import scipy.io as sio
-import utils.cython_bbox
 import cPickle
 import subprocess
 

@@ -11,13 +11,13 @@ import datasets.ds_utils as ds_utils
 import xml.etree.ElementTree as ET
 import numpy as np
 import scipy.sparse
-import utils.cython_bbox
 import cPickle
 import gzip
 import PIL
 import json
 from vg_eval import vg_eval
-from fast_rcnn.config import cfg
+from model.utils.config import cfg
+import pickle
 import pdb
 
 class vg(imdb):
@@ -31,7 +31,6 @@ class vg(imdb):
         self.config = {'cleanup' : False}
 
         # Load classes
-        print("loading classes\n")
         self._classes = ['__background__']
         self._class_to_ind = {}
         self._class_to_ind[self._classes[0]] = 0
@@ -43,10 +42,8 @@ class vg(imdb):
             for n in names:
               self._class_to_ind[n] = count
             count += 1 
-        print("loaded classes\n")
             
         # Load attributes
-        print("loading attributes\n")        
         self._attributes = ['__no_attribute__']
         self._attribute_to_ind = {}
         self._attribute_to_ind[self._attributes[0]] = 0
@@ -58,10 +55,8 @@ class vg(imdb):
             for n in names:
               self._attribute_to_ind[n] = count
             count += 1           
-        print("loaded attributes\n")        
             
         # Load relations
-        print("loading relations\n")                
         self._relations = ['__no_relation__']
         self._relation_to_ind = {}
         self._relation_to_ind[self._relations[0]] = 0
@@ -73,14 +68,25 @@ class vg(imdb):
             for n in names:
               self._relation_to_ind[n] = count
             count += 1      
-        print("loaded relations\n")        
 
-        pdb.set_trace()
-        print("loading images\n")                
         self._image_ext = '.jpg'
-        self._image_index, self._id_to_dir = self._load_image_set_index()
-        print("loaded images\n")                
-        pdb.set_trace()
+        load_index_from_file = False
+        if os.path.exists(os.path.join(self._data_path, "vg_image_index.p")):
+            with open(os.path.join(self._data_path, "vg_image_index.p"), 'rb') as fp:
+                self._image_index = pickle.load(fp)
+            load_index_from_file = True
+
+        load_id_from_file = False
+        if os.path.exists(os.path.join(self._data_path, "vg_id_to_dir.p")):
+            with open(os.path.join(self._data_path, "vg_id_to_dir.p"), 'rb') as fp:
+                self._id_to_dir = pickle.load(fp)
+            load_id_from_file = True
+
+        if not load_index_from_file or not load_id_from_file:
+            self._image_index, self._id_to_dir = self._load_image_set_index()
+
+        self._roidb_handler = self.gt_roidb
+
     def image_path_at(self, i):
         """
         Return the absolute path to image i in the image sequence.
@@ -119,7 +125,7 @@ class vg(imdb):
             metadata = metadata[:1000]
           elif self._image_set == "minival":
             metadata = metadata[:100]
-          
+        
         image_index = []
         id_to_dir = {}
         for line in metadata:
@@ -153,8 +159,6 @@ class vg(imdb):
             fid.close()
             print '{} gt roidb loaded from {}'.format(self.name, cache_file)
             return roidb
-
-        pdb.set_trace()
 
         gt_roidb = [self._load_vg_annotation(index)
                     for index in self.image_index]
