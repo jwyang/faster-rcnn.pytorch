@@ -13,6 +13,8 @@ from __future__ import print_function
 __sets = {}
 from datasets.pascal_voc import pascal_voc
 from datasets.coco import coco
+from datasets.imagenet import imagenet
+from datasets.vg import vg
 
 import numpy as np
 
@@ -34,6 +36,11 @@ for year in ['2015']:
     name = 'coco_{}_{}'.format(year, split)
     __sets[name] = (lambda split=split, year=year: coco(split, year))
 
+# Set up vg_<split>
+for version in ['1600-400-20']:
+    for split in ['minitrain', 'train', 'minival', 'val', 'test']:
+        name = 'vg_{}_{}'.format(version,split)
+        __sets[name] = (lambda split=split, version=version: vg(version, split))
 
 def get_imdb(name):
   """Get an imdb (image database) by name."""
