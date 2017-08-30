@@ -251,6 +251,7 @@ if __name__ == '__main__':
     args.start_epoch = checkpoint['epoch']
     fasterRCNN.load_state_dict(checkpoint['model'])
     optimizer.load_state_dict(checkpoint['optimizer'])
+    lr = optimizer.param_groups[0]['lr']    
     print("loaded checkpoint %s" % (load_name))
 
   if use_multiGPU:
@@ -319,21 +320,21 @@ if __name__ == '__main__':
 
         loss_temp = 0
 
-      if (step % args.checkpoint_interval == 0) and step > 0:
-        #   pdb.set_trace()
-          save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
-          save_checkpoint({
-            'session': args.session,
-            'epoch': epoch + 1,
-            'model': fasterRCNN.state_dict(),
-            "optimizer": optimizer.state_dict(),
-          }, save_name)
-          print('save model: {}'.format(save_name))
-
 
     if epoch % args.lr_decay_step == 0:
+      
         adjust_learning_rate(optimizer, args.lr_decay_gamma)
         lr *= args.lr_decay_gamma
+
+        #   pdb.set_trace()
+        save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
+        save_checkpoint({
+          'session': args.session,
+          'epoch': epoch + 1,
+          'model': fasterRCNN.state_dict(),
+          "optimizer": optimizer.state_dict(),
+        }, save_name)
+        print('save model: {}'.format(save_name))
 
     end = time.time()
     print(end - start)
