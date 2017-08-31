@@ -66,8 +66,7 @@ class _ProposalLayer(nn.Module):
         scores = input[0][:, self._num_anchors:, :, :]
         bbox_deltas = input[1]
         im_info = input[2]
-        shifts = input[3]
-        cfg_key = input[4]
+        cfg_key = input[3]
 
         pre_nms_topN  = cfg[cfg_key].RPN_PRE_NMS_TOP_N
         post_nms_topN = cfg[cfg_key].RPN_POST_NMS_TOP_N
@@ -86,14 +85,13 @@ class _ProposalLayer(nn.Module):
 
         batch_size = bbox_deltas.size(0)
 
-        if True: # cfg_key == "TEST":
-            feat_height, feat_width = scores.size(2), scores.size(3)
-            shift_x = np.arange(0, feat_width) * self._feat_stride
-            shift_y = np.arange(0, feat_height) * self._feat_stride
-            shift_x, shift_y = np.meshgrid(shift_x, shift_y)
-            shifts = torch.from_numpy(np.vstack((shift_x.ravel(), shift_y.ravel(),
-                                      shift_x.ravel(), shift_y.ravel())).transpose())
-            shifts = shifts.contiguous().type_as(scores).float()
+        feat_height, feat_width = scores.size(2), scores.size(3)
+        shift_x = np.arange(0, feat_width) * self._feat_stride
+        shift_y = np.arange(0, feat_height) * self._feat_stride
+        shift_x, shift_y = np.meshgrid(shift_x, shift_y)
+        shifts = torch.from_numpy(np.vstack((shift_x.ravel(), shift_y.ravel(),
+                                  shift_x.ravel(), shift_y.ravel())).transpose())
+        shifts = shifts.contiguous().type_as(scores).float()
 
         A = self._num_anchors
         K = shifts.size(0)

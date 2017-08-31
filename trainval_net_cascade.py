@@ -32,6 +32,7 @@ from model.utils.network import weights_normal_init, save_net, load_net, \
       adjust_learning_rate, save_checkpoint
 
 from model.faster_rcnn.vgg16 import vgg16
+from model.faster_rcnn.resnet import resnet
 import pdb
 
 def parse_args():
@@ -43,7 +44,7 @@ def parse_args():
                       help='training dataset',
                       default='pascal_voc', type=str)
   parser.add_argument('--net', dest='net',
-                    help='vgg16, res50, res101, res152',
+                    help='vgg16, res101',
                     default='vgg16', type=str)
   parser.add_argument('--imdb', dest='imdb_name',
                       help='dataset to train on',
@@ -70,7 +71,9 @@ def parse_args():
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
                       default=1, type=int)
-
+  parser.add_argument('--parallel_type', dest='parallel_type',
+                      help='which part of model to parallel, 0: all, 1: model before roi pooling',
+                      default=0, type=int)
   parser.add_argument('--bs', dest='batch_size',
                       help='batch_size',
                       default=4, type=int)
@@ -140,8 +143,6 @@ class sampler(Sampler):
 
   def __len__(self):
     return num_data
-
-use_multiGPU = False
 
 if __name__ == '__main__':
 
@@ -222,7 +223,18 @@ if __name__ == '__main__':
     cfg.CUDA = True
 
   # initilize the network here.
-  fasterRCNN = vgg16(imdb.classes)
+  if args.net == 'vgg16':
+    fasterRCNN = vgg16(imdb.classes)
+  elif args.net == 'res101':
+    fasterRCNN = resnet(imdb.classes, 101)
+  elif args.net == 'res50':
+    fasterRCNN = resnet(imdb.classes, 50)
+  elif args.net == 'res152':
+    fasterRCNN = resnet(imdb.classes, 152)
+  else:
+    print("network is not defined")
+    pdb.set_trace()
+
   fasterRCNN.create_architecture()
 
   lr = cfg.TRAIN.LEARNING_RATE
@@ -254,8 +266,11 @@ if __name__ == '__main__':
     lr = optimizer.param_groups[0]['lr']    
     print("loaded checkpoint %s" % (load_name))
 
-  if use_multiGPU:
-    fasterRCNN.RCNN_base = nn.DataParallel(fasterRCNN.RCNN_base)
+  if args.ngpu > 1:
+    if args.parallel_type == 0:
+      fasterRCNN = nn.DataParallel(fasterRCNN)
+    else:
+      fasterRCNN.RCNN_base = nn.DataParallel(fasterRCNN.RCNN_base)
 
   if args.ngpu > 0:
     fasterRCNN.cuda()
@@ -286,7 +301,7 @@ if __name__ == '__main__':
       optimizer.step()
 
       if step % args.disp_interval == 0:
-        if use_multiGPU:
+        if args.ngpu > 1:
           print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
             % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
           print("\t\t\tfg/bg=(%d/%d)" % (0, 0))

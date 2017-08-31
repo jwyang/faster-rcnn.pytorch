@@ -20,6 +20,7 @@ class vgg16(_fasterRCNN):
   def __init__(self, classes):
     _fasterRCNN.__init__(self, classes)    
     self.model_path = 'data/pretrained_model/vgg16_caffe.pth'
+    self.dout_base_model = 512
 
   def _init_modules(self):
 
@@ -35,13 +36,20 @@ class vgg16(_fasterRCNN):
     for layer in range(10):
       for p in self.vgg.features[layer].parameters(): p.requires_grad = False
 
-    self.RCNN_base = _RCNN_base(self.vgg.features, self.classes)
+    self.RCNN_base = _RCNN_base(self.vgg.features, self.classes, self.dout_base_model)
 
     self.RCNN_top = self.vgg.classifier
 
     # not using the last maxpool layer
     self.RCNN_cls_score = nn.Linear(4096, self.n_classes)
     self.RCNN_bbox_pred = nn.Linear(4096, 4)
+
+  def _head_to_tail(self, pool5):
+    
+    pool5_flat = pool5.view(pool5.size(0), -1)
+    fc7 = self.RCNN_top(pool5_flat)
+
+    return fc7
 
 
   def load_pretrained_cnn(self):

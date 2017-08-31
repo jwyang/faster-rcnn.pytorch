@@ -15,7 +15,7 @@ import time
 
 class _RPN(nn.Module):
     """ region proposal network """
-    def __init__(self, feat_height, feat_width, din=512):
+    def __init__(self, din=512):
         super(_RPN, self).__init__()
         self.din = din  # get depth of input feature map, e.g., 512
         self.anchor_scales = cfg.ANCHOR_SCALES
@@ -41,13 +41,6 @@ class _RPN(nn.Module):
         self.rpn_loss_cls = 0
         self.rpn_loss_box = 0
 
-        shift_x = np.arange(0, feat_width) * self.feat_stride
-        shift_y = np.arange(0, feat_height) * self.feat_stride
-        shift_x, shift_y = np.meshgrid(shift_x, shift_y)
-        shifts = torch.from_numpy(np.vstack((shift_x.ravel(), shift_y.ravel(),
-                                  shift_x.ravel(), shift_y.ravel())).transpose())
-        self.shifts = shifts.contiguous().float()
-
     @staticmethod
     def reshape(x, d):
         input_shape = x.size()
@@ -65,7 +58,6 @@ class _RPN(nn.Module):
     def forward(self, base_feat, im_info, gt_boxes, num_boxes):
 
         batch_size = base_feat.size(0)
-        self.shifts = self.shifts.type_as(im_info)
 
         # return feature map after convrelu layer
         rpn_conv1 = F.relu(self.RPN_Conv(base_feat), inplace=True)
@@ -83,7 +75,7 @@ class _RPN(nn.Module):
         cfg_key = 'TRAIN' if self.training else 'TEST'
 
         rois = self.RPN_proposal((rpn_cls_prob.data, rpn_bbox_pred.data,
-                                 im_info, self.shifts, cfg_key))
+                                 im_info, cfg_key))
 
         self.rpn_loss_cls = 0
         self.rpn_loss_box = 0
@@ -92,7 +84,7 @@ class _RPN(nn.Module):
         if self.training:
             assert gt_boxes is not None
 
-            rpn_data = self.RPN_anchor_target((rpn_cls_score.data, gt_boxes, im_info, num_boxes, self.shifts))
+            rpn_data = self.RPN_anchor_target((rpn_cls_score.data, gt_boxes, im_info, num_boxes))
 
             # compute classification loss
             rpn_cls_score = rpn_cls_score_reshape.permute(0, 2, 3, 1).contiguous().view(batch_size, -1, 2)

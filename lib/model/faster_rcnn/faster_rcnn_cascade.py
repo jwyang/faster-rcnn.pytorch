@@ -11,7 +11,7 @@ from model.utils.config import cfg
 from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
 # from model.roi_pooling_single.modules.roi_pool import _RoIPool
-from model.rpn.proposal_target_layer_4 import _ProposalTargetLayer
+from model.rpn.proposal_target_layer_cascade import _ProposalTargetLayer
 from model.utils import network
 import time
 import pdb
@@ -20,7 +20,7 @@ from model.utils.network import _smooth_l1_loss
 # from model.utils.vgg16 import VGG16
 
 class _RCNN_base(nn.Module):
-    def __init__(self, baseModels, classes):
+    def __init__(self, baseModels, classes, dout_base_model):
         super(_RCNN_base, self).__init__()
 
         if classes is not None:
@@ -29,13 +29,8 @@ class _RCNN_base(nn.Module):
 
         self.RCNN_base_model = baseModels
 
-        virtual_input = torch.randn(1, 3, cfg.TRAIN.TRIM_HEIGHT, cfg.TRAIN.TRIM_WIDTH)
-        out = self.RCNN_base_model(Variable(virtual_input))
-        self.feat_height = out.size(2)
-        self.feat_width = out.size(3)
-        self.dout_base_model = out.size(1)
         # define rpn
-        self.RCNN_rpn = _RPN(self.feat_height, self.feat_width, self.dout_base_model)
+        self.RCNN_rpn = _RPN(dout_base_model)
         self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
         self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
 
@@ -57,6 +52,7 @@ class _RCNN_base(nn.Module):
             roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes)
             rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws = roi_data
 
+            rois = Variable(rois)
             rois_label = Variable(rois_label.view(-1))
             rois_target = Variable(rois_target.view(-1, rois_target.size(2)))
             rois_inside_ws = Variable(rois_inside_ws.view(-1, rois_inside_ws.size(2)))
@@ -71,11 +67,10 @@ class _RCNN_base(nn.Module):
             rpn_loss_bbox = 0
 
         # do roi pooling based on predicted rois
-        rois_var = Variable(rois.view(-1,5))
-        pooled_feat = self.RCNN_roi_pool(base_feat, rois_var)
-        pooled_feat_all = pooled_feat.view(pooled_feat.size(0), -1)
+        pooled_feat = self.RCNN_roi_pool(base_feat, rois.view(-1,5))
+        # pooled_feat_all = pooled_feat.view(pooled_feat.size(0), -1)
 
-        return rois, pooled_feat_all, rois_label, rois_target, rois_inside_ws, rois_outside_ws, rpn_loss_cls, rpn_loss_bbox
+        return rois, pooled_feat, rois_label, rois_target, rois_inside_ws, rois_outside_ws, rpn_loss_cls, rpn_loss_bbox
 
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
@@ -112,20 +107,20 @@ class _fasterRCNN(nn.Module):
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
 
         batch_size = im_data.size(0)
-        rois, pooled_feat_all, rois_label, rois_target, rois_inside_ws, rois_outside_ws, \
+        rois, feat_out, rois_label, rois_target, rois_inside_ws, rois_outside_ws, \
                 rpn_loss_cls, rpn_loss_bbox = self.RCNN_base(im_data, im_info, gt_boxes, num_boxes)
 
         # get the rpn loss.
         rpn_loss = rpn_loss_cls + rpn_loss_bbox
 
         # feed pooled features to top model
-        x = self.RCNN_top(pooled_feat_all)
+        feat_out = self._head_to_tail(feat_out)
 
         # compute bbox offset
-        bbox_pred = self.RCNN_bbox_pred(x)
+        bbox_pred = self.RCNN_bbox_pred(feat_out)
 
         # compute object classification probability
-        cls_score = self.RCNN_cls_score(x)
+        cls_score = self.RCNN_cls_score(feat_out)
         cls_prob = F.softmax(cls_score)
 
 

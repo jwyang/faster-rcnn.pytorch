@@ -65,21 +65,19 @@ class _AnchorTargetLayer(nn.Module):
         gt_boxes = input[1]
         im_info = input[2]
         num_boxes = input[3]
-        shifts = input[4]
 
         # map of shape (..., H, W)
         height, width = rpn_cls_score.size(2), rpn_cls_score.size(3)
 
         batch_size = gt_boxes.size(0)
 
-        if True: # cfg_key == "TEST":
-            feat_height, feat_width = rpn_cls_score.size(2), rpn_cls_score.size(3)
-            shift_x = np.arange(0, feat_width) * self._feat_stride
-            shift_y = np.arange(0, feat_height) * self._feat_stride
-            shift_x, shift_y = np.meshgrid(shift_x, shift_y)
-            shifts = torch.from_numpy(np.vstack((shift_x.ravel(), shift_y.ravel(),
-                                      shift_x.ravel(), shift_y.ravel())).transpose())
-            shifts = shifts.contiguous().type_as(rpn_cls_score).float()
+        feat_height, feat_width = rpn_cls_score.size(2), rpn_cls_score.size(3)
+        shift_x = np.arange(0, feat_width) * self._feat_stride
+        shift_y = np.arange(0, feat_height) * self._feat_stride
+        shift_x, shift_y = np.meshgrid(shift_x, shift_y)
+        shifts = torch.from_numpy(np.vstack((shift_x.ravel(), shift_y.ravel(),
+                                  shift_x.ravel(), shift_y.ravel())).transpose())
+        shifts = shifts.contiguous().type_as(rpn_cls_score).float()
 
         A = self._num_anchors
         K = shifts.size(0)
