@@ -52,7 +52,6 @@ class _RCNN_base(nn.Module):
             roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes)
             rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws = roi_data
 
-            rois = Variable(rois)
             rois_label = Variable(rois_label.view(-1))
             rois_target = Variable(rois_target.view(-1, rois_target.size(2)))
             rois_inside_ws = Variable(rois_inside_ws.view(-1, rois_inside_ws.size(2)))
@@ -65,6 +64,7 @@ class _RCNN_base(nn.Module):
             rois_outside_ws = None
             rpn_loss_cls = 0
             rpn_loss_bbox = 0
+        rois = Variable(rois)
 
         # do roi pooling based on predicted rois
         pooled_feat = self.RCNN_roi_pool(base_feat, rois.view(-1,5))

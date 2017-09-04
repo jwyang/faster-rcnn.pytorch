@@ -33,6 +33,9 @@ from model.nms.nms_wrapper import nms
 from model.fast_rcnn.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
 from model.utils.network import save_net, load_net, vis_detections
+from model.faster_rcnn.vgg16 import vgg16
+from model.faster_rcnn.resnet import resnet
+
 import pdb
 
 def parse_args():
@@ -42,7 +45,7 @@ def parse_args():
   parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
   parser.add_argument('--cfg', dest='cfg_file',
                       help='optional config file',
-                      default='cfgs/vgg16.yml', type=str)
+                      default='cfgs/res101.yml', type=str)
   parser.add_argument('--imdb', dest='imdb_name',
                       help='dataset to train on',
                       default='voc_2007_trainval', type=str)
@@ -51,7 +54,7 @@ def parse_args():
                       default='voc_2007_test', type=str)
   parser.add_argument('--net', dest='net',
                       help='vgg16, res50, res101, res152',
-                      default='vgg16', type=str)
+                      default='res101', type=str)
   parser.add_argument('--set', dest='set_cfgs',
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
@@ -63,13 +66,13 @@ def parse_args():
                       default=1, type=int)
   parser.add_argument('--checksession', dest='checksession',
                       help='checksession to load model',
-                      default=4, type=int)
+                      default=1, type=int)
   parser.add_argument('--checkepoch', dest='checkepoch',
                       help='checkepoch to load network',
-                      default=6, type=int)
+                      default=1, type=int)
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load network',
-                      default=10000, type=int)
+                      default=10021, type=int)
   parser.add_argument('--bs', dest='batch_size',
                       help='batch_size',
                       default=1, type=int)
@@ -110,7 +113,9 @@ if __name__ == '__main__':
   load_name = os.path.join(input_dir,
     'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
 
-  fasterRCNN = _fasterRCNN(args.net, imdb.classes)
+  fasterRCNN = resnet(imdb.classes)
+  fasterRCNN.create_architecture()
+
   checkpoint = torch.load(load_name)
   fasterRCNN.load_state_dict(checkpoint['model'])
   print('load model successfully!')
@@ -187,7 +192,7 @@ if __name__ == '__main__':
       det_tic = time.time()
       rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
       scores = cls_prob.data
-      boxes = rois[:, :, 1:5] / data[1][0][2]
+      boxes = rois.data[:, :, 1:5] / data[1][0][2]
 
       if cfg.TEST.BBOX_REG:
           # Apply bounding-box regression deltas

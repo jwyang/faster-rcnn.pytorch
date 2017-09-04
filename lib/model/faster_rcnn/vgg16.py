@@ -24,21 +24,22 @@ class vgg16(_fasterRCNN):
 
   def _init_modules(self):
 
-    self.vgg = models.vgg16()
-    self.load_pretrained_cnn()
+    vgg = models.vgg16()
+    state_dict = torch.load(self.model_path)
+    vgg.load_state_dict({k:v for k,v in state_dict.items() if k in self.vgg.state_dict()})
 
-    self.vgg.classifier = nn.Sequential(*list(self.vgg.classifier._modules.values())[:-1])
+    vgg.classifier = nn.Sequential(*list(vgg.classifier._modules.values())[:-1])
 
     # not using the last maxpool layer
-    self.vgg.features = nn.Sequential(*list(self.vgg.features._modules.values())[:-1])
+    vgg.features = nn.Sequential(*list(vgg.features._modules.values())[:-1])
 
     # Fix the layers before conv3:
     for layer in range(10):
-      for p in self.vgg.features[layer].parameters(): p.requires_grad = False
+      for p in vgg.features[layer].parameters(): p.requires_grad = False
 
-    self.RCNN_base = _RCNN_base(self.vgg.features, self.classes, self.dout_base_model)
+    self.RCNN_base = _RCNN_base(vgg.features, self.classes, self.dout_base_model)
 
-    self.RCNN_top = self.vgg.classifier
+    self.RCNN_top = vgg.classifier
 
     # not using the last maxpool layer
     self.RCNN_cls_score = nn.Linear(4096, self.n_classes)
@@ -51,8 +52,3 @@ class vgg16(_fasterRCNN):
 
     return fc7
 
-
-  def load_pretrained_cnn(self):
-    state_dict = torch.load(self.model_path)
-
-    self.vgg.load_state_dict({k:v for k,v in state_dict.items() if k in self.vgg.state_dict()})
