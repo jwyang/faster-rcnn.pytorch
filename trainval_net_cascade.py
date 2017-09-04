@@ -65,12 +65,15 @@ def parse_args():
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
                       default=1, type=int)
+  parser.add_argument('--mGPUs', dest='mGPUs',
+                      help='whether use multiple GPUs',
+                      default=False, type=bool)  
   parser.add_argument('--parallel_type', dest='parallel_type',
                       help='which part of model to parallel, 0: all, 1: model before roi pooling',
                       default=0, type=int)
   parser.add_argument('--bs', dest='batch_size',
                       help='batch_size',
-                      default=4, type=int)
+                      default=1, type=int)
 
 # config optimization
   parser.add_argument('--o', dest='optimizer',
@@ -260,7 +263,7 @@ if __name__ == '__main__':
     lr = optimizer.param_groups[0]['lr']    
     print("loaded checkpoint %s" % (load_name))
 
-  if args.ngpu > 1:
+  if args.mGPUs > 1:
     if args.parallel_type == 0:
       fasterRCNN = nn.DataParallel(fasterRCNN)
     else:
