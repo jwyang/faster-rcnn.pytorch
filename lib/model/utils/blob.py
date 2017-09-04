@@ -8,7 +8,7 @@
 """Blob helper functions."""
 
 import numpy as np
-import cv2
+from scipy.misc import imread, imresize
 
 def im_list_to_blob(ims):
     """Convert a list of images into a network input.
@@ -27,6 +27,7 @@ def im_list_to_blob(ims):
 
 def prep_im_for_blob(im, pixel_means, target_size, max_size):
     """Mean subtract and scale an image for use in a blob."""
+    
     im = im.astype(np.float32, copy=False)
     im -= pixel_means
     # im = im[:, :, ::-1]
@@ -37,7 +38,6 @@ def prep_im_for_blob(im, pixel_means, target_size, max_size):
     # Prevent the biggest axis from being more than MAX_SIZE
     # if np.round(im_scale * im_size_max) > max_size:
     #     im_scale = float(max_size) / float(im_size_max)
-    im = cv2.resize(im, None, None, fx=im_scale, fy=im_scale,
-                    interpolation=cv2.INTER_LINEAR)
+    im = imresize(im, im_scale)
 
     return im, im_scale

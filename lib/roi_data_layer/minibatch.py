@@ -12,7 +12,7 @@ from __future__ import print_function
 
 import numpy as np
 import numpy.random as npr
-import cv2
+from scipy.misc import imread
 from model.utils.config import cfg
 from model.utils.blob import prep_im_for_blob, im_list_to_blob
 
@@ -60,7 +60,16 @@ def _get_image_blob(roidb, scale_inds):
   processed_ims = []
   im_scales = []
   for i in range(num_images):
-    im = cv2.imread(roidb[i]['image'])
+    #im = cv2.imread(roidb[i]['image'])
+    im = imread(roidb[i]['image'])
+
+    if len(im.shape) == 2:
+      im = im[:,:,np.newaxis]
+      im = np.concatenate((im,im,im), axis=2)
+    # flip the channel, since the original one using cv2
+    # rgb -> bgr
+    im = im[:,:,::-1]
+
     if roidb[i]['flipped']:
       im = im[:, ::-1, :]
     target_size = cfg.TRAIN.SCALES[scale_inds[i]]
