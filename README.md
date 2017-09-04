@@ -2,21 +2,21 @@
 
 This project is aimed to reproduce the faster rcnn object detection model. It is developed based on the following projects:
 
-1. [py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn)
+1. [py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn), developed based on Pycaffe + Numpy
 
-2. [faster_rcnn_pytorch](https://github.com/longcw/faster_rcnn_pytorch)
+2. [faster_rcnn_pytorch](https://github.com/longcw/faster_rcnn_pytorch), developed based on Pytorch + Numpy
 
-3. [tf-faster-rcnn](https://github.com/endernewton/tf-faster-rcnn)
+3. [tf-faster-rcnn](https://github.com/endernewton/tf-faster-rcnn), developed based on TensorFlow + Numpy
 
-4. [pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn)
+4. [pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn), developed based on Pytorch + TensorFlow + Numpy
 
 However, there are several unique features compared with the above implementations:
 
-1) It is pure Pytorch code. We converted all the numpy code used in previous implementations to pytorch code.
+1) **It is pure Pytorch code**. We converted all the numpy implementations to pytorch.
 
-2) It supports trainig batchsize > 1. We revise all the layers, including dataloader, rpn, roi-pooling, etc., so that the training can digest multiple images at each iteration.
+2) **It supports trainig batchsize > 1**. We revised all the layers, including dataloader, rpn, roi-pooling, etc., to train with multiple images at each iteration.
 
-3) It supports multiple GPUs. Since the model can take multiple images at once, we use a multiple GPU wrapper (nn.DataParallel here) to make it flexible to use one or more GPUs.
+3) **It supports multiple GPUs**. We use a multiple GPU wrapper (nn.DataParallel here) to make it flexible to use one or more GPUs, as a merit of the above two features.
 
 ### Modules
 
