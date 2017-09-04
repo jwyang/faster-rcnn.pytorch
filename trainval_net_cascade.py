@@ -276,6 +276,8 @@ if __name__ == '__main__':
     fasterRCNN.cuda()
 
   for epoch in range(args.start_epoch, args.max_epochs):
+    # setting to train mode
+    fasterRCNN.train()
     loss_temp = 0
     start = time.time()
 
@@ -341,15 +343,15 @@ if __name__ == '__main__':
         adjust_learning_rate(optimizer, args.lr_decay_gamma)
         lr *= args.lr_decay_gamma
 
-        #   pdb.set_trace()
-        save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
-        save_checkpoint({
-          'session': args.session,
-          'epoch': epoch + 1,
-          'model': fasterRCNN.state_dict(),
-          "optimizer": optimizer.state_dict(),
-        }, save_name)
-        print('save model: {}'.format(save_name))
+    #   pdb.set_trace()
+    save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
+    save_checkpoint({
+      'session': args.session,
+      'epoch': epoch + 1,
+      'model': fasterRCNN.state_dict(),
+      "optimizer": optimizer.state_dict(),
+    }, save_name)
+    print('save model: {}'.format(save_name))
 
     end = time.time()
     print(end - start)
