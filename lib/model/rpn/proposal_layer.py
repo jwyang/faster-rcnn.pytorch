@@ -73,16 +73,6 @@ class _ProposalLayer(nn.Module):
         nms_thresh    = cfg[cfg_key].RPN_NMS_THRESH
         min_size      = cfg[cfg_key].RPN_MIN_SIZE
 
-        if DEBUG:
-            print 'im_size: ({}, {})'.format(im_info[0], im_info[1])
-            print 'scale: {}'.format(im_info[2])
-
-        # 1. Generate proposals from bbox deltas and shifted anchors
-        #height, width = scores.size(2), scores.size(3)
-
-        if DEBUG:
-            print 'score map size: {}'.format(scores.shape)
-
         batch_size = bbox_deltas.size(0)
 
         feat_height, feat_width = scores.size(2), scores.size(3)

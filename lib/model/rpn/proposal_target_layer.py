@@ -13,7 +13,7 @@ import torch.nn as nn
 import numpy as np
 import numpy.random as npr
 from ..utils.config import cfg
-from bbox_transform import bbox_transform, bbox_overlaps, bbox_overlaps_batch2, bbox_transform_batch2
+from bbox_transform import bbox_overlaps_batch, bbox_transform_batch
 import pdb
 
 DEBUG = False
@@ -107,7 +107,7 @@ class _ProposalTargetLayer(nn.Module):
         batch_size = ex_rois.size(0)
         rois_per_image = ex_rois.size(1)
 
-        targets = bbox_transform_batch2(ex_rois, gt_rois)
+        targets = bbox_transform_batch(ex_rois, gt_rois)
 
         if cfg.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED:
             # Optionally normalize targets by a precomputed mean and stdev
@@ -123,7 +123,7 @@ class _ProposalTargetLayer(nn.Module):
         """
         # overlaps: (rois x gt_boxes)
 
-        overlaps, all_rois_zero, gt_boxes_zero = bbox_overlaps_batch2(all_rois, gt_boxes)
+        overlaps = bbox_overlaps_batch(all_rois, gt_boxes)
 
         max_overlaps, gt_assignment = torch.max(overlaps, 2)
 

@@ -15,7 +15,7 @@ import numpy.random as npr
 
 from model.utils.config import cfg
 from generate_anchors import generate_anchors
-from bbox_transform import bbox_transform, clip_boxes, bbox_overlaps, bbox_overlaps_batch, bbox_transform_batch
+from bbox_transform import clip_boxes, bbox_overlaps_batch, bbox_transform_batch
 
 import pdb
 
@@ -34,21 +34,6 @@ class _AnchorTargetLayer(nn.Module):
         anchor_scales = scales
         self._anchors = torch.from_numpy(generate_anchors(scales=np.array(anchor_scales))).float()
         self._num_anchors = self._anchors.size(0)
-
-        if DEBUG:
-            print 'anchors:'
-            print self._anchors
-            print 'anchor shapes:'
-            print np.hstack((
-                self._anchors[:, 2::4] - self._anchors[:, 0::4],
-                self._anchors[:, 3::4] - self._anchors[:, 1::4],
-            ))
-            self._counts = cfg.EPS
-            self._sums = np.zeros((1, 4))
-            self._squared_sums = np.zeros((1, 4))
-            self._fg_sum = 0
-            self._bg_sum = 0
-            self._count = 0
 
         # allow boxes to sit over the edge by a small amount
         self._allowed_border = 0  # default is 0
@@ -211,15 +196,6 @@ def _unmap(data, count, inds, batch_size, fill=0):
         ret = torch.Tensor(batch_size, count, data.size(2)).fill_(fill).type_as(data)
         ret[:, inds,:] = data
     return ret
-
-def _compute_targets(ex_rois, gt_rois):
-    """Compute bounding-box regression targets for an image."""
-
-    assert ex_rois.size(0) == gt_rois.size(0)
-    assert ex_rois.size(1) == 4
-    assert gt_rois.size(1) == 5
-
-    return bbox_transform(ex_rois, gt_rois[:, :4])
 
 
 def _compute_targets_batch(ex_rois, gt_rois):
