@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import datasets
 import numpy as np
 from model.utils.config import cfg
 from datasets.factory import get_imdb
@@ -57,6 +58,19 @@ def rank_roidb_ratio(roidb):
     ratio_index = np.argsort(ratio_list)
     return ratio_list[ratio_index], ratio_index
 
+def filter_roidb(roidb):
+    # filter the image without bounding box.
+    print('before filtering, there are %d images...' % (len(roidb)))
+    i = 0
+    while i < len(roidb):
+      if len(roidb[i]['boxes']) == 0:
+        del roidb[i]
+        i -= 1
+      i += 1
+
+    print('after filtering, there are %d images...' % (len(roidb)))
+    return roidb
+
 def combined_roidb(imdb_names):
   """
   Combine multiple roidbs
@@ -88,8 +102,6 @@ def combined_roidb(imdb_names):
   roidbs = [get_roidb(s) for s in imdb_names.split('+')]
   roidb = roidbs[0]
 
-  ratio_list, ratio_index = rank_roidb_ratio(roidb)
-
   if len(roidbs) > 1:
     for r in roidbs[1:]:
       roidb.extend(r)
@@ -97,4 +109,8 @@ def combined_roidb(imdb_names):
     imdb = datasets.imdb.imdb(imdb_names, tmp.classes)
   else:
     imdb = get_imdb(imdb_names)
+
+  roidb = filter_roidb(roidb)
+  ratio_list, ratio_index = rank_roidb_ratio(roidb)
+
   return imdb, roidb, ratio_list, ratio_index

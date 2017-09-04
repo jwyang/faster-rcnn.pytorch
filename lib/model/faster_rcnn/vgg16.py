@@ -17,16 +17,18 @@ from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN, _RCNN_base
 import pdb
 
 class vgg16(_fasterRCNN):
-  def __init__(self, classes):
+  def __init__(self, classes, pretrained=False):
     _fasterRCNN.__init__(self, classes)    
     self.model_path = 'data/pretrained_model/vgg16_caffe.pth'
     self.dout_base_model = 512
+    self.pretrained = pretrained
 
   def _init_modules(self):
-
     vgg = models.vgg16()
-    state_dict = torch.load(self.model_path)
-    vgg.load_state_dict({k:v for k,v in state_dict.items() if k in self.vgg.state_dict()})
+    if self.pretrained:
+        print("Loading pretrained weights from %s" %(self.model_path))
+        state_dict = torch.load(self.model_path)
+        vgg.load_state_dict({k:v for k,v in state_dict.items() if k in vgg.state_dict()})
 
     vgg.classifier = nn.Sequential(*list(vgg.classifier._modules.values())[:-1])
 

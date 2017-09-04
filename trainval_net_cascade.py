@@ -46,18 +46,12 @@ def parse_args():
   parser.add_argument('--net', dest='net',
                     help='vgg16, res101',
                     default='vgg16', type=str)
-  parser.add_argument('--imdb', dest='imdb_name',
-                      help='dataset to train on',
-                      default='voc_2007_trainval', type=str)
-  parser.add_argument('--imdbval', dest='imdbval_name',
-                      help='dataset to validate on',
-                      default='voc_2007_test', type=str)
   parser.add_argument('--start_epoch', dest='start_epoch',
                       help='starting epoch',
                       default=1, type=int)
   parser.add_argument('--epochs', dest='max_epochs',
                       help='number of epochs to train',
-                      default=20, type=int)
+                      default=7, type=int)
   parser.add_argument('--disp_interval', dest='disp_interval',
                       help='number of iterations to display',
                       default=100, type=int)
@@ -198,7 +192,7 @@ if __name__ == '__main__':
                            imdb.num_classes, training=True, normalize = False)
 
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                            sampler=sampler_batch, num_workers=2)
+                            sampler=sampler_batch, num_workers=0)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -224,13 +218,13 @@ if __name__ == '__main__':
 
   # initilize the network here.
   if args.net == 'vgg16':
-    fasterRCNN = vgg16(imdb.classes)
+    fasterRCNN = vgg16(imdb.classes, pretrained=True)
   elif args.net == 'res101':
-    fasterRCNN = resnet(imdb.classes, 101)
+    fasterRCNN = resnet(imdb.classes, 101, pretrained=True)
   elif args.net == 'res50':
-    fasterRCNN = resnet(imdb.classes, 50)
+    fasterRCNN = resnet(imdb.classes, 50, pretrained=True)
   elif args.net == 'res152':
-    fasterRCNN = resnet(imdb.classes, 152)
+    fasterRCNN = resnet(imdb.classes, 152, pretrained=True)
   else:
     print("network is not defined")
     pdb.set_trace()
@@ -302,7 +296,7 @@ if __name__ == '__main__':
       network.clip_gradient(fasterRCNN, 10.)
       optimizer.step()
 
-      if step % args.disp_interval == 0:
+      if step % args.disp_interval == 0 and step != 0:
         if args.ngpu > 1:
           print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
             % (args.session, epoch, step, loss_temp / args.disp_interval, lr))

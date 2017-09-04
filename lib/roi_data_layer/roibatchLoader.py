@@ -11,7 +11,7 @@ from PIL import Image
 import torch
 
 from model.utils.config import cfg
-from roi_data_layer.minibatch import get_minibatch, get_minibatch_graph
+from roi_data_layer.minibatch import get_minibatch, get_minibatch
 from model.rpn.bbox_transform import bbox_transform_inv, clip_boxes
 
 import numpy as np
@@ -44,7 +44,7 @@ class roibatchLoader(data.Dataset):
     # here we set the anchor index to the last one
     # sample in this group
     minibatch_db = [self._roidb[index_ratio]]
-    blobs = get_minibatch_graph(minibatch_db, self._num_classes)
+    blobs = get_minibatch(minibatch_db, self._num_classes)
     data = torch.from_numpy(blobs['data'])
     im_info = torch.from_numpy(blobs['im_info'])
     # we need to random shuffle the bounding box.

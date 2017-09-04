@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import math
 import torch.utils.model_zoo as model_zoo
-
+import pdb
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
        'resnet152']
@@ -216,15 +216,19 @@ def resnet152(pretrained=False):
   return model
 
 class resnet(_fasterRCNN):
-  def __init__(self, classes, num_layers=101):
+  def __init__(self, classes, num_layers=101, pretrained=False):
     _fasterRCNN.__init__(self, classes)    
     self.model_path = 'data/pretrained_model/resnet101_caffe.pth'
     self.dout_base_model = 1024
+    self.pretrained = pretrained
 
   def _init_modules(self):
     resnet = resnet101()
-    state_dict = torch.load(self.model_path)
-    resnet.load_state_dict({k:v for k,v in state_dict.items() if k in resnet.state_dict()})
+
+    if self.pretrained == True:
+      print("Loading pretrained weights from %s" %(self.model_path))
+      state_dict = torch.load(self.model_path)
+      resnet.load_state_dict({k:v for k,v in state_dict.items() if k in resnet.state_dict()})
 
     # Build resnet.
     base_net = nn.Sequential(resnet.conv1, resnet.bn1,resnet.relu, 
@@ -275,6 +279,5 @@ class resnet(_fasterRCNN):
       self.RCNN_top.apply(set_bn_eval)
      
   def _head_to_tail(self, pool5):
-    
     fc7 = self.RCNN_top(pool5).mean(3).mean(2)
     return fc7
