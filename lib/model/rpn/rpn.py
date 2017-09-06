@@ -90,20 +90,28 @@ class _RPN(nn.Module):
             rpn_cls_score = rpn_cls_score_reshape.permute(0, 2, 3, 1).contiguous().view(batch_size, -1, 2)
             rpn_label = rpn_data[0].view(batch_size, -1)
 
-            fg_cnt = 0
-            self.rpn_loss_cls = 0
-            for i in range(batch_size):
-                rpn_keep = rpn_label[i].ne(-1).nonzero().squeeze()
-                rpn_keep_v = Variable(rpn_keep)
-                rpn_cls_score_single = torch.index_select(rpn_cls_score[i], 0, rpn_keep_v)
-                rpn_label_tmp = torch.index_select(rpn_label[i], 0, rpn_keep)
-                rpn_label_v = Variable(rpn_label_tmp.long())
+            # fg_cnt = 0
+            # self.rpn_loss_cls = 0
 
-                fg_cnt += torch.sum(rpn_label_v.data.ne(0))
+            # for i in range(batch_size):
+            #     rpn_keep = rpn_label[i].ne(-1).nonzero().squeeze()
+            #     rpn_keep_v = Variable(rpn_keep)
+            #     rpn_cls_score_single = torch.index_select(rpn_cls_score[i], 0, rpn_keep_v)
+            #     rpn_label_tmp = torch.index_select(rpn_label[i], 0, rpn_keep)
+            #     rpn_label_v = Variable(rpn_label_tmp.long())
 
-                self.rpn_loss_cls += F.cross_entropy(rpn_cls_score_single, rpn_label_v)
+            #     fg_cnt += torch.sum(rpn_label_v.data.ne(0))
 
-            self.rpn_loss_cls /= batch_size
+            #     self.rpn_loss_cls += F.cross_entropy(rpn_cls_score_single, rpn_label_v)
+
+            # self.rpn_loss_cls /= batch_size
+
+            rpn_keep = Variable(rpn_label.view(-1).ne(-1).nonzero().view(-1))
+            rpn_cls_score = torch.index_select(rpn_cls_score.view(-1,2), 0, rpn_keep)
+            rpn_label = torch.index_select(rpn_label.view(-1), 0, rpn_keep.data)
+            rpn_label = Variable(rpn_label.long())
+            self.rpn_loss_cls = F.cross_entropy(rpn_cls_score, rpn_label)
+            fg_cnt = torch.sum(rpn_label.data.ne(0))
 
             rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights = rpn_data[1:]
 
