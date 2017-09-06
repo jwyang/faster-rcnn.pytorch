@@ -2,12 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
-
 from torch.autograd import Variable
 import numpy as np
-
 from model.utils.config import cfg
-
 from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
 # from model.roi_pooling_single.modules.roi_pool import _RoIPool
@@ -18,7 +15,6 @@ import pdb
 from model.utils.network import _smooth_l1_loss
 
 # from model.utils.vgg16 import VGG16
-
 class _RCNN_base(nn.Module):
     def __init__(self, baseModels, classes, dout_base_model):
         super(_RCNN_base, self).__init__()
@@ -48,7 +44,6 @@ class _RCNN_base(nn.Module):
 
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
-
             roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes)
             rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws = roi_data
 
@@ -56,7 +51,6 @@ class _RCNN_base(nn.Module):
             rois_target = Variable(rois_target.view(-1, rois_target.size(2)))
             rois_inside_ws = Variable(rois_inside_ws.view(-1, rois_inside_ws.size(2)))
             rois_outside_ws = Variable(rois_outside_ws.view(-1, rois_outside_ws.size(2)))
-
         else:
             rois_label = None
             rois_target = None
@@ -65,7 +59,6 @@ class _RCNN_base(nn.Module):
             rpn_loss_cls = 0
             rpn_loss_bbox = 0
         rois = Variable(rois)
-
         # do roi pooling based on predicted rois
         pooled_feat = self.RCNN_roi_pool(base_feat, rois.view(-1,5))
         # pooled_feat_all = pooled_feat.view(pooled_feat.size(0), -1)
@@ -105,7 +98,6 @@ class _fasterRCNN(nn.Module):
         self._init_weights()
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
-
         batch_size = im_data.size(0)
         rois, feat_out, rois_label, rois_target, rois_inside_ws, rois_outside_ws, \
                 rpn_loss_cls, rpn_loss_bbox = self.RCNN_base(im_data, im_info, gt_boxes, num_boxes)
@@ -122,7 +114,6 @@ class _fasterRCNN(nn.Module):
         # compute object classification probability
         cls_score = self.RCNN_cls_score(feat_out)
         cls_prob = F.softmax(cls_score)
-
 
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0

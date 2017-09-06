@@ -62,12 +62,12 @@ def parse_args():
   parser.add_argument('--save_dir', dest='save_dir',
                       help='directory to save models', default="models",
                       nargs=argparse.REMAINDER)
-  parser.add_argument('--ngpu', dest='ngpu',
-                      help='number of gpu',
-                      default=1, type=int)
+  parser.add_argument('--cuda', dest='cuda',
+                      help='whether use CUDA',
+                      action='store_true')
   parser.add_argument('--mGPUs', dest='mGPUs',
                       help='whether use multiple GPUs',
-                      default=False, type=bool)  
+                      action='store_true')
   parser.add_argument('--parallel_type', dest='parallel_type',
                       help='which part of model to parallel, 0: all, 1: model before roi pooling',
                       default=0, type=int)
@@ -177,6 +177,10 @@ if __name__ == '__main__':
   pprint.pprint(cfg)
   np.random.seed(cfg.RNG_SEED)
 
+  #torch.backends.cudnn.benchmark = True
+  if torch.cuda.is_available() and not args.cuda:
+    print("WARNING: You have a CUDA device, so you should probably run with --cuda")
+
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
   cfg.TRAIN.USE_FLIPPED = True
@@ -195,7 +199,7 @@ if __name__ == '__main__':
                            imdb.num_classes, training=True, normalize = False)
 
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                            sampler=sampler_batch, num_workers=0)
+                            sampler=sampler_batch, num_workers=6)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -203,8 +207,9 @@ if __name__ == '__main__':
   num_boxes = torch.LongTensor(1)
   gt_boxes = torch.FloatTensor(1)
 
+
   # ship to cuda
-  if args.ngpu > 0:
+  if args.cuda:
     im_data = im_data.cuda()
     im_info = im_info.cuda()
     num_boxes = num_boxes.cuda()
@@ -216,7 +221,7 @@ if __name__ == '__main__':
   num_boxes = Variable(num_boxes)
   gt_boxes = Variable(gt_boxes)
 
-  if args.ngpu > 0:
+  if args.cuda:
     cfg.CUDA = True
 
   # initilize the network here.
@@ -263,13 +268,13 @@ if __name__ == '__main__':
     lr = optimizer.param_groups[0]['lr']    
     print("loaded checkpoint %s" % (load_name))
 
-  if args.mGPUs > 1:
+  if args.mGPUs:
     if args.parallel_type == 0:
       fasterRCNN = nn.DataParallel(fasterRCNN)
     else:
       fasterRCNN.RCNN_base = nn.DataParallel(fasterRCNN.RCNN_base)
 
-  if args.ngpu > 0:
+  if args.cuda:
     fasterRCNN.cuda()
 
   for epoch in range(args.start_epoch, args.max_epochs):
@@ -300,7 +305,7 @@ if __name__ == '__main__':
       optimizer.step()
 
       if step % args.disp_interval == 0 and step != 0:
-        if args.ngpu > 1:
+        if args.mGPUs:
           print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
             % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
           print("\t\t\tfg/bg=(%d/%d)" % (0, 0))
