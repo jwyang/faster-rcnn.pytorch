@@ -79,12 +79,13 @@ class roibatchLoader(data.Dataset):
 
                 box_region = max_y - min_y
                 trim_size = int(np.ceil(data_width / ratio))
-                tmp_y = trim_size - box_region               
+                tmp_y = trim_size - box_region
                 # if the bbox region is in the ratio, just random crop.
                 if tmp_y > 0:
-                    y_s = np.random.randint(int(tmp_y / 2))
+                    y_s = np.random.randint(np.maximum((max_y-trim_size), 0), 
+                                            np.minimum(min_y, data_height-trim_size))
                 else:
-                    y_s = int(min_y) + np.random.randint(-tmp_y / 2)
+                    y_s = int(min_y) + np.random.randint(-int(tmp_y / 2))
                     
                 # crop the image
                 data = data[:, y_s:(y_s + trim_size), :, :]
@@ -121,9 +122,10 @@ class roibatchLoader(data.Dataset):
                 tmp_x = trim_size - box_region               
                 # if the bbox region is in the ratio, just random crop.
                 if tmp_x > 0:
-                    x_s = np.random.randint(int(tmp_x / 2))
+                    x_s = np.random.randint(np.maximum((max_x-trim_size), 0), 
+                                            np.minimum(min_x, data_width-trim_size))
                 else:
-                    x_s = int(min_x) + np.random.randint(-tmp_x / 2)
+                    x_s = int(min_x) + np.random.randint(-int(tmp_x / 2))
 
                 # crop the image
                 data = data[:, :, x_s:(x_s + trim_size), :]
