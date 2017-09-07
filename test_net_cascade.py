@@ -64,6 +64,9 @@ def parse_args():
   parser.add_argument('--ngpu', dest='ngpu',
                       help='number of gpu',
                       default=1, type=int)
+  parser.add_argument('--mGPUs', dest='mGPUs',
+                      help='whether use multiple GPUs',
+                      default=False, type=bool)    
   parser.add_argument('--checksession', dest='checksession',
                       help='checksession to load model',
                       default=1, type=int)
@@ -113,8 +116,26 @@ if __name__ == '__main__':
   load_name = os.path.join(input_dir,
     'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
 
-  fasterRCNN = resnet(imdb.classes)
+  # initilize the network here.
+  if args.net == 'vgg16':
+    fasterRCNN = vgg16(imdb.classes, pretrained=True)
+  elif args.net == 'res101':
+    fasterRCNN = resnet(imdb.classes, 101, pretrained=True)
+  elif args.net == 'res50':
+    fasterRCNN = resnet(imdb.classes, 50, pretrained=True)
+  elif args.net == 'res152':
+    fasterRCNN = resnet(imdb.classes, 152, pretrained=True)
+  else:
+    print("network is not defined")
+    pdb.set_trace()
+
   fasterRCNN.create_architecture()
+
+  if args.mGPUs > 1:
+    if args.parallel_type == 0:
+      fasterRCNN = nn.DataParallel(fasterRCNN)
+    else:
+      fasterRCNN.RCNN_base = nn.DataParallel(fasterRCNN.RCNN_base)
 
   checkpoint = torch.load(load_name)
   fasterRCNN.load_state_dict(checkpoint['model'])
