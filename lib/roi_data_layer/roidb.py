@@ -47,11 +47,24 @@ def prepare_roidb(imdb):
 
 def rank_roidb_ratio(roidb):
     # rank roidb based on the ratio between width and height.
+    ratio_large = 3 # largest ratio to preserve.
+    ratio_small = 0.25 # smallest ratio to preserve.    
+    
     ratio_list = []
     for i in range(len(roidb)):
       width = roidb[i]['width']
       height = roidb[i]['height']
       ratio = width / float(height)
+
+      if ratio > ratio_large:
+        roidb[i]['need_crop'] = 1
+        ratio = ratio_large
+      elif ratio < ratio_small:
+        roidb[i]['need_crop'] = 1
+        ratio = ratio_small        
+      else:
+        roidb[i]['need_crop'] = 0
+
       ratio_list.append(ratio)
 
     ratio_list = np.array(ratio_list)
@@ -71,7 +84,7 @@ def filter_roidb(roidb):
     print('after filtering, there are %d images...' % (len(roidb)))
     return roidb
 
-def combined_roidb(imdb_names):
+def combined_roidb(imdb_names, training=True):
   """
   Combine multiple roidbs
   """
@@ -110,7 +123,9 @@ def combined_roidb(imdb_names):
   else:
     imdb = get_imdb(imdb_names)
 
-  roidb = filter_roidb(roidb)
+  if training:
+    roidb = filter_roidb(roidb)
+
   ratio_list, ratio_index = rank_roidb_ratio(roidb)
 
   return imdb, roidb, ratio_list, ratio_index

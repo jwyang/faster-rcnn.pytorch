@@ -48,11 +48,12 @@ class roibatchLoader(data.Dataset):
     data = torch.from_numpy(blobs['data'])
     im_info = torch.from_numpy(blobs['im_info'])
     # we need to random shuffle the bounding box.
-    np.random.shuffle(blobs['gt_boxes'])
-    gt_boxes = torch.from_numpy(blobs['gt_boxes'])
     data_height, data_width = data.size(1), data.size(2)
-
     if self.training:
+        need_crop = self._roidb[index_ratio]['need_crop']
+        np.random.shuffle(blobs['gt_boxes'])
+        gt_boxes = torch.from_numpy(blobs['gt_boxes'])
+
         ########################################################
         # padding the input image to fixed size for each group #
         ########################################################
@@ -60,7 +61,6 @@ class roibatchLoader(data.Dataset):
         # NOTE1: need to cope with the case where a group cover both conditions. (done)
         # NOTE2: need to consider the situation for the tail samples. (no worry)
         # NOTE3: need to implement a parallel data loader. (no worry)
-
         # get the index range
         anchor_idx_leftmost = (np.floor((index) / self.batch_size)) * self.batch_size
         anchor_idx_leftmost = min(int(anchor_idx_leftmost), self.data_size - 1)
@@ -71,6 +71,34 @@ class roibatchLoader(data.Dataset):
         if self.ratio_list[anchor_idx_rightmost] <= 1:
             # this means that data_width < data_height
             ratio = self.ratio_list[anchor_idx_leftmost]
+            
+            # if the image need to crop.
+            if need_crop:
+                min_y = torch.min(gt_boxes[:,1])
+                max_y = torch.max(gt_boxes[:,3])
+
+                box_region = max_y - min_y
+                trim_size = int(np.ceil(data_width / ratio))
+                tmp_y = trim_size - box_region               
+                # if the bbox region is in the ratio, just random crop.
+                if tmp_y > 0:
+                    y_s = np.random.randint(tmp_y / 2)
+                else:
+                    y_s = min_y + np.random.randint(-tmp_y / 2)
+                    
+                # crop the image
+                data = data[:, y_s:(y_s + trim_size), :]
+
+                # shift y coordiante of gt_boxes
+                gt_boxes[:, 1] = gt_boxes[:, 1] - y_s
+                gt_boxes[:, 3] = gt_boxes[:, 3] - y_s        
+
+                # update gt bounding box according the trip
+                gt_boxes[:, 1].clamp_(0, trim_size - 1)
+                gt_boxes[:, 3].clamp_(0, trim_size - 1)
+                        
+                im_info[0, 0] = trim_size
+
 
             padding_data = torch.FloatTensor(int(np.ceil(data_width / ratio)), \
                                              data_width, 3).zero_()
@@ -83,23 +111,45 @@ class roibatchLoader(data.Dataset):
             # print("height %d %d \n" %(index, anchor_idx))
 
         elif self.ratio_list[anchor_idx_leftmost] >= 1:
-
+            # this means that data_width > data_height
             ratio = self.ratio_list[anchor_idx_rightmost]
+
+            # if the image need to crop.
+            if need_crop:
+                min_x = torch.min(gt_boxes[:,0])
+                max_x = torch.max(gt_boxes[:,2])
+                box_region = max_x - min_x
+                trim_size = int(np.ceil(data_height * ratio))
+                tmp_x = trim_size - box_region               
+                # if the bbox region is in the ratio, just random crop.
+                if tmp_x > 0:
+                    x_s = np.random.randint(tmp_x / 2)
+                else:
+                    x_s = min_x + np.random.randint(-tmp_x / 2)
+
+                # crop the image
+                data = data[:, :, x_s:(x_s + trim_size), :]
+
+                # shift x coordiante of gt_boxes
+                gt_boxes[:, 0] = gt_boxes[:, 0] - x_s
+                gt_boxes[:, 2] = gt_boxes[:, 2] - x_s    
+                # update gt bounding box according the trip
+                gt_boxes[:, 0].clamp_(0, trim_size - 1)
+                gt_boxes[:, 2].clamp_(0, trim_size - 1)                            
+                
+                im_info[0, 1] = trim_size
+
 
             padding_data = torch.FloatTensor(data_height, \
                                              int(np.ceil(data_height * ratio)), 3).zero_()
 
             padding_data[:, :data_width, :] = data[0]
-
             im_info[0, 1] = padding_data.size(1)
 
         else:
             trim_size = min(data_height, data_width)
-
             padding_data = torch.FloatTensor(trim_size, trim_size, 3).zero_()
-
             padding_data = data[0][:trim_size, :trim_size, :]
-
             gt_boxes.clamp_(0, trim_size)
 
             im_info[0, 0] = trim_size
@@ -122,12 +172,10 @@ class roibatchLoader(data.Dataset):
         return padding_data, im_info, gt_boxes_padding, num_boxes
     else:
         data = data.permute(0, 3, 1, 2).contiguous().view(3, data_height, data_width)
-        num_boxes = gt_boxes.size(0)
         im_info = im_info.view(3)
 
-        if self.normalize:
-            data = data / 255.0
-            data = self.normalize(data)
+        gt_boxes = torch.FloatTensor([1,1,1,1,1])
+        num_boxes = 0
 
         return data, im_info, gt_boxes, num_boxes
 
