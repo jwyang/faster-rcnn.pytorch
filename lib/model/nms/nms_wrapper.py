@@ -21,4 +21,6 @@ def nms(dets, thresh, force_cpu=False):
         # ---pytorch version---
         return nms_gpu(dets, thresh)
     else:
-        return cpu_nms(dets, thresh)
+        keep = cpu_nms(dets.numpy(), thresh)
+
+        return torch.Tensor(keep)

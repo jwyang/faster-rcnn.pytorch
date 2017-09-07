@@ -121,7 +121,7 @@ class _AnchorTargetLayer(nn.Module):
                 # See https://github.com/pytorch/pytorch/issues/1868 for more details.
                 # use numpy instead.                
                 #rand_num = torch.randperm(fg_inds.size(0)).type_as(gt_boxes).long()
-                rand_num = torch.from_numpy(np.random.permutation(fg_inds.size(0))).long().cuda()
+                rand_num = torch.from_numpy(np.random.permutation(fg_inds.size(0))).type_as(gt_boxes).long()
                 disable_inds = fg_inds[rand_num[:fg_inds.size(0)-num_fg]]
                 labels[i][disable_inds] = -1
 
@@ -132,7 +132,7 @@ class _AnchorTargetLayer(nn.Module):
                 bg_inds = torch.nonzero(labels[i] == 0).view(-1)
                 #rand_num = torch.randperm(bg_inds.size(0)).type_as(gt_boxes).long()
 
-                rand_num = torch.from_numpy(np.random.permutation(bg_inds.size(0))).long().cuda()
+                rand_num = torch.from_numpy(np.random.permutation(bg_inds.size(0))).type_as(gt_boxes).long()
                 disable_inds = bg_inds[rand_num[:bg_inds.size(0)-num_bg]]
                 labels[i][disable_inds] = -1
 

@@ -112,15 +112,6 @@ class _ProposalLayer(nn.Module):
         # keep = self._filter_boxes(proposals, min_size * im_info[:, 2])
 
         # trim keep index to make it euqal over batch
-        # keep_num = torch.sum(keep.int(), 1)
-        # trim_size = torch.min(keep_num)
-        # keep_idx = []
-        # for i in range(batch_size):
-        #     pdb.set_trace()
-        #     keep_idx_i = torch.nonzero(keep[i]).view(-1)
-        #     keep_idx_i = keep_idx_i[:trim_size]
-        #     keep_idx.append(keep_idx_i + i * scores.size(1))
-
         # keep_idx = torch.cat(tuple(keep_idx), 0)
 
         # scores_keep = scores.view(-1)[keep_idx].view(batch_size, trim_size)
