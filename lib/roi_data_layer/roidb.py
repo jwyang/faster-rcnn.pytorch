@@ -47,8 +47,8 @@ def prepare_roidb(imdb):
 
 def rank_roidb_ratio(roidb):
     # rank roidb based on the ratio between width and height.
-    ratio_large = 3 # largest ratio to preserve.
-    ratio_small = 0.25 # smallest ratio to preserve.    
+    ratio_large = 2 # largest ratio to preserve.
+    ratio_small = 0.5 # smallest ratio to preserve.    
     
     ratio_list = []
     for i in range(len(roidb)):
@@ -56,10 +56,10 @@ def rank_roidb_ratio(roidb):
       height = roidb[i]['height']
       ratio = width / float(height)
 
-      if ratio >= ratio_large:
+      if ratio > ratio_large:
         roidb[i]['need_crop'] = 1
         ratio = ratio_large
-      elif ratio <= ratio_small:
+      elif ratio < ratio_small:
         roidb[i]['need_crop'] = 1
         ratio = ratio_small        
       else:

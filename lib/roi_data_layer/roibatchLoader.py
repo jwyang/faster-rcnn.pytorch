@@ -73,18 +73,24 @@ class roibatchLoader(data.Dataset):
             ratio = self.ratio_list[anchor_idx_leftmost]
             
             # if the image need to crop.
-            if need_crop:
+            trim_size = int(np.floor(data_width / ratio))
+            if need_crop and (data_height-trim_size) > 0:
                 min_y = torch.min(gt_boxes[:,1])
                 max_y = torch.max(gt_boxes[:,3])
 
-                box_region = max_y - min_y
-                trim_size = int(np.ceil(data_width / ratio))
-                tmp_y = trim_size - box_region               
+                box_region = max_y - min_y + 1
+                tmp_y = trim_size - box_region
                 # if the bbox region is in the ratio, just random crop.
-                if tmp_y > 0:
-                    y_s = np.random.randint(int(tmp_y / 2))
+                if min_y == 0:
+                    y_s = 0
                 else:
-                    y_s = int(min_y) + np.random.randint(-tmp_y / 2)
+                    if tmp_y > 0:
+                        y_s = np.random.randint(np.maximum((max_y-trim_size), 0), 
+                                            np.minimum(min_y, data_height-trim_size))
+                    elif tmp_y == 0:
+                        y_s = int(min_y)
+                    else:
+                        y_s = int(min_y) + np.random.randint(-tmp_y / 2)
                     
                 # crop the image
                 data = data[:, y_s:(y_s + trim_size), :, :]
@@ -113,17 +119,24 @@ class roibatchLoader(data.Dataset):
             ratio = self.ratio_list[anchor_idx_rightmost]
 
             # if the image need to crop.
-            if need_crop:
+            trim_size = int(np.floor(data_height * ratio))
+            if need_crop and (data_width-trim_size) > 0:
+
                 min_x = torch.min(gt_boxes[:,0])
                 max_x = torch.max(gt_boxes[:,2])
-                box_region = max_x - min_x
-                trim_size = int(np.ceil(data_height * ratio))
+                box_region = max_x - min_x + 1
                 tmp_x = trim_size - box_region               
                 # if the bbox region is in the ratio, just random crop.
-                if tmp_x > 0:
-                    x_s = np.random.randint(int(tmp_x / 2))
+                if min_x == 0:
+                    x_s = 0
                 else:
-                    x_s = int(min_x) + np.random.randint(-tmp_x / 2)
+                    if tmp_x > 0:            
+                        x_s = np.random.randint(np.maximum((max_x-trim_size), 0), 
+                                            np.minimum(min_x, data_width-trim_size))
+                    elif tmp_x == 0:
+                        x_s = int(min_x)
+                    else:
+                        x_s = int(min_x) + np.random.randint(-tmp_x / 2)
 
                 # crop the image
                 data = data[:, :, x_s:(x_s + trim_size), :]
