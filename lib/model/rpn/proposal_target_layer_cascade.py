@@ -125,7 +125,7 @@ class _ProposalTargetLayer(nn.Module):
         num_proposal = overlaps.size(1)
         num_boxes_per_img = overlaps.size(2)
 
-        offset = torch.arange(0, batch_size)*20
+        offset = torch.arange(0, batch_size)*gt_boxes.size(1)
         offset = offset.view(-1, 1).type_as(gt_assignment) + gt_assignment
 
         labels = gt_boxes[:,:,4].contiguous().view(-1).index(offset.view(-1))\

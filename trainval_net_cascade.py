@@ -199,7 +199,7 @@ if __name__ == '__main__':
                            imdb.num_classes, training=True, normalize = False)
 
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                            sampler=sampler_batch, num_workers=6)
+                            sampler=sampler_batch, num_workers=0)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)

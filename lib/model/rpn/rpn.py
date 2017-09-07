@@ -15,8 +15,9 @@ import time
 
 class _RPN(nn.Module):
     """ region proposal network """
-    def __init__(self, din=512):
+    def __init__(self, din):
         super(_RPN, self).__init__()
+        
         self.din = din  # get depth of input feature map, e.g., 512
         self.anchor_scales = cfg.ANCHOR_SCALES
         self.feat_stride = cfg.FEAT_STRIDE[0]

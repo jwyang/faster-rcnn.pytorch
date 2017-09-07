@@ -56,10 +56,10 @@ def rank_roidb_ratio(roidb):
       height = roidb[i]['height']
       ratio = width / float(height)
 
-      if ratio > ratio_large:
+      if ratio >= ratio_large:
         roidb[i]['need_crop'] = 1
         ratio = ratio_large
-      elif ratio < ratio_small:
+      elif ratio <= ratio_small:
         roidb[i]['need_crop'] = 1
         ratio = ratio_small        
       else:
