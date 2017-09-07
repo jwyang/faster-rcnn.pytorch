@@ -22,15 +22,12 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.optim as optim
 
-import torchvision.transforms as transforms
-
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
 from model.rpn.bbox_transform import clip_boxes
 from model.nms.nms_wrapper import nms
-from model.fast_rcnn.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
 from model.utils.network import save_net, load_net, vis_detections
 from model.faster_rcnn.vgg16 import vgg16
@@ -43,15 +40,12 @@ def parse_args():
   Parse input arguments
   """
   parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
+  parser.add_argument('--dataset', dest='dataset',
+                      help='training dataset',
+                      default='pascal_voc', type=str)  
   parser.add_argument('--cfg', dest='cfg_file',
                       help='optional config file',
                       default='cfgs/res101.yml', type=str)
-  parser.add_argument('--imdb', dest='imdb_name',
-                      help='dataset to train on',
-                      default='voc_2007_trainval', type=str)
-  parser.add_argument('--imdbval', dest='imdbval_name',
-                      help='dataset to validate on',
-                      default='voc_2007_test', type=str)
   parser.add_argument('--net', dest='net',
                       help='vgg16, res50, res101, res152',
                       default='res101', type=str)
@@ -61,12 +55,12 @@ def parse_args():
   parser.add_argument('--load_dir', dest='load_dir',
                       help='directory to load models', default="models",
                       nargs=argparse.REMAINDER)
-  parser.add_argument('--ngpu', dest='ngpu',
-                      help='number of gpu',
-                      default=1, type=int)
+  parser.add_argument('--cuda', dest='cuda',
+                      help='whether use CUDA',
+                      action='store_true')
   parser.add_argument('--mGPUs', dest='mGPUs',
                       help='whether use multiple GPUs',
-                      default=False, type=bool)    
+                      action='store_true')
   parser.add_argument('--checksession', dest='checksession',
                       help='checksession to load model',
                       default=1, type=int)
@@ -79,6 +73,9 @@ def parse_args():
   parser.add_argument('--bs', dest='batch_size',
                       help='batch_size',
                       default=1, type=int)
+  parser.add_argument('--vis', dest='vis',
+                      help='visualization mode',
+                      action='store_true')  
   args = parser.parse_args()
   return args
 
@@ -102,8 +99,19 @@ if __name__ == '__main__':
   pprint.pprint(cfg)
   np.random.seed(cfg.RNG_SEED)
 
-  # train set
-  # -- Note: Use validation set and disable the flipped to enable faster loading.
+  if args.dataset == "pascal_voc":
+      args.imdb_name = "voc_2007_trainval"
+      args.imdbval_name = "voc_2007_test"
+      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+  elif args.dataset == "pascal_voc_0712":
+      args.imdb_name = "voc_2007_trainval+voc_2012_trainval"
+      args.imdbval_name = "voc_2007_test"
+      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+  elif args.dataset == "coco":
+      args.imdb_name = "coco_2014_train+coco_2014_valminusminival"
+      args.imdbval_name = "coco_2014_minival"
+      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+
   cfg.TRAIN.USE_FLIPPED = False
   imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdbval_name)
   imdb.competition_mode(on=True)
@@ -131,19 +139,16 @@ if __name__ == '__main__':
 
   fasterRCNN.create_architecture()
 
-  if args.mGPUs > 1:
+  if args.mGPUs:
     if args.parallel_type == 0:
       fasterRCNN = nn.DataParallel(fasterRCNN)
     else:
       fasterRCNN.RCNN_base = nn.DataParallel(fasterRCNN.RCNN_base)
 
+  print("load checkpoint %s" % (load_name))
   checkpoint = torch.load(load_name)
   fasterRCNN.load_state_dict(checkpoint['model'])
   print('load model successfully!')
-
-  # pdb.set_trace()
-
-  print("load checkpoint %s" % (load_name))
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -152,7 +157,7 @@ if __name__ == '__main__':
   gt_boxes = torch.FloatTensor(1)
 
   # ship to cuda
-  if args.ngpu > 0:
+  if args.cuda:
     im_data = im_data.cuda()
     im_info = im_info.cuda()
     num_boxes = num_boxes.cuda()
@@ -164,10 +169,10 @@ if __name__ == '__main__':
   num_boxes = Variable(num_boxes, volatile=True)
   gt_boxes = Variable(gt_boxes, volatile=True)
 
-  if args.ngpu > 0:
+  if args.cuda:
     cfg.CUDA = True
 
-  if args.ngpu > 0:
+  if args.cuda:
     fasterRCNN.cuda()
 
   fasterRCNN.eval()
@@ -175,7 +180,7 @@ if __name__ == '__main__':
   start = time.time()
   max_per_image = 100
   thresh = 0.05
-  vis = False
+  vis = args.vis
 
   save_name = 'faster_rcnn_10'
   num_images = len(imdb.image_index)
@@ -183,12 +188,6 @@ if __name__ == '__main__':
                for _ in xrange(imdb.num_classes)]
 
   output_dir = get_output_dir(imdb, save_name)
-
-
-  # dataset = roibatchLoader(roidb, imdb.num_classes, training=False,
-  #                       normalize = transforms.Normalize(
-  #                       mean=[0.485, 0.456, 0.406],
-  #                       std=[0.229, 0.224, 0.225]))
 
   dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
                         imdb.num_classes, training=False, normalize = False)
@@ -201,7 +200,8 @@ if __name__ == '__main__':
 
   _t = {'im_detect': time.time(), 'misc': time.time()}
   det_file = os.path.join(output_dir, 'detections.pkl')
-
+  
+  empty_array = np.transpose(np.array([[],[],[],[],[]]), (1,0))
   for i in range(num_images):
 
       data = data_iter.next()
@@ -229,29 +229,29 @@ if __name__ == '__main__':
           # Simply repeat the boxes, once for each class
           pred_boxes = np.tile(boxes, (1, scores.shape[1]))
 
-      scores = scores.squeeze().cpu().numpy()
-      pred_boxes = pred_boxes.squeeze().cpu().numpy()
-      # _t['im_detect'].tic()
+      
+      scores = scores.squeeze()    
+      pred_boxes = pred_boxes.squeeze()
       det_toc = time.time()
       detect_time = det_toc - det_tic
-
       misc_tic = time.time()
-
       if vis:
           im = cv2.imread(imdb.image_path_at(i))
           im2show = np.copy(im)
-
       for j in xrange(1, imdb.num_classes):
-          inds = np.where(scores[:, j] > thresh)[0]
-          cls_scores = scores[inds, j]
-          cls_boxes = pred_boxes[inds, :]
-          cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
-              .astype(np.float32, copy=False)
-          keep = nms(cls_dets, cfg.TEST.NMS)
-          cls_dets = cls_dets[keep, :]
-          if vis:
-              im2show = vis_detections(im2show, imdb.classes[j], cls_dets)
-          all_boxes[j][i] = cls_dets
+          inds = torch.nonzero(scores[:,j]>thresh).view(-1)
+          # if there is det
+          if inds.numel() > 0:
+            cls_scores = scores[:,j][inds]
+            cls_boxes = pred_boxes[inds, :]
+            cls_dets = torch.cat((cls_boxes, cls_scores), 1)
+            keep = nms(cls_dets, cfg.TEST.NMS)
+            cls_dets = cls_dets[keep.view(-1).long()]
+            if vis:
+              im2show = vis_detections(im2show, imdb.classes[j], cls_dets.cpu().numpy())
+            all_boxes[j][i] = cls_dets.cpu().numpy()
+          else:
+            all_boxes[j][i] = empty_array
 
       # Limit to max_per_image detections *over all classes*
       if max_per_image > 0:
