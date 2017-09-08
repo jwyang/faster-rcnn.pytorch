@@ -102,13 +102,13 @@ class roibatchLoader(data.Dataset):
                         if y_s_min == y_s_max:
                             y_s = y_s_min
                         else:
-                            y_s = np.random.choice(range(y_s_min, y_s_max+1))
+                            y_s = np.random.choice(range(y_s_min, y_s_max))
                     else:
                         y_s_add = int((box_region-trim_size)/2)
                         if y_s_add == 0:
-                            y_s = y_s_min
+                            y_s = min_y
                         else:
-                            y_s = np.random.choice(range(min_y, min_y+y_s_add+1))                
+                            y_s = np.random.choice(range(min_y, min_y+y_s_add))                
                 # crop the image
                 data = data[:, y_s:(y_s + trim_size), :, :]
 
@@ -136,13 +136,13 @@ class roibatchLoader(data.Dataset):
                         if x_s_min == x_s_max:
                             x_s = x_s_min
                         else:
-                            x_s = np.random.choice(range(x_s_min, x_s_max+1))
+                            x_s = np.random.choice(range(x_s_min, x_s_max))
                     else:
                         x_s_add = int((box_region-trim_size)/2)
                         if x_s_add == 0:
-                            x_s = x_s_min
+                            x_s = min_x
                         else:
-                            x_s = np.random.choice(range(min_x, min_x+x_s_add+1))
+                            x_s = np.random.choice(range(min_x, min_x+x_s_add))
                 # crop the image
                 data = data[:, :, x_s:(x_s + trim_size), :]
 
