@@ -14,9 +14,9 @@ This project is aimed to reproduce the faster rcnn object detection model. It is
 
 However, there are several unique features compared with the above implementations:
 
-1) **It is pure Pytorch code**. We converted all the numpy implementations to pytorch.
+1) **It is pure Pytorch code**. We convert all the numpy implementations to pytorch.
 
-2) **It supports trainig batchsize > 1**. We revised all the layers, including dataloader, rpn, roi-pooling, etc., to train with multiple images at each iteration.
+2) **It supports trainig batchsize > 1**. We revise all the layers, including dataloader, rpn, roi-pooling, etc., to train with multiple images at each iteration.
 
 3) **It supports multiple GPUs**. We use a multiple GPU wrapper (nn.DataParallel here) to make it flexible to use one or more GPUs, as a merit of the above two features.
 
@@ -24,7 +24,16 @@ However, there are several unique features compared with the above implementatio
 
 5) **It is faster**. With above merits, our training speed can achieve xxx / xxx (VGG/Res101) on single TITAN X Pascal GPU and xxx/xxx (VGG / Res101) on 8 TITAN X Pascal GPU.  
 
-### Modules
+### Benchmarking
+
+We benchmark our code thoroughly on three datasets: pascal voc, mscoco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
+
+1. PASCAL VOC
+
+	model|GPUs|Batch Size|Speed|Memory|Performance
+	:---:|:---:|:---:|:---:|:---|:---
+	VGG-16| 1 Titan X | 1 | | |
+	ResNet-101|1 Titan X | 1 | | |
 
 #### Prepare Data
 **PASCAL_VOC** and **COCO**:
