@@ -30,12 +30,15 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 
 1. PASCAL VOC
 
-	model|GPUs|Batch Size|Speed|Memory|Performance
-	:---:|:---:|:---:|:---:|:---|:---
-	VGG-16| 1 Titan X | 1 | | |
-	ResNet-101|1 Titan X | 1 | | |
-
-#### Prepare Data
+	model |GPUs |Batch Size|Speed|Memory|Performance
+	:---: |:---:|:---:|:---:|:---|:---
+	VGG-16     | 1 Titan X | 1  | | |
+	           | 1 Titan X | 4  | | |
+		   | 8 Titan X | 24 | | |
+	ResNet-101 | 1 Titan X | 1  | | |
+	           | 1 Titan X | 4  | | |
+		   | 8 Titan X | 24 | | |
+#### Prepare Data 
 **PASCAL_VOC** and **COCO**:
 
 Please follow the instructions of [py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn#beyond-the-demo-installation-for-training-and-testing-models) to setup VOC and COCO datasets. The steps involve downloading data and optionally creating softlinks in the data folder. Since faster RCNN does not rely on pre-computed proposals, it is safe to ignore the steps that setup proposals.
