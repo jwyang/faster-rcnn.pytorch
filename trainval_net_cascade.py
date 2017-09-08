@@ -62,6 +62,9 @@ def parse_args():
   parser.add_argument('--save_dir', dest='save_dir',
                       help='directory to save models', default="models",
                       nargs=argparse.REMAINDER)
+  parser.add_argument('--num_workers', dest='num_workers',
+                      help='number of worker to load data',
+                      default=6, type=int)                        
   parser.add_argument('--cuda', dest='cuda',
                       help='whether use CUDA',
                       action='store_true')
@@ -204,7 +207,7 @@ if __name__ == '__main__':
                            imdb.num_classes, training=True)
 
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                            sampler=sampler_batch, num_workers=0)
+                            sampler=sampler_batch, num_workers=args.num_workers)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
