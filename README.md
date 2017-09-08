@@ -34,7 +34,8 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 	-----------|-----------|-----------|----------|------------|-------|--------|-----
 	VGG-16     | 07trainval| 07test    |1 Titan X | 1          |  0    | 0      | 0   
 	VGG-16     | 07trainval| 07test    |1 Titan X | 4          |  0    | 0      | 0   
-        VGG-16     | 07trainval| 07test    |8 Titan X | 24         |  0    | 0      | 0   
+	VGG-16     | 07trainval| 07test    |1 Titan X | 4          |  0    | 0      | 0   
+	VGG-16     | 07trainval| 07test    |1 Titan X | 4          |  0    | 0      | 0   
 
 #### Prepare Data 
 **PASCAL_VOC** and **COCO**:
