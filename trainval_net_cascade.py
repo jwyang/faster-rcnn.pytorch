@@ -200,7 +200,7 @@ if __name__ == '__main__':
                            imdb.num_classes, training=True, normalize = False)
 
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                            sampler=sampler_batch, num_workers=0)
+                            sampler=sampler_batch, num_workers=10)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -288,57 +288,57 @@ if __name__ == '__main__':
 
     for step in range(int(train_size / args.batch_size)):
       data = data_iter.next()
-      print(step)
-      # im_data.data.resize_(data[0].size()).copy_(data[0])
-      # im_info.data.resize_(data[1].size()).copy_(data[1])
-      # gt_boxes.data.resize_(data[2].size()).copy_(data[2])
-      # num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
-      # fasterRCNN.zero_grad()
-      # _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
-      # loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
-      # loss_temp += loss.data[0]
+      im_data.data.resize_(data[0].size()).copy_(data[0])
+      im_info.data.resize_(data[1].size()).copy_(data[1])
+      gt_boxes.data.resize_(data[2].size()).copy_(data[2])
+      num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
-      # # backward
-      # optimizer.zero_grad()
-      # loss.backward()
-      # network.clip_gradient(fasterRCNN, 10.)
-      # optimizer.step()
+      fasterRCNN.zero_grad()
+      _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+      loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
+      loss_temp += loss.data[0]
 
-      # if step % args.disp_interval == 0 and step != 0:
-      #   if args.mGPUs:
-      #     print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
-      #       % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
-      #     print("\t\t\tfg/bg=(%d/%d)" % (0, 0))
-      #     print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" % (0, 0, 0, 0))
-      #     if args.use_tfboard:
-      #       info = {
-      #         'loss': loss_temp / args.disp_interval
-      #       }
-      #       for tag, value in info.items():
-      #         logger.scalar_summary(tag, value, step)
+      # backward
+      optimizer.zero_grad()
+      loss.backward()
+      network.clip_gradient(fasterRCNN, 10.)
+      optimizer.step()
 
-      #   else:
-      #     print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
-      #       % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
-      #     print("\t\t\tfg/bg=(%d/%d)" % (fasterRCNN.fg_cnt, fasterRCNN.bg_cnt))
-      #     print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box: %.4f" %
-      #       (fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0], \
-      #        fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0], \
-      #        fasterRCNN.RCNN_loss_cls.data[0], \
-      #        fasterRCNN.RCNN_loss_bbox.data[0]))
-      #     if args.use_tfboard:
-      #       info = {
-      #         'loss': loss_temp / args.disp_interval,
-      #         'loss_rpn_cls': fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0],
-      #         'loss_rpn_box': fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0],
-      #         'loss_rcnn_cls': fasterRCNN.RCNN_loss_cls.data[0],
-      #         'loss_rcnn_box': fasterRCNN.RCNN_loss_bbox.data[0]
-      #       }
-      #       for tag, value in info.items():
-      #         logger.scalar_summary(tag, value, step)
+      if step % args.disp_interval == 0 and step != 0:
+        if args.mGPUs:
+          print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
+            % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
+          print("\t\t\tfg/bg=(%d/%d)" % (0, 0))
+          print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" % (0, 0, 0, 0))
+          if args.use_tfboard:
+            info = {
+              'loss': loss_temp / args.disp_interval
+            }
+            for tag, value in info.items():
+              logger.scalar_summary(tag, value, step)
 
-      #   loss_temp = 0
+        else:
+          print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
+            % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
+          print("\t\t\tfg/bg=(%d/%d)" % (fasterRCNN.fg_cnt, fasterRCNN.bg_cnt))
+          print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box: %.4f" %
+            (fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0], \
+             fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0], \
+             fasterRCNN.RCNN_loss_cls.data[0], \
+             fasterRCNN.RCNN_loss_bbox.data[0]))
+          if args.use_tfboard:
+            info = {
+              'loss': loss_temp / args.disp_interval,
+              'loss_rpn_cls': fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0],
+              'loss_rpn_box': fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0],
+              'loss_rcnn_cls': fasterRCNN.RCNN_loss_cls.data[0],
+              'loss_rcnn_box': fasterRCNN.RCNN_loss_bbox.data[0]
+            }
+            for tag, value in info.items():
+              logger.scalar_summary(tag, value, step)
+
+        loss_temp = 0
 
 
     if epoch % args.lr_decay_step == 0:
