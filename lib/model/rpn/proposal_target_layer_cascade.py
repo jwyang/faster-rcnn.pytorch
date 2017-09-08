@@ -156,7 +156,7 @@ class _ProposalTargetLayer(nn.Module):
                 # See https://github.com/pytorch/pytorch/issues/1868 for more details.
                 # use numpy instead.
                 #rand_num = torch.randperm(fg_num_rois).long().cuda()
-                rand_num = torch.from_numpy(np.random.permutation(fg_num_rois)).long().cuda()
+                rand_num = torch.from_numpy(np.random.permutation(fg_num_rois)).type_as(gt_boxes).long()
                 fg_inds = fg_inds[rand_num[:fg_rois_per_this_image]]
 
                 # sampling bg
@@ -166,14 +166,14 @@ class _ProposalTargetLayer(nn.Module):
                 # We use numpy rand instead. 
                 #rand_num = (torch.rand(bg_rois_per_this_image) * bg_num_rois).long().cuda()
                 rand_num = np.floor(np.random.rand(bg_rois_per_this_image) * bg_num_rois)
-                rand_num = torch.from_numpy(rand_num).long().cuda()
+                rand_num = torch.from_numpy(rand_num).type_as(gt_boxes).long()
                 bg_inds = bg_inds[rand_num]
 
             elif fg_num_rois > 0 and bg_num_rois == 0:
                 # sampling fg
                 #rand_num = torch.floor(torch.rand(rois_per_image) * fg_num_rois).long().cuda()
                 rand_num = np.floor(np.random.rand(rois_per_image) * fg_num_rois)
-                rand_num = torch.from_numpy(rand_num).long().cuda()
+                rand_num = torch.from_numpy(rand_num).type_as(gt_boxes).long()
                 fg_inds = fg_inds[rand_num]
                 fg_rois_per_this_image = rois_per_image
                 bg_rois_per_this_image = 0
@@ -181,15 +181,14 @@ class _ProposalTargetLayer(nn.Module):
                 # sampling bg
                 #rand_num = torch.floor(torch.rand(rois_per_image) * bg_num_rois).long().cuda()
                 rand_num = np.floor(np.random.rand(rois_per_image) * bg_num_rois)
-                rand_num = torch.from_numpy(rand_num).long().cuda()
+                rand_num = torch.from_numpy(rand_num).type_as(gt_boxes).long()
 
                 bg_inds = bg_inds[rand_num]
                 bg_rois_per_this_image = rois_per_image
                 fg_rois_per_this_image = 0
             else:
-                print("bg_num_rois = 0 and fg_num_rois = 0, this should not happen!")
-                pdb.set_trace()
-
+                error("bg_num_rois = 0 and fg_num_rois = 0, this should not happen!")
+                
             # The indices that we're selecting (both fg and bg)
             keep_inds = torch.cat([fg_inds, bg_inds], 0)
 
@@ -199,10 +198,10 @@ class _ProposalTargetLayer(nn.Module):
             # Clamp labels for the background RoIs to 0
             labels_batch[i][fg_rois_per_this_image:] = 0
 
-            rois_batch[i].copy_(all_rois[i][keep_inds])
+            rois_batch[i] = all_rois[i][keep_inds]
             rois_batch[i,:,0] = i
 
-            gt_rois_batch[i].copy_(gt_boxes[i][gt_assignment[i][keep_inds]])
+            gt_rois_batch[i] = gt_boxes[i][gt_assignment[i][keep_inds]]
 
         bbox_target_data = self._compute_targets_pytorch(
                 rois_batch[:,:,1:5], gt_rois_batch[:,:,:4])
