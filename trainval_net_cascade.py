@@ -51,7 +51,7 @@ def parse_args():
                       default=1, type=int)
   parser.add_argument('--epochs', dest='max_epochs',
                       help='number of epochs to train',
-                      default=7, type=int)
+                      default=6, type=int)
   parser.add_argument('--disp_interval', dest='disp_interval',
                       help='number of iterations to display',
                       default=100, type=int)
@@ -81,7 +81,7 @@ def parse_args():
                       default="sgd", type=str)
   parser.add_argument('--lr_decay_step', dest='lr_decay_step',
                       help='step to do learning rate decay, unit is epoch',
-                      default=4, type=int)
+                      default=3, type=int)
   parser.add_argument('--lr_decay_gamma', dest='lr_decay_gamma',
                       help='learning rate decay ratio',
                       default=0.1, type=float)
@@ -165,6 +165,10 @@ if __name__ == '__main__':
       args.imdb_name = "coco_2014_train+coco_2014_valminusminival"
       args.imdbval_name = "coco_2014_minival"
       args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+  elif args.dataset == "imagenet":
+      args.imdb_name = "imagenet_train"
+      args.imdbval_name = "imagenet_val"
+      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
 
   args.cfg_file = "cfgs/{}.yml".format(args.net)
 
@@ -197,10 +201,10 @@ if __name__ == '__main__':
   sampler_batch = sampler(train_size, args.batch_size)
 
   dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
-                           imdb.num_classes, training=True, normalize = False)
+                           imdb.num_classes, training=True)
 
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                            sampler=sampler_batch, num_workers=10)
+                            sampler=sampler_batch, num_workers=0)
 
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
@@ -288,7 +292,6 @@ if __name__ == '__main__':
 
     for step in range(int(train_size / args.batch_size)):
       data = data_iter.next()
-
       im_data.data.resize_(data[0].size()).copy_(data[0])
       im_info.data.resize_(data[1].size()).copy_(data[1])
       gt_boxes.data.resize_(data[2].size()).copy_(data[2])
@@ -305,41 +308,45 @@ if __name__ == '__main__':
       network.clip_gradient(fasterRCNN, 10.)
       optimizer.step()
 
-      if step % args.disp_interval == 0 and step != 0:
+      if step % args.disp_interval == 0:
+        end = time.time()
+        if step > 0:
+          loss_temp /= args.disp_interval       
+        
         if args.mGPUs:
-          print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
-            % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
-          print("\t\t\tfg/bg=(%d/%d)" % (0, 0))
-          print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" % (0, 0, 0, 0))
-          if args.use_tfboard:
-            info = {
-              'loss': loss_temp / args.disp_interval
-            }
-            for tag, value in info.items():
-              logger.scalar_summary(tag, value, step)
-
+          loss_rpn_cls = 0
+          loss_rpn_box = 0
+          loss_rcnn_cls = 0
+          loss_rcnn_box = 0
+          fg_cnt = 0
+          bg_cnt = 0
         else:
-          print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
-            % (args.session, epoch, step, loss_temp / args.disp_interval, lr))
-          print("\t\t\tfg/bg=(%d/%d)" % (fasterRCNN.fg_cnt, fasterRCNN.bg_cnt))
-          print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box: %.4f" %
-            (fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0], \
-             fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0], \
-             fasterRCNN.RCNN_loss_cls.data[0], \
-             fasterRCNN.RCNN_loss_bbox.data[0]))
-          if args.use_tfboard:
-            info = {
-              'loss': loss_temp / args.disp_interval,
-              'loss_rpn_cls': fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0],
-              'loss_rpn_box': fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0],
-              'loss_rcnn_cls': fasterRCNN.RCNN_loss_cls.data[0],
-              'loss_rcnn_box': fasterRCNN.RCNN_loss_bbox.data[0]
-            }
-            for tag, value in info.items():
-              logger.scalar_summary(tag, value, step)
+          loss_rpn_cls = fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_cls.data[0]
+          loss_rpn_box = fasterRCNN.RCNN_base.RCNN_rpn.rpn_loss_box.data[0]
+          loss_rcnn_cls = fasterRCNN.RCNN_loss_cls.data[0]
+          loss_rcnn_box = fasterRCNN.RCNN_loss_bbox.data[0]
+          fg_cnt = fasterRCNN.fg_cnt
+          bg_cnt = fasterRCNN.bg_cnt
+
+        print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
+                                % (args.session, epoch, step, loss_temp, lr))
+        print("\t\t\tfg/bg=(%d/%d), time cost: %f" % (0, 0, end-start))        
+        print("\t\t\tfg/bg=(%d/%d)" % (fg_cnt, bg_cnt))
+        print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" \
+                      % (loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box))
+        if args.use_tfboard:
+          info = {
+            'loss': loss_temp,
+            'loss_rpn_cls': loss_rpn_cls,
+            'loss_rpn_box': loss_rpn_box,
+            'loss_rcnn_cls': loss_rcnn_cls,
+            'loss_rcnn_box': loss_rcnn_box
+          }
+          for tag, value in info.items():
+            logger.scalar_summary(tag, value, step)
 
         loss_temp = 0
-
+        start = time.time()
 
     if epoch % args.lr_decay_step == 0:
       
