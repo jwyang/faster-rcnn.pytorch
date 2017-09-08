@@ -33,9 +33,8 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 	 model     | Train Set | Test Set  | GPUs     | Batch Size | Speed | Memory | mAP |
 	-----------|-----------|-----------|----------|------------|-------|--------|-----|
 	VGG-16     | 07trainval| 07test    |1 Titan X | 1     
-	           | 07trainval| 07test    |1 Titan X | 4 
-        -----------|-----------|-----------|----------|------------|-------|--------|-----|
-		   | 07trainval| 07test    |8 Titan X | 24
+	VGG-16     | 07trainval| 07test    |1 Titan X | 4
+        VGG-16     | 07trainval| 07test    |8 Titan X | 24
 	ResNet-101 | 1 Titan X | 1  
 	           | 1 Titan X | 4 
 		   | 8 Titan X | 24
