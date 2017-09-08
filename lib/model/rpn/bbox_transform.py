@@ -67,7 +67,7 @@ def bbox_transform_batch(ex_rois, gt_rois):
         targets_dw = torch.log(gt_widths / ex_widths)
         targets_dh = torch.log(gt_heights / ex_heights)        
     else:
-        error('ex_roi input dimension is not correct.')
+        raise ValueError('ex_roi input dimension is not correct.')
 
     targets = torch.stack(
         (targets_dx, targets_dy, targets_dw, targets_dh),2)
@@ -210,7 +210,7 @@ def bbox_overlaps_batch(anchors, gt_boxes):
 
         # mask the overlap here.
         overlaps.masked_fill_(gt_area_zero.view(batch_size, 1, K).expand(batch_size, N, K), 0)
-        overlaps.masked_fill_(anchors_area_zero.view(batch_size, N, 1).expand(batch_size, N, K), 0)
+        overlaps.masked_fill_(anchors_area_zero.view(batch_size, N, 1).expand(batch_size, N, K), -1)
     
     elif anchors.dim() == 3:
         N = anchors.size(1)
@@ -245,11 +245,10 @@ def bbox_overlaps_batch(anchors, gt_boxes):
         overlaps = iw * ih / ua
 
         # mask the overlap here.
-        overlaps.masked_fill_(gt_area_zero.view(batch_size, 1, K).expand(batch_size, N, K), -1)
+        overlaps.masked_fill_(gt_area_zero.view(batch_size, 1, K).expand(batch_size, N, K), 0)
         overlaps.masked_fill_(anchors_area_zero.view(batch_size, N, 1).expand(batch_size, N, K), -1)
-
     else:
-        error('anchors input dimension is not correct.')
+        raise ValueError('anchors input dimension is not correct.')
     
     return overlaps
 

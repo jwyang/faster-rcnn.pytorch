@@ -187,7 +187,7 @@ class _ProposalTargetLayer(nn.Module):
                 bg_rois_per_this_image = rois_per_image
                 fg_rois_per_this_image = 0
             else:
-                error("bg_num_rois = 0 and fg_num_rois = 0, this should not happen!")
+                raise ValueError("bg_num_rois = 0 and fg_num_rois = 0, this should not happen!")
                 
             # The indices that we're selecting (both fg and bg)
             keep_inds = torch.cat([fg_inds, bg_inds], 0)
