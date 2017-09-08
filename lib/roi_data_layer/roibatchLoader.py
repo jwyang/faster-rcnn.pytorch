@@ -97,9 +97,12 @@ class roibatchLoader(data.Dataset):
                     y_s = 0
                 else:
                     if (box_region-trim_size) < 0:
-                        y_s = np.random.choice(range(max(max_y-trim_size, 0), 
-                                            min(min_y, data_height-trim_size)))
-
+                        y_s_min = max(max_y-trim_size, 0)
+                        y_s_max = min(min_y, data_height-trim_size)
+                        if y_s_min == y_s_max:
+                            y_s = y_s_min
+                        else:
+                            y_s = np.random.choice(range(y_s_min, y_s_max))
                     else:
                         y_s = np.random.choice(range(int(min_y), 
                                             int(min_y+(box_region-trim_size)/2)))                
@@ -125,8 +128,12 @@ class roibatchLoader(data.Dataset):
                     x_s = 0
                 else:
                     if (box_region-trim_size) < 0:
-                        x_s = np.random.choice(range(max(max_x-trim_size, 0), 
-                                            min(min_x, data_width-trim_size)))
+                        x_s_min = max(max_x-trim_size, 0)
+                        x_s_max = min(min_x, data_width-trim_size)
+                        if x_s_min == x_s_max:
+                            x_s = x_s_min
+                        else:
+                            x_s = np.random.choice(range(x_s_min, x_s_max))
                     else:
                         x_s = np.random.choice(range(int(min_x), 
                                         int(min_x+(box_region-trim_size)/2)))
