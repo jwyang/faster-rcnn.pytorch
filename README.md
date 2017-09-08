@@ -20,11 +20,22 @@ However, there are several unique features compared with the above implementatio
 
 3) **It supports multiple GPUs**. We use a multiple GPU wrapper (nn.DataParallel here) to make it flexible to use one or more GPUs, as a merit of the above two features.
 
+4) **It is memory efficient**. We limit the image aspect ratio, and group the image in batch with similar aspect ratio. We can train resnet101 and VGG16 with batchsize = 4 (4 images) on a sigle Titan X 12 GB. When training with 8 GPU, the maximum batchsize for each GPU is 3 images (Res101), with total batchsize = 24. 
+
+5) **It is faster**. With above merits, our training speed can achieve xxx / xxx (VGG/Res101) on single TITAN X Pascal GPU and xxx/xxx (VGG / Res101) on 8 TITAN X Pascal GPU.  
+
 ### Modules
 
 #### Prepare Data
+**PASCAL_VOC** and **COCO**:
 
-put VOCdevkit2007 under data folder. 
+Please follow the instructions of [py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn#beyond-the-demo-installation-for-training-and-testing-models) to setup VOC and COCO datasets. The steps involve downloading data and optionally creating softlinks in the data folder. Since faster RCNN does not rely on pre-computed proposals, it is safe to ignore the steps that setup proposals.
+
+**ImageNet**:
+
+
+
+
 
 To train a resnet101, run:
 ```
