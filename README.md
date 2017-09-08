@@ -30,7 +30,7 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 
 1. PASCAL VOC
 
-	 model     | Train Set | Test Set  | GPUs     | Batch Size | Speed | Memory (average) | mAP 
+	 model     | Train Set | Test Set  | GPUs     | Batch Size | Speed | Memory (ave) | mAP 
 	-----------|-----------|-----------|----------|------------|-------|--------|-----
 	VGG-16     | 07trainval| 07test    |1 Titan X | 1          |  0    | 0      | 0   
 	VGG-16     | 07trainval| 07test    |1 Titan X | 4          |  0    | 0      | 0   
@@ -42,7 +42,7 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 
 1. COCO
 
-	 model     | Train Set | Test Set  | GPUs     | Batch Size | Speed | Memory (average) | mAP 
+	 model     | Train Set | Test Set  | GPUs     | Batch Size | Speed | Memory (ave) | mAP 
 	-----------|-----------|-----------|----------|------------|-------|--------|-----
 	VGG-16     | coco_train| coco_test |1 Titan X | 1          |  0    | 0   | 0   
 	VGG-16     | coco_train| coco_test |1 Titan X | 4          |  0    | 0   | 0   
