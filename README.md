@@ -35,9 +35,9 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 	VGG-16     | 07trainval| 07test    |1 Titan X | 1          |  0    | 0      | 0   
 	VGG-16     | 07trainval| 07test    |1 Titan X | 4          |  0    | 0      | 0   
 	VGG-16     | 07trainval| 07test    |8 Titan X | 27         |  0    | 0      | 0   
-	Res-101    | 07trainval| 07test    |1 Titan X | 1          |  0    | 0      | 0   
-	Res-101    | 07trainval| 07test    |1 Titan X | 4          |  0    | 0      | 0   
-	Res-101    | 07trainval| 07test    |8 Titan X | 27         |  0    | 0      | 0   
+	Res-101    | 07trainval| 07test    |1 Titan X | 1          |  0.58 hr | 3200 MB  | 0   
+	Res-101    | 07trainval| 07test    |1 Titan X | 4          |  0.48 hr | 9800 MB  | 0   
+	Res-101    | 07trainval| 07test    |8 Titan X | 27         |  0.16 hr | 8400 MB     | 0   
 
 
 1. COCO
@@ -47,9 +47,9 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 	VGG-16     | coco_train| coco_test |1 Titan X | 1          |  0    | 0   | 0   
 	VGG-16     | coco_train| coco_test |1 Titan X | 4          |  0    | 0   | 0   
 	VGG-16     | coco_train| coco_test |8 Titan X | 27         |  0    | 0   | 0   
-	Res-101    | coco_train| coco_test |1 Titan X | 1          |  0    | 3085 MB | 0   
-	Res-101    | coco_train| coco_test |1 Titan X | 4          |  0    | 9800 MB | 0   
-	Res-101    | coco_train| coco_test |8 Titan X | 27         |  4 hr    | 8400 MB   | 0  
+	Res-101    | coco_train| coco_test |1 Titan X | 1          |  14 hr| 3300 MB | 0   
+	Res-101    | coco_train| coco_test |1 Titan X | 4          |  12 hr| 9800 MB | 0   
+	Res-101    | coco_train| coco_test |8 Titan X | 27         |  4 hr | 8400 MB | 0  
 
 #### Prepare Data 
 **PASCAL_VOC** and **COCO**:
