@@ -15,6 +15,7 @@ import scipy.sparse
 import scipy.io as sio
 import cPickle
 import subprocess
+import pdb
 
 class imagenet(imdb):
     def __init__(self, image_set, devkit_path, data_path):
@@ -98,14 +99,15 @@ class imagenet(imdb):
                 f.close()
                 return image_index
 
-            for i in range(1,31):
+            for i in range(1,200):
                 print(i)
-                image_set_file = os.path.join(self._data_path, 'ImageSets', 'train_' + str(i) + '.txt')
+                image_set_file = os.path.join(self._data_path, 'ImageSets', 'DET', 'train_' + str(i) + '.txt')
                 with open(image_set_file) as f:
                     tmp_index = [x.strip() for x in f.readlines()]
                     vtmp_index = []
                     for line in tmp_index:
-                        image_list = os.popen('ls ' + self._data_path + '/Data/train/' + line + '/*.JPEG').read().split()
+                        line = line.split(' ')
+                        image_list = os.popen('ls ' + self._data_path + '/Data/DET/train/' + line[0] + '/*.JPEG').read().split()
                         tmp_list = []
                         for imgs in image_list:
                             tmp_list.append(imgs[:-5])

@@ -84,7 +84,7 @@ def parse_args():
                       default="sgd", type=str)
   parser.add_argument('--lr_decay_step', dest='lr_decay_step',
                       help='step to do learning rate decay, unit is epoch',
-                      default=3, type=int)
+                      default=5, type=int)
   parser.add_argument('--lr_decay_gamma', dest='lr_decay_gamma',
                       help='learning rate decay ratio',
                       default=0.1, type=float)
@@ -111,10 +111,6 @@ def parse_args():
   parser.add_argument('--use_tfboard', dest='use_tfboard',
                       help='whether use tensorflow tensorboard',
                       default=False, type=bool)
-
-  # if len(sys.argv) == 1:
-  #   parser.print_help()
-  #   sys.exit(1)
 
   args = parser.parse_args()
   return args
@@ -291,8 +287,11 @@ if __name__ == '__main__':
     loss_temp = 0
     start = time.time()
 
-    data_iter = iter(dataloader)
+    if epoch % args.lr_decay_step == 0:
+        adjust_learning_rate(optimizer, args.lr_decay_gamma)
+        lr *= args.lr_decay_gamma
 
+    data_iter = iter(dataloader)
     for step in range(int(train_size / args.batch_size)):
       data = data_iter.next()
       im_data.data.resize_(data[0].size()).copy_(data[0])
@@ -308,7 +307,6 @@ if __name__ == '__main__':
       # backward
       optimizer.zero_grad()
       loss.backward()
-      network.clip_gradient(fasterRCNN, 10.)
       optimizer.step()
 
       if step % args.disp_interval == 0:
@@ -333,8 +331,7 @@ if __name__ == '__main__':
 
         print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
                                 % (args.session, epoch, step, loss_temp, lr))
-        print("\t\t\tfg/bg=(%d/%d), time cost: %f" % (0, 0, end-start))        
-        print("\t\t\tfg/bg=(%d/%d)" % (fg_cnt, bg_cnt))
+        print("\t\t\tfg/bg=(%d/%d), time cost: %f" % (fg_cnt, bg_cnt, end-start))        
         print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" \
                       % (loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box))
         if args.use_tfboard:
@@ -351,19 +348,22 @@ if __name__ == '__main__':
         loss_temp = 0
         start = time.time()
 
-    if epoch % args.lr_decay_step == 0:
-      
-        adjust_learning_rate(optimizer, args.lr_decay_gamma)
-        lr *= args.lr_decay_gamma
-
-    #   pdb.set_trace()
-    save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
-    save_checkpoint({
-      'session': args.session,
-      'epoch': epoch + 1,
-      'model': fasterRCNN.state_dict(),
-      "optimizer": optimizer.state_dict(),
-    }, save_name)
+    if args.mGPUs:
+      save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
+      save_checkpoint({
+        'session': args.session,
+        'epoch': epoch + 1,
+        'model': fasterRCNN.module.state_dict(),
+        "optimizer": optimizer.state_dict(),
+      }, save_name)
+    else:
+      save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
+      save_checkpoint({
+        'session': args.session,
+        'epoch': epoch + 1,
+        'model': fasterRCNN.state_dict(),
+        "optimizer": optimizer.state_dict(),
+      }, save_name)
     print('save model: {}'.format(save_name))
 
     end = time.time()

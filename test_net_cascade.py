@@ -45,7 +45,7 @@ def parse_args():
                       default='pascal_voc', type=str)  
   parser.add_argument('--cfg', dest='cfg_file',
                       help='optional config file',
-                      default='cfgs/res101.yml', type=str)
+                      default='cfgs/vgg16.yml', type=str)
   parser.add_argument('--net', dest='net',
                       help='vgg16, res50, res101, res152',
                       default='res101', type=str)
@@ -61,6 +61,9 @@ def parse_args():
   parser.add_argument('--mGPUs', dest='mGPUs',
                       help='whether use multiple GPUs',
                       action='store_true')
+  parser.add_argument('--parallel_type', dest='parallel_type',
+                      help='which part of model to parallel, 0: all, 1: model before roi pooling',
+                      default=0, type=int)
   parser.add_argument('--checksession', dest='checksession',
                       help='checksession to load model',
                       default=1, type=int)
@@ -90,15 +93,10 @@ if __name__ == '__main__':
   print('Called with args:')
   print(args)
 
-  if args.cfg_file is not None:
-    cfg_from_file(args.cfg_file)
-  if args.set_cfgs is not None:
-    cfg_from_list(args.set_cfgs)
 
   print('Using config:')
   pprint.pprint(cfg)
   np.random.seed(cfg.RNG_SEED)
-
   if args.dataset == "pascal_voc":
       args.imdb_name = "voc_2007_trainval"
       args.imdbval_name = "voc_2007_test"
@@ -111,9 +109,19 @@ if __name__ == '__main__':
       args.imdb_name = "coco_2014_train+coco_2014_valminusminival"
       args.imdbval_name = "coco_2014_minival"
       args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+  elif args.dataset == "imagenet":
+      args.imdb_name = "imagenet_train"
+      args.imdbval_name = "imagenet_val"
+      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+
+  if args.cfg_file is not None:
+    cfg_from_file(args.cfg_file)
+  if args.set_cfgs is not None:
+    cfg_from_list(args.set_cfgs)
+
 
   cfg.TRAIN.USE_FLIPPED = False
-  imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdbval_name)
+  imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdbval_name, False)
   imdb.competition_mode(on=True)
 
   print('{:d} roidb entries'.format(len(roidb)))
@@ -126,30 +134,24 @@ if __name__ == '__main__':
 
   # initilize the network here.
   if args.net == 'vgg16':
-    fasterRCNN = vgg16(imdb.classes, pretrained=True)
+    fasterRCNN = vgg16(imdb.classes, pretrained=False)
   elif args.net == 'res101':
-    fasterRCNN = resnet(imdb.classes, 101, pretrained=True)
+    fasterRCNN = resnet(imdb.classes, 101, pretrained=False)
   elif args.net == 'res50':
-    fasterRCNN = resnet(imdb.classes, 50, pretrained=True)
+    fasterRCNN = resnet(imdb.classes, 50, pretrained=False)
   elif args.net == 'res152':
-    fasterRCNN = resnet(imdb.classes, 152, pretrained=True)
+    fasterRCNN = resnet(imdb.classes, 152, pretrained=False)
   else:
     print("network is not defined")
     pdb.set_trace()
 
   fasterRCNN.create_architecture()
 
-  if args.mGPUs:
-    if args.parallel_type == 0:
-      fasterRCNN = nn.DataParallel(fasterRCNN)
-    else:
-      fasterRCNN.RCNN_base = nn.DataParallel(fasterRCNN.RCNN_base)
-
+  
   print("load checkpoint %s" % (load_name))
   checkpoint = torch.load(load_name)
   fasterRCNN.load_state_dict(checkpoint['model'])
   print('load model successfully!')
-
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)
   im_info = torch.FloatTensor(1)
@@ -188,10 +190,8 @@ if __name__ == '__main__':
                for _ in xrange(imdb.num_classes)]
 
   output_dir = get_output_dir(imdb, save_name)
-
   dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
                         imdb.num_classes, training=False, normalize = False)
-
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
                             shuffle=False, num_workers=0,
                             pin_memory=True)
