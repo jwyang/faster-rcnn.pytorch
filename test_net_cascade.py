@@ -27,7 +27,7 @@ from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
 from model.rpn.bbox_transform import clip_boxes
-from model.nms.nms_wrapper import nms
+zfrom model.nms.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
 from model.utils.network import save_net, load_net, vis_detections
 from model.faster_rcnn.vgg16 import vgg16
@@ -147,7 +147,6 @@ if __name__ == '__main__':
 
   fasterRCNN.create_architecture()
 
-  
   print("load checkpoint %s" % (load_name))
   checkpoint = torch.load(load_name)
   fasterRCNN.load_state_dict(checkpoint['model'])
@@ -177,8 +176,6 @@ if __name__ == '__main__':
   if args.cuda:
     fasterRCNN.cuda()
 
-  fasterRCNN.eval()
-
   start = time.time()
   max_per_image = 100
   thresh = 0.05
@@ -200,7 +197,8 @@ if __name__ == '__main__':
 
   _t = {'im_detect': time.time(), 'misc': time.time()}
   det_file = os.path.join(output_dir, 'detections.pkl')
-  
+
+  fasterRCNN.eval()  
   empty_array = np.transpose(np.array([[],[],[],[],[]]), (1,0))
   for i in range(num_images):
 

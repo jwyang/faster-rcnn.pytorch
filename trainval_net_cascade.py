@@ -307,6 +307,7 @@ if __name__ == '__main__':
       # backward
       optimizer.zero_grad()
       loss.backward()
+      network.clip_gradient(fasterRCNN, 10.)
       optimizer.step()
 
       if step % args.disp_interval == 0:
