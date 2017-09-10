@@ -28,28 +28,28 @@ However, there are several unique features compared with the above implementatio
 
 We benchmark our code thoroughly on three datasets: pascal voc, mscoco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
 
-1. PASCAL VOC
+1. PASCAL VOC (Train/Test: 07trainval/07test) (lr_decay/max_epoch: 5/7)
 
-	 model     | Train Set | Test Set  | GPUs     | Batch Size |  Speed / epoch | Memory / GPU | mAP 
-	-----------|-----------|-----------|----------|------------|-------|--------|-----
-	VGG-16     | 07trainval| 07test    |1 Titan X | 1          |  0.46 hr | 3265   | 0   
-	VGG-16     | 07trainval| 07test    |1 Titan X | 4          |  0.36 hr | 9083   | 0   
-	VGG-16     | 07trainval| 07test    |8 Titan X | 27         |  0       | 0      | 0   
-	Res-101    | 07trainval| 07test    |1 Titan X | 1          |  0.54 hr | 3200 MB  | 0   
-	Res-101    | 07trainval| 07test    |1 Titan X | 4          |  0.48 hr | 9700 MB  | 0   
-	Res-101    | 07trainval| 07test    |8 Titan X | 27         |  0.16 hr | 8400 MB  | 0   
+	 model     | lr        | GPUs     | Batch Size |  Speed / epoch | Memory / GPU | mAP 
+	-----------|-----------|----------|------------|-------|--------|-----
+	VGG-16     | 1e-3|1 Titan X | 1           |  0.46 hr | 3265   | 70.2   
+	VGG-16     | 3e-3|1 Titan X | 4          |  0.36 hr | 9083   | 0   
+	VGG-16     | 5e-3|8 Titan X | 27         |  0       | 0      | 0   
+	Res-101    | 1e-3|1 Titan X | 1          |  0.54 hr | 3200 MB  | 73.9   
+	Res-101    | 3e-3|1 Titan X | 4          |  0.48 hr | 9700 MB  | 0   
+	Res-101    | 5e-3|8 Titan X | 27         |  0.16 hr | 8400 MB  | 0   
 
 
-1. COCO
+1. COCO (Train/Test: coco_train/coco_test) (lr_decay/max_epoch:5/7)
 
-	 model     | Train Set | Test Set  | GPUs     | Batch Size | Speed / epoch | Memory / GPU | mAP 
-	-----------|-----------|-----------|----------|------------|-------|--------|-----
-	VGG-16     | coco_train| coco_test |1 Titan X | 1          |  0    | 0   | 0   
-	VGG-16     | coco_train| coco_test |1 Titan X | 4          |  0    | 0   | 0   
-	VGG-16     | coco_train| coco_test |8 Titan X | 27         |  0    | 0   | 0   
-	Res-101    | coco_train| coco_test |1 Titan X | 1          |  14 hr| 3300 MB | 0   
-	Res-101    | coco_train| coco_test |1 Titan X | 4          |  12 hr| 9800 MB | 0   
-	Res-101    | coco_train| coco_test |8 Titan X | 27         |  4 hr | 8400 MB | 0  
+	 model     | lr | GPUs     | Batch Size | Speed / epoch | Memory / GPU | mAP 
+	-----------|-----------|----------|------------|-------|--------|-----
+	VGG-16     | 1e-3 |1 Titan X | 1          |  0    | 0   | 0   
+	VGG-16     | 3e-3 |1 Titan X | 4          |  0    | 0   | 0   
+	VGG-16     | 5e-3 |8 Titan X | 27         |  0    | 0   | 0   
+	Res-101    | 1e-3 |1 Titan X | 1          |  14 hr| 3300 MB | 0   
+	Res-101    | 3e-3 |1 Titan X | 4          |  12 hr| 9800 MB | 0   
+	Res-101    | 5e-3 |8 Titan X | 27         |  4 hr | 8400 MB | 0  
 
 #### Prepare Data 
 **PASCAL_VOC** and **COCO**:
@@ -57,9 +57,6 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 Please follow the instructions of [py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn#beyond-the-demo-installation-for-training-and-testing-models) to setup VOC and COCO datasets. The steps involve downloading data and optionally creating softlinks in the data folder. Since faster RCNN does not rely on pre-computed proposals, it is safe to ignore the steps that setup proposals.
 
 **ImageNet**:
-
-
-
 
 
 To train a resnet101, run:
