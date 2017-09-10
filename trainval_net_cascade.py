@@ -51,7 +51,7 @@ def parse_args():
                       default=1, type=int)
   parser.add_argument('--epochs', dest='max_epochs',
                       help='number of epochs to train',
-                      default=6, type=int)
+                      default=7, type=int)
   parser.add_argument('--disp_interval', dest='disp_interval',
                       help='number of iterations to display',
                       default=100, type=int)
@@ -64,7 +64,7 @@ def parse_args():
                       nargs=argparse.REMAINDER)
   parser.add_argument('--num_workers', dest='num_workers',
                       help='number of worker to load data',
-                      default=6, type=int)                        
+                      default=8, type=int)                        
   parser.add_argument('--cuda', dest='cuda',
                       help='whether use CUDA',
                       action='store_true')

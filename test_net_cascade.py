@@ -241,8 +241,10 @@ if __name__ == '__main__':
           # if there is det
           if inds.numel() > 0:
             cls_scores = scores[:,j][inds]
+            _, order = torch.sort(cls_scores, 0, True)
             cls_boxes = pred_boxes[inds, :]
             cls_dets = torch.cat((cls_boxes, cls_scores), 1)
+            cls_dets = cls_dets[order]
             keep = nms(cls_dets, cfg.TEST.NMS)
             cls_dets = cls_dets[keep.view(-1).long()]
             if vis:
