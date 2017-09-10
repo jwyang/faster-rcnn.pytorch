@@ -32,12 +32,12 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 
 	 model     | Train Set | Test Set  | GPUs     | Batch Size |  Speed / epoch | Memory / GPU | mAP 
 	-----------|-----------|-----------|----------|------------|-------|--------|-----
-	VGG-16     | 07trainval| 07test    |1 Titan X | 1          |  0    | 0      | 0   
-	VGG-16     | 07trainval| 07test    |1 Titan X | 4          |  0    | 0      | 0   
-	VGG-16     | 07trainval| 07test    |8 Titan X | 27         |  0    | 0      | 0   
-	Res-101    | 07trainval| 07test    |1 Titan X | 1          |  0.58 hr | 3200 MB  | 0   
-	Res-101    | 07trainval| 07test    |1 Titan X | 4          |  0.48 hr | 9800 MB  | 0   
-	Res-101    | 07trainval| 07test    |8 Titan X | 27         |  0.16 hr | 8400 MB     | 0   
+	VGG-16     | 07trainval| 07test    |1 Titan X | 1          |  0.46 hr | 3265   | 0   
+	VGG-16     | 07trainval| 07test    |1 Titan X | 4          |  0.36 hr | 9083   | 0   
+	VGG-16     | 07trainval| 07test    |8 Titan X | 27         |  0       | 0      | 0   
+	Res-101    | 07trainval| 07test    |1 Titan X | 1          |  0.54 hr | 3200 MB  | 0   
+	Res-101    | 07trainval| 07test    |1 Titan X | 4          |  0.48 hr | 9700 MB  | 0   
+	Res-101    | 07trainval| 07test    |8 Titan X | 27         |  0.16 hr | 8400 MB  | 0   
 
 
 1. COCO
