@@ -44,12 +44,12 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 
 	 model     | lr | GPUs     | Batch Size | Speed / epoch | Memory / GPU | mAP 
 	-----------|-----------|----------|------------|-------|--------|-----
-	VGG-16     | 1e-3 |1 Titan X | 1          |  0    | 0   | 0   
-	VGG-16     | 3e-3 |1 Titan X | 4          |  0    | 0   | 0   
-	VGG-16     | 5e-3 |8 Titan X | 27         |  0    | 0   | 0   
-	Res-101    | 1e-3 |1 Titan X | 1          |  14 hr| 3300 MB | 0   
-	Res-101    | 3e-3 |1 Titan X | 4          |  12 hr| 9800 MB | 0   
-	Res-101    | 5e-3 |8 Titan X | 27         |  4 hr | 8400 MB | 0  
+	VGG-16     | 1e-3 |1 Titan X | 1          |  10.4 hr | 0   | 0   
+	VGG-16     | 3e-3 |1 Titan X | 4          |  8.3 hr  | 0   | 0   
+	VGG-16     | 5e-3 |8 Titan X | 27         |  0       | 0   | 0   
+	Res-101    | 1e-3 |1 Titan X | 1          |  13.7 hr | 3300 MB | 0   
+	Res-101    | 3e-3 |1 Titan X | 4          |  11.6 hr | 9800 MB | 0   
+	Res-101    | 5e-3 |8 Titan X | 27         |  0       | 8400 MB | 0  
 
 #### Prepare Data 
 **PASCAL_VOC** and **COCO**:
