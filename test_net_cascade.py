@@ -29,7 +29,7 @@ from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
 from model.rpn.bbox_transform import clip_boxes
 from model.nms.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
-from model.utils.network import save_net, load_net, vis_detections
+from model.utils.net_utils import save_net, load_net, vis_detections
 from model.faster_rcnn.vgg16 import vgg16
 from model.faster_rcnn.resnet import resnet
 

@@ -119,12 +119,6 @@ ext_modules = [
         include_dirs=[numpy_include]
     ),
     Extension(
-        "model.utils.cython_nms",
-        ["model/utils/nms.pyx"],
-        extra_compile_args={'gcc': ["-Wno-cpp", "-Wno-unused-function"]},
-        include_dirs=[numpy_include]
-    ),
-    Extension(
         "model.nms.cpu_nms",
         ["model/nms/cpu_nms.pyx"],
         extra_compile_args={'gcc': ["-Wno-cpp", "-Wno-unused-function"]},

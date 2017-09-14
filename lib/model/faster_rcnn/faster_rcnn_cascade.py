@@ -7,12 +7,10 @@ import numpy as np
 from model.utils.config import cfg
 from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
-# from model.roi_pooling_single.modules.roi_pool import _RoIPool
 from model.rpn.proposal_target_layer_cascade import _ProposalTargetLayer
-from model.utils import network
 import time
 import pdb
-from model.utils.network import _smooth_l1_loss
+from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer
 
 # from model.utils.vgg16 import VGG16
 class _RCNN_base(nn.Module):
@@ -60,8 +58,10 @@ class _RCNN_base(nn.Module):
             rpn_loss_bbox = 0
         rois = Variable(rois)
         # do roi pooling based on predicted rois
-        pooled_feat = self.RCNN_roi_pool(base_feat, rois.view(-1,5))
-        # pooled_feat_all = pooled_feat.view(pooled_feat.size(0), -1)
+        if cfg.POOLING_MODE == 'crop':
+            pooled_feat = _crop_pool_layer(base_feat, rois.view(-1,5))
+        else:
+            pooled_feat = self.RCNN_roi_pool(base_feat, rois.view(-1,5))
 
         return rois, pooled_feat, rois_label, rois_target, rois_inside_ws, rois_outside_ws, rpn_loss_cls, rpn_loss_bbox
 

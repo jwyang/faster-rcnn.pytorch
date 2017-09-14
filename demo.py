@@ -34,7 +34,7 @@ from model.rpn.bbox_transform import clip_boxes
 from model.nms.nms_wrapper import nms
 from model.fast_rcnn.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
-from model.utils.network import save_net, load_net, vis_detections
+from model.utils.net_utils import save_net, load_net, vis_detections
 from model.utils.blob import im_list_to_blob
 import pdb
 

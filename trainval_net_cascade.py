@@ -27,8 +27,7 @@ from torch.utils.data.sampler import Sampler
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
-from model.utils import network
-from model.utils.network import weights_normal_init, save_net, load_net, \
+from model.utils.net_utils import weights_normal_init, save_net, load_net, \
       adjust_learning_rate, save_checkpoint
 
 from model.faster_rcnn.vgg16 import vgg16
@@ -307,7 +306,6 @@ if __name__ == '__main__':
       # backward
       optimizer.zero_grad()
       loss.backward()
-      network.clip_gradient(fasterRCNN, 10.)
       optimizer.step()
 
       if step % args.disp_interval == 0:

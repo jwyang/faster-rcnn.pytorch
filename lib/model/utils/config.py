@@ -280,7 +280,6 @@ __C.USE_GPU_NMS = True
 # Default GPU device id
 __C.GPU_ID = 0
 
-# Default pooling mode, only 'crop' is available
 __C.POOLING_MODE = 'crop'
 
 # Size of the pooled region after RoI pooling
