@@ -296,6 +296,8 @@ __C.FEAT_STRIDE = [16, ]
 
 __C.CUDA = False
 
+__C.CROP_RESIZE_WITH_MAX_POOL = True
+
 import pdb
 def get_output_dir(imdb, weights_filename):
   """Return the directory where experimental artifacts are placed.

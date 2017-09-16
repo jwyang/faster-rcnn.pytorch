@@ -7,10 +7,13 @@ import numpy as np
 from model.utils.config import cfg
 from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
+from model.roi_crop.modules.roi_crop import _RoICrop
+from model.roi_align.modules.roi_align import RoIAlignAvg
+from model.roi_crop.modules.gridgen import _AffineGridGen
 from model.rpn.proposal_target_layer_cascade import _ProposalTargetLayer
 import time
 import pdb
-from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer
+from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer, _affine_grid_gen, _affine_theta
 
 # from model.utils.vgg16 import VGG16
 class _RCNN_base(nn.Module):
@@ -27,6 +30,12 @@ class _RCNN_base(nn.Module):
         self.RCNN_rpn = _RPN(dout_base_model)
         self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
         self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
+        self.RCNN_roi_align = RoIAlignAvg(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
+
+        self.grid_size = cfg.POOLING_SIZE * 2 if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE
+        self.RCNN_grid_gen = _AffineGridGen(self.grid_size, self.grid_size)
+
+        self.RCNN_roi_crop = _RoICrop()
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
         im_info = im_info.data
@@ -58,9 +67,23 @@ class _RCNN_base(nn.Module):
             rpn_loss_bbox = 0
         rois = Variable(rois)
         # do roi pooling based on predicted rois
+
         if cfg.POOLING_MODE == 'crop':
-            pooled_feat = _crop_pool_layer(base_feat, rois.view(-1,5))
-        else:
+            # pooled_feat_orig, grid_orig = _crop_pool_layer(base_feat, rois.view(-1,5), False)
+            # theta = _affine_theta(rois.view(-1, 5), base_feat.size()[2:])
+            # grid = self.RCNN_grid_gen(theta)
+
+            grid_xy = _affine_grid_gen(rois.view(-1, 5), base_feat.size()[2:], self.grid_size)
+            grid_yx = torch.stack([grid_xy.data[:,:,:,1], grid_xy.data[:,:,:,0]], 3).contiguous()
+            base_feat_p = base_feat.permute(0, 2, 3, 1).contiguous()
+            pooled_feat_p = self.RCNN_roi_crop(base_feat_p, Variable(grid_yx))
+            pooled_feat = pooled_feat_p.permute(0, 3, 1, 2).contiguous()
+            if cfg.CROP_RESIZE_WITH_MAX_POOL:
+                pooled_feat = F.max_pool2d(pooled_feat, 2, 2)
+
+        elif cfg.POOLING_MODE == 'align':
+            pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
+        elif cfg.POOLING_MODE == 'pool':
             pooled_feat = self.RCNN_roi_pool(base_feat, rois.view(-1,5))
 
         return rois, pooled_feat, rois_label, rois_target, rois_inside_ws, rois_outside_ws, rpn_loss_cls, rpn_loss_bbox
