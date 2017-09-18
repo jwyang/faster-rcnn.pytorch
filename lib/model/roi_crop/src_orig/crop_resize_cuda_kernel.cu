@@ -57,7 +57,7 @@ __global__ void bilinearSamplingFromGrid(float* inputImages_data, int inputImage
 
    const int b = blockIdx.z;
 
-   const int b_input = b / roiPerImage;
+   const int b_input = blockIdx.z / roiPerImage;
 
    float yf,xf;
 
@@ -95,8 +95,12 @@ __global__ void bilinearSamplingFromGrid(float* inputImages_data, int inputImage
    bool bottomRightIsIn = between(xInTopLeft+1, 0, width-1) && between(yInTopLeft+1, 0, height-1);
 
    // interpolation happens here
-   for(int t=threadIdx.x; t<inputImages_channels; t+= blockDim.x)
+   for(int t=0; t<inputImages_channels; t++)
+  //  for(int t=threadIdx.x; t<inputImages_channels; t+= blockDim.x)
    {
+      if (!topLeftIsIn && !topRightIsIn && !bottomLeftIsIn && !bottomRightIsIn)
+        continue;
+
       if(topLeftIsIn) inTopLeft = inputImages_data[inTopLeftAddress + t];
       if(topRightIsIn) inTopRight = inputImages_data[inTopRightAddress + t];
       if(bottomLeftIsIn) inBottomLeft = inputImages_data[inBottomLeftAddress + t];
@@ -134,7 +138,7 @@ template<bool onlyGrid> __global__ void backwardBilinearSampling(float* inputIma
    const int b = blockIdx.z;
 
    // compute the index for input image
-   const int b_input = b / roiPerImage;
+   const int b_input = blockIdx.z / roiPerImage;
 
    float yf,xf;
 
@@ -149,8 +153,6 @@ template<bool onlyGrid> __global__ void backwardBilinearSampling(float* inputIma
    {
       yf = gridData[threadIdx.y*2];
       xf = gridData[threadIdx.y*2+1];
-
-
 
       int yInTopLeft, xInTopLeft;
       float yWeightTopLeft, xWeightTopLeft;
@@ -184,8 +186,8 @@ template<bool onlyGrid> __global__ void backwardBilinearSampling(float* inputIma
          - gradients into the gradInputImages array with atomic adds
          - we compute the dot product that we need for the grid gradient
       */
-
-      for(int t=threadIdx.x; t<inputImages_channels; t+= blockDim.x)
+      for(int t=0; t<inputImages_channels; t++)
+      // for(int t=threadIdx.x; t<inputImages_channels; t+= blockDim.x)
       {
          float gradOutValue = gradOutput_data[gradOutputAddress + t];
          // bool between(int value, int lowerBound, int upperBound)

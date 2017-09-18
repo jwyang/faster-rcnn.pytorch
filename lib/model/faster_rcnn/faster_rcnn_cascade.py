@@ -1,6 +1,9 @@
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable, gradcheck
+from torch.autograd.gradcheck import gradgradcheck
 import torchvision.models as models
 from torch.autograd import Variable
 import numpy as np
@@ -69,15 +72,12 @@ class _RCNN_base(nn.Module):
         # do roi pooling based on predicted rois
 
         if cfg.POOLING_MODE == 'crop':
-            # pooled_feat_orig, grid_orig = _crop_pool_layer(base_feat, rois.view(-1,5), False)
-            # theta = _affine_theta(rois.view(-1, 5), base_feat.size()[2:])
-            # grid = self.RCNN_grid_gen(theta)
+            # pooled_feat, grid = _crop_pool_layer(base_feat, rois.view(-1,5), False)
 
             grid_xy = _affine_grid_gen(rois.view(-1, 5), base_feat.size()[2:], self.grid_size)
             grid_yx = torch.stack([grid_xy.data[:,:,:,1], grid_xy.data[:,:,:,0]], 3).contiguous()
-            base_feat_p = base_feat.permute(0, 2, 3, 1).contiguous()
-            pooled_feat_p = self.RCNN_roi_crop(base_feat_p, Variable(grid_yx))
-            pooled_feat = pooled_feat_p.permute(0, 3, 1, 2).contiguous()
+            pooled_feat = self.RCNN_roi_crop(base_feat, Variable(grid_yx).detach())
+
             if cfg.CROP_RESIZE_WITH_MAX_POOL:
                 pooled_feat = F.max_pool2d(pooled_feat, 2, 2)
 

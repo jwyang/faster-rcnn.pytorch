@@ -21,13 +21,6 @@ int roi_align_forward_cuda(int aligned_height, int aligned_width, float spatial_
         return 0;
     }
 
-    // batch size
-    // int batch_size = THCudaTensor_size(state, features, 0);
-    // we support batch_size > 1
-    // if (batch_size != 1)
-    // {
-    //     return 0;
-    // }
     // data height
     int data_height = THCudaTensor_size(state, features, 2);
     // data width
@@ -65,11 +58,6 @@ int roi_align_backward_cuda(int aligned_height, int aligned_width, float spatial
 
     // batch size
     int batch_size = THCudaTensor_size(state, bottom_grad, 0);
-    // we suport batch_size > 1
-    // if (batch_size != 1)
-    // {
-    //     return 0;
-    // }
     // data height
     int data_height = THCudaTensor_size(state, bottom_grad, 2);
     // data width
