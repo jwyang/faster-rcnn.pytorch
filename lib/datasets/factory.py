@@ -18,7 +18,7 @@ from datasets.vg import vg
 
 import numpy as np
 
-# Set up voc_<year>_<split> 
+# Set up voc_<year>_<split>
 for year in ['2007', '2012']:
   for split in ['train', 'val', 'trainval', 'test']:
     name = 'voc_{}_{}'.format(year, split)
@@ -27,6 +27,12 @@ for year in ['2007', '2012']:
 # Set up coco_2014_<split>
 for year in ['2014']:
   for split in ['train', 'val', 'minival', 'valminusminival', 'trainval']:
+    name = 'coco_{}_{}'.format(year, split)
+    __sets[name] = (lambda split=split, year=year: coco(split, year))
+
+# Set up coco_2014_cap_<split>
+for year in ['2014']:
+  for split in ['train', 'val', 'capval', 'valminuscapval', 'trainval']:
     name = 'coco_{}_{}'.format(year, split)
     __sets[name] = (lambda split=split, year=year: coco(split, year))
 
