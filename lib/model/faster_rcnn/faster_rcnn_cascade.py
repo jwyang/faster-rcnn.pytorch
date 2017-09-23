@@ -72,8 +72,7 @@ class _RCNN_base(nn.Module):
         # do roi pooling based on predicted rois
 
         if cfg.POOLING_MODE == 'crop':
-            # pooled_feat, grid = _crop_pool_layer(base_feat, rois.view(-1,5), False)
-
+            
             grid_xy = _affine_grid_gen(rois.view(-1, 5), base_feat.size()[2:], self.grid_size)
             grid_yx = torch.stack([grid_xy.data[:,:,:,1], grid_xy.data[:,:,:,0]], 3).contiguous()
             pooled_feat = self.RCNN_roi_crop(base_feat, Variable(grid_yx).detach())
@@ -148,11 +147,11 @@ class _fasterRCNN(nn.Module):
             self.bg_cnt = label.data.numel() - self.fg_cnt
 
             # focal loss
-            weights = (1 - cls_prob) ** 2
-            focal_prob = torch.log(cls_prob) * weights.detach()
-            self.RCNN_loss_cls = F.nll_loss(focal_prob, label)
+            # weights = (1 - cls_prob) ** 2
+            # focal_prob = torch.log(cls_prob) * weights.detach()
+            # self.RCNN_loss_cls = F.nll_loss(focal_prob, label)
 
-            # self.RCNN_loss_cls = F.cross_entropy(cls_score, label, weights.detach())
+            self.RCNN_loss_cls = F.cross_entropy(cls_score, label)
 
             # bounding box regression L1 loss
             self.RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)            
