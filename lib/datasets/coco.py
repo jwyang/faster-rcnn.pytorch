@@ -89,6 +89,12 @@ class coco(imdb):
     """
     return self.image_path_from_index(self._image_index[i])
 
+  def image_id_at(self, i):
+    """
+    Return the absolute path to image i in the image sequence.
+    """
+    return self._image_index[i]
+
   def image_path_from_index(self, index):
     """
     Construct an image path from the image's "index" identifier.
