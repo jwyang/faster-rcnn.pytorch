@@ -13,15 +13,15 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import math
 import torchvision.models as models
-from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN, _RCNN_base
+from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
 import pdb
 
 class vgg16(_fasterRCNN):
   def __init__(self, classes, pretrained=False):
-    _fasterRCNN.__init__(self, classes)    
     self.model_path = 'data/pretrained_model/vgg16_caffe.pth'
     self.dout_base_model = 512
     self.pretrained = pretrained
+    _fasterRCNN.__init__(self, classes)
 
   def _init_modules(self):
     vgg = models.vgg16()
@@ -33,13 +33,13 @@ class vgg16(_fasterRCNN):
     vgg.classifier = nn.Sequential(*list(vgg.classifier._modules.values())[:-1])
 
     # not using the last maxpool layer
-    vgg.features = nn.Sequential(*list(vgg.features._modules.values())[:-1])
+    self.RCNN_base = nn.Sequential(*list(vgg.features._modules.values())[:-1])
 
     # Fix the layers before conv3:
     for layer in range(10):
-      for p in vgg.features[layer].parameters(): p.requires_grad = False
+      for p in self.RCNN_base[layer].parameters(): p.requires_grad = False
 
-    self.RCNN_base = _RCNN_base(vgg.features, self.classes, self.dout_base_model)
+    # self.RCNN_base = _RCNN_base(vgg.features, self.classes, self.dout_base_model)
 
     self.RCNN_top = vgg.classifier
 

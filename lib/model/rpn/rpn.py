@@ -45,15 +45,12 @@ class _RPN(nn.Module):
     @staticmethod
     def reshape(x, d):
         input_shape = x.size()
-        # x = x.permute(0, 3, 1, 2)
-        # b c w h
         x = x.view(
             input_shape[0],
             int(d),
             int(float(input_shape[1] * input_shape[2]) / float(d)),
             input_shape[3]
         )
-        # x = x.permute(0, 2, 3, 1)
         return x
 
     def forward(self, base_feat, im_info, gt_boxes, num_boxes):

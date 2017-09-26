@@ -216,7 +216,11 @@ def bbox_overlaps_batch(anchors, gt_boxes):
         N = anchors.size(1)
         K = gt_boxes.size(1)
 
-        anchors = anchors[:,:,1:5].contiguous()
+        if anchors.size(2) == 4:
+            anchors = anchors[:,:,:4].contiguous()
+        else:
+            anchors = anchors[:,:,1:5].contiguous()
+        
         gt_boxes = gt_boxes[:,:,:4].contiguous()
 
         gt_boxes_x = (gt_boxes[:,:,2] - gt_boxes[:,:,0] + 1)

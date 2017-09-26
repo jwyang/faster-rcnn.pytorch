@@ -25,14 +25,12 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.datasets as dset
 from PIL import Image
-
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
-from model.faster_rcnn.faster_rcnn import _fasterRCNN
+from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
 from model.rpn.bbox_transform import clip_boxes
 from model.nms.nms_wrapper import nms
-from model.fast_rcnn.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
 from model.utils.net_utils import save_net, load_net, vis_detections
 from model.utils.blob import im_list_to_blob
@@ -197,18 +195,16 @@ if __name__ == '__main__':
 
   print('Loaded Photo: {} images.'.format(num_images))
 
-  im_file_target = os.path.join(args.image_dir, imglist[0])
-  im_target = cv2.imread(im_file_target)
 
   for i in range(num_images):
 
       # Load the demo image
       im_file = os.path.join(args.image_dir, imglist[i])
-      im = cv2.imread(im_file)
-      # im = np.array(Image.open(im_file))
-      # if len(im.shape) == 2:
-      #   im = im[:,:,np.newaxis]
-      #   im = np.concatenate((im,im,im), axis=2)
+      # im = cv2.imread(im_file)
+      im = np.array(Image.open(im_file))
+      if len(im.shape) == 2:
+        im = im[:,:,np.newaxis]
+        im = np.concatenate((im,im,im), axis=2)
 
       blobs, im_scales = _get_image_blob(im)
       assert len(im_scales) == 1, "Only single-image batch implemented"
@@ -241,7 +237,7 @@ if __name__ == '__main__':
           # Optionally normalize targets by a precomputed mean and stdev
                 box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS).cuda() \
                            + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS).cuda()
-                box_deltas = box_deltas.view(1, -1, 84)
+                box_deltas = box_deltas.view(1, -1, 4)
           pred_boxes = bbox_transform_inv(boxes, box_deltas, 1)
           pred_boxes = clip_boxes(pred_boxes, im_info.data, 1)
       else:
@@ -262,7 +258,7 @@ if __name__ == '__main__':
       for j in xrange(1, 21):
           inds = np.where(scores[:, j] > thresh)[0]
           cls_scores = scores[inds, j]
-          cls_boxes = pred_boxes[inds, j * 4:(j + 1) * 4]
+          cls_boxes = pred_boxes[inds, :]
           cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
               .astype(np.float32, copy=False)
           keep = nms(cls_dets, cfg.TEST.NMS)

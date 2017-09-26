@@ -131,8 +131,6 @@ class _ProposalTargetLayer(nn.Module):
         labels = gt_boxes[:,:,4].contiguous().view(-1).index(offset.view(-1))\
                                                             .view(batch_size, -1)
 
-        fg_mask = max_overlaps >= cfg.TRAIN.FG_THRESH
-
         labels_batch = labels.new(batch_size, rois_per_image).zero_()
         rois_batch  = all_rois.new(batch_size, rois_per_image, 5).zero_()
         gt_rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
