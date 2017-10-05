@@ -53,7 +53,7 @@ def parse_args():
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
   parser.add_argument('--load_dir', dest='load_dir',
-                      help='directory to load models', default="models",
+                      help='directory to load models', default="model",
                       nargs=argparse.REMAINDER)
   parser.add_argument('--cuda', dest='cuda',
                       help='whether use CUDA',
@@ -113,6 +113,10 @@ if __name__ == '__main__':
       args.imdb_name = "imagenet_train"
       args.imdbval_name = "imagenet_val"
       args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+  elif args.dataset == "vg":
+      args.imdb_name = "vg_150-50-50_minitrain"
+      args.imdbval_name = "vg_150-50-50_minival"
+      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
 
   if args.cfg_file is not None:
     cfg_from_file(args.cfg_file)
@@ -211,7 +215,7 @@ if __name__ == '__main__':
       det_tic = time.time()
       rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
       scores = cls_prob.data
-      boxes = rois.data[:, :, 1:5] / data[1][0][2]
+      boxes = rois.data[:, :, 1:5]
 
       if cfg.TEST.BBOX_REG:
           # Apply bounding-box regression deltas
@@ -227,6 +231,7 @@ if __name__ == '__main__':
           # Simply repeat the boxes, once for each class
           pred_boxes = np.tile(boxes, (1, scores.shape[1]))
 
+      pred_boxes /= data[1][0][2]
       
       scores = scores.squeeze()    
       pred_boxes = pred_boxes.squeeze()
@@ -248,7 +253,7 @@ if __name__ == '__main__':
             keep = nms(cls_dets, cfg.TEST.NMS)
             cls_dets = cls_dets[keep.view(-1).long()]
             if vis:
-              im2show = vis_detections(im2show, imdb.classes[j], cls_dets.cpu().numpy())
+              im2show = vis_detections(im2show, imdb.classes[j], cls_dets.cpu().numpy(), 0.3)
             all_boxes[j][i] = cls_dets.cpu().numpy()
           else:
             all_boxes[j][i] = empty_array
