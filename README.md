@@ -68,3 +68,5 @@ Alternatively, to train a vgg16, run:
 CUDA_VISIBLE_DEVICES=0 python trainval_net.py --dataset pascal_voc --net vgg16
 ```
 
+Change dataset to "vg" is you want to train on visual genone dataset.
+
