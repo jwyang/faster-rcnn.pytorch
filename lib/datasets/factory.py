@@ -43,11 +43,15 @@ for year in ['2015']:
     __sets[name] = (lambda split=split, year=year: coco(split, year))
 
 # Set up vg_<split>
-for version in ['1600-400-20']:
-    for split in ['minitrain', 'train', 'minival', 'val', 'test']:
+# for version in ['1600-400-20']:
+#     for split in ['minitrain', 'train', 'minival', 'val', 'test']:
+#         name = 'vg_{}_{}'.format(version,split)
+#         __sets[name] = (lambda split=split, version=version: vg(version, split))
+for version in ['150-50-20', '150-50-50', '500-150-80', '750-250-150', '1750-700-450', '1600-400-20']:
+    for split in ['minitrain', 'smalltrain', 'train', 'minival', 'smallval', 'val', 'test']:
         name = 'vg_{}_{}'.format(version,split)
         __sets[name] = (lambda split=split, version=version: vg(version, split))
-
+        
 # set up image net.
 for split in ['train', 'val', 'val1', 'val2', 'test']:
     name = 'imagenet_{}'.format(split)

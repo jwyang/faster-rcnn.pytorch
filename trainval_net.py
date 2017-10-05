@@ -63,7 +63,7 @@ def parse_args():
                       nargs=argparse.REMAINDER)
   parser.add_argument('--num_workers', dest='num_workers',
                       help='number of worker to load data',
-                      default=8, type=int)                        
+                      default=0, type=int)                        
   parser.add_argument('--cuda', dest='cuda',
                       help='whether use CUDA',
                       action='store_true')
@@ -163,7 +163,11 @@ if __name__ == '__main__':
   elif args.dataset == "imagenet":
       args.imdb_name = "imagenet_train"
       args.imdbval_name = "imagenet_val"
-      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+  elif args.dataset == "vg":
+      args.imdb_name = "vg_150-50-50_minitrain"
+      args.imdbval_name = "vg_150-50-50_minival"
+      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
 
   args.cfg_file = "cfgs/{}.yml".format(args.net)
 

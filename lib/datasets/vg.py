@@ -41,8 +41,8 @@ class vg(imdb):
             self._classes.append(names[0])
             for n in names:
               self._class_to_ind[n] = count
-            count += 1 
-            
+            count += 1
+
         # Load attributes
         self._attributes = ['__no_attribute__']
         self._attribute_to_ind = {}
@@ -54,8 +54,8 @@ class vg(imdb):
             self._attributes.append(names[0])
             for n in names:
               self._attribute_to_ind[n] = count
-            count += 1           
-            
+            count += 1
+
         # Load relations
         self._relations = ['__no_relation__']
         self._relation_to_ind = {}
@@ -67,31 +67,44 @@ class vg(imdb):
             self._relations.append(names[0])
             for n in names:
               self._relation_to_ind[n] = count
-            count += 1      
+            count += 1
+
 
         self._image_ext = '.jpg'
         load_index_from_file = False
-        if os.path.exists(os.path.join(self._data_path, "vg_image_index.p")):
-            with open(os.path.join(self._data_path, "vg_image_index.p"), 'rb') as fp:
+        if os.path.exists(os.path.join(self._data_path, "vg_image_index_{}.p".format(self._image_set))):
+            with open(os.path.join(self._data_path, "vg_image_index_{}.p".format(self._image_set)), 'rb') as fp:
                 self._image_index = pickle.load(fp)
             load_index_from_file = True
 
         load_id_from_file = False
-        if os.path.exists(os.path.join(self._data_path, "vg_id_to_dir.p")):
-            with open(os.path.join(self._data_path, "vg_id_to_dir.p"), 'rb') as fp:
+        if os.path.exists(os.path.join(self._data_path, "vg_id_to_dir_{}.p".format(self._image_set))):
+            with open(os.path.join(self._data_path, "vg_id_to_dir_{}.p".format(self._image_set)), 'rb') as fp:
                 self._id_to_dir = pickle.load(fp)
             load_id_from_file = True
 
         if not load_index_from_file or not load_id_from_file:
             self._image_index, self._id_to_dir = self._load_image_set_index()
+            with open(os.path.join(self._data_path, "vg_image_index_{}.p".format(self._image_set)), 'wb') as fp:
+                pickle.dump(self._image_index, fp)
+            with open(os.path.join(self._data_path, "vg_id_to_dir_{}.p".format(self._image_set)), 'wb') as fp:
+                pickle.dump(self._id_to_dir, fp)
 
         self._roidb_handler = self.gt_roidb
+
 
     def image_path_at(self, i):
         """
         Return the absolute path to image i in the image sequence.
         """
         return self.image_path_from_index(self._image_index[i])
+
+    def image_id_at(self, i):
+        """
+        Return the absolute path to image i in the image sequence.
+        """
+        return i
+        # return self._image_index[i]
 
     def image_path_from_index(self, index):
         """
@@ -103,12 +116,16 @@ class vg(imdb):
         assert os.path.exists(image_path), \
                 'Path does not exist: {}'.format(image_path)
         return image_path
-        
+
     def _image_split_path(self):
         if self._image_set == "minitrain":
           return os.path.join(self._data_path, 'train.txt')
+        if self._image_set == "smalltrain":
+          return os.path.join(self._data_path, 'train.txt')          
         if self._image_set == "minival":
           return os.path.join(self._data_path, 'val.txt')
+        if self._image_set == "smallval":
+          return os.path.join(self._data_path, 'val.txt')          
         else:
           return os.path.join(self._data_path, self._image_set+'.txt')
 
@@ -123,9 +140,13 @@ class vg(imdb):
           metadata = f.readlines()
           if self._image_set == "minitrain":
             metadata = metadata[:1000]
+          elif self._image_set == "smalltrain":
+            metadata = metadata[:20000]            
           elif self._image_set == "minival":
             metadata = metadata[:100]
-        
+          elif self._image_set == "smallval":
+            metadata = metadata[:2000]
+
         image_index = []
         id_to_dir = {}
         for line in metadata:
@@ -145,16 +166,16 @@ class vg(imdb):
                       id_to_dir[image_id] = im_file.split('/')[0]
                       break
         return image_index, id_to_dir
-      
+
     def gt_roidb(self):
         """
         Return the database of ground-truth regions of interest.
 
         This function loads/saves from/to a cache file to speed up future calls.
-        """
+        """        
         cache_file = os.path.join(self.cache_path, self.name + '_gt_roidb.pkl')
         if os.path.exists(cache_file):
-            fid = gzip.open(cache_file,'rb') 
+            fid = gzip.open(cache_file,'rb')
             roidb = cPickle.load(fid)
             fid.close()
             print '{} gt roidb loaded from {}'.format(self.name, cache_file)
@@ -162,19 +183,18 @@ class vg(imdb):
 
         gt_roidb = [self._load_vg_annotation(index)
                     for index in self.image_index]
-
-        fid = gzip.open(cache_file,'wb')       
+        fid = gzip.open(cache_file,'wb')
         cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
         fid.close()
         print 'wrote gt roidb to {}'.format(cache_file)
         return gt_roidb
-      
+
     def _get_size(self, index):
       return PIL.Image.open(self.image_path_from_index(index)).size
-      
+
     def _annotation_path(self, index):
         return os.path.join(self._data_path, 'xml', str(index) + '.xml')
-      
+
     def _load_vg_annotation(self, index):
         """
         Load image and bounding boxes info from XML file in the PASCAL VOC
@@ -228,12 +248,15 @@ class vg(imdb):
                 overlaps[ix, cls] = 1.0
                 seg_areas[ix] = (x2 - x1 + 1) * (y2 - y1 + 1)
                 ix += 1
+        # clip gt_classes and gt_relations
+        gt_classes = gt_classes[:ix]
+        gt_attributes = gt_attributes[:ix, :]
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
         gt_attributes = scipy.sparse.csr_matrix(gt_attributes)
 
         rels = tree.findall('relation')
-        num_rels = len(rels) 
+        num_rels = len(rels)
         gt_relations = set() # Avoid duplicates
         for rel in rels:
             pred = rel.find('predicate').text
@@ -268,8 +291,8 @@ class vg(imdb):
                 if cls == '__background__':
                     continue
                 filename = self._get_vg_results_file_template(output_dir).format(cls)
-                os.remove(filename)      
-                
+                os.remove(filename)
+
     def evaluate_attributes(self, all_boxes, output_dir):
         self._write_voc_results_file(self.attributes, all_boxes, output_dir)
         self._do_python_eval(output_dir, eval_attributes = True)
@@ -279,7 +302,7 @@ class vg(imdb):
                     continue
                 filename = self._get_vg_results_file_template(output_dir).format(cls)
                 os.remove(filename)
-                
+
     def _get_vg_results_file_template(self, output_dir):
         filename = 'detections_' + self._image_set + '_{:s}.txt'
         path = os.path.join(output_dir, filename)
@@ -302,8 +325,8 @@ class vg(imdb):
                                 format(str(index), dets[k, -1],
                                        dets[k, 0] + 1, dets[k, 1] + 1,
                                        dets[k, 2] + 1, dets[k, 3] + 1))
-                                                
-                                       
+
+
     def _do_python_eval(self, output_dir, pickle=True, eval_attributes = False):
         # We re-use parts of the pascal voc python code for visual genome
         aps = []
@@ -314,7 +337,7 @@ class vg(imdb):
         print 'VOC07 metric? ' + ('Yes' if use_07_metric else 'No')
         if not os.path.isdir(output_dir):
             os.mkdir(output_dir)
-        # Load ground truth    
+        # Load ground truth
         gt_roidb = self.gt_roidb()
         if eval_attributes:
             classes = self._attributes
@@ -332,17 +355,17 @@ class vg(imdb):
             if npos > 1:
                 f = np.nan_to_num((prec*rec)/(prec+rec))
                 thresh += [scores[np.argmax(f)]]
-            else: 
+            else:
                 thresh += [0]
             aps += [ap]
             nposs += [float(npos)]
             print('AP for {} = {:.4f} (npos={:,})'.format(cls, ap, npos))
             if pickle:
                 with open(os.path.join(output_dir, cls + '_pr.pkl'), 'w') as f:
-                    cPickle.dump({'rec': rec, 'prec': prec, 'ap': ap, 
+                    cPickle.dump({'rec': rec, 'prec': prec, 'ap': ap,
                         'scores': scores, 'npos':npos}, f)
-         
-        # Set thresh to mean for classes with poor results 
+
+        # Set thresh to mean for classes with poor results
         thresh = np.array(thresh)
         avg_thresh = np.mean(thresh[thresh!=0])
         thresh[thresh==0] = avg_thresh
@@ -350,11 +373,11 @@ class vg(imdb):
             filename = 'attribute_thresholds_' + self._image_set + '.txt'
         else:
             filename = 'object_thresholds_' + self._image_set + '.txt'
-        path = os.path.join(output_dir, filename)       
+        path = os.path.join(output_dir, filename)
         with open(path, 'wt') as f:
             for i, cls in enumerate(classes[1:]):
-                f.write('{:s} {:.3f}\n'.format(cls, thresh[i]))           
-                
+                f.write('{:s} {:.3f}\n'.format(cls, thresh[i]))
+
         weights = np.array(nposs)
         weights /= weights.sum()
         print('Mean AP = {:.4f}'.format(np.mean(aps)))
@@ -369,9 +392,9 @@ class vg(imdb):
         print('')
         print('--------------------------------------------------------------')
         print('Results computed with the **unofficial** PASCAL VOC Python eval code.')
-        print('--------------------------------------------------------------')           
+        print('--------------------------------------------------------------')
 
-        
+
 if __name__ == '__main__':
     d = datasets.vg('val')
     res = d.roidb
