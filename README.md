@@ -1,5 +1,3 @@
-Readme
-
 # A Pytorch *Faster* Faster R-CNN Implementation
 
 ## Introduction
