@@ -34,7 +34,7 @@ model     | lr        | GPUs     | Batch Size |  Speed / epoch | Memory / GPU | 
 -----------|-----------|----------|------------|-------|--------|-----
 VGG-16     | 1e-3|1 Titan X | 1          |  0.46 hr | ~3265MB   | 70.2   
 VGG-16     | 3e-3|1 Titan X | 4          |  0.36 hr | ~9083MB   | N/A   
-VGG-16     | 5e-3|8 Titan X | 24         |  0.24 hr | ~11303MB  | N/A   
+VGG-16     | 5e-3|8 Titan X | 24         |  0.16 hr | ~11303MB  | N/A   
 Res-101    | 1e-3|1 Titan X | 1          |  0.54 hr | ~3200 MB  | 73.9   
 Res-101    | 3e-3|1 Titan X | 4          |  0.48 hr | ~9700 MB  | N/A   
 Res-101    | 5e-3|8 Titan X | 24         |  0.16 hr | ~8400 MB  | N/A   
