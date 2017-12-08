@@ -1,72 +1,124 @@
-# Pytorch Faster-RCNN
+Readme
 
-### Introduction
+# A Pytorch *Faster* Faster R-CNN Implementation
 
-This project is aimed to reproduce the faster rcnn object detection model. It is developed based on the following projects:
+## Introduction
 
-1. [rbgirshick/py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn), developed based on Pycaffe + Numpy
+This project is a *faster* faster R-CNN implementation, aimed to accelerating the training of faster R-CNN object detection models. Recently, there are a number of good implementations:
 
-2. [longcw/faster_rcnn_pytorch](https://github.com/longcw/faster_rcnn_pytorch), developed based on Pytorch + Numpy
+* [rbgirshick/py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn), developed based on Pycaffe + Numpy
 
-3. [endernewton/tf-faster-rcnn](https://github.com/endernewton/tf-faster-rcnn), developed based on TensorFlow + Numpy
+* [longcw/faster_rcnn_pytorch](https://github.com/longcw/faster_rcnn_pytorch), developed based on Pytorch + Numpy
 
-4. [ruotianluo/pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn), developed based on Pytorch + TensorFlow + Numpy
+* [endernewton/tf-faster-rcnn](https://github.com/endernewton/tf-faster-rcnn), developed based on TensorFlow + Numpy
 
-However, there are several unique features compared with the above implementations:
+* [ruotianluo/pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn), developed based on Pytorch + TensorFlow + Numpy
 
-1) **It is pure Pytorch code**. We convert all the numpy implementations to pytorch.
+During our implementing, we referred the above implementations, especailly [longcw/faster_rcnn_pytorch](https://github.com/longcw/faster_rcnn_pytorch). However, our implementation has several unique and new features compared with the above implementations:
 
-2) **It supports trainig batchsize > 1**. We revise all the layers, including dataloader, rpn, roi-pooling, etc., to train with multiple images at each iteration.
+* **It is pure Pytorch code**. We convert all the numpy implementations to pytorch.
 
-3) **It supports multiple GPUs**. We use a multiple GPU wrapper (nn.DataParallel here) to make it flexible to use one or more GPUs, as a merit of the above two features.
+* **It supports trainig batchsize > 1**. We revise all the layers, including dataloader, rpn, roi-pooling, etc., to train with multiple images at each iteration.
 
-4) **It is memory efficient**. We limit the image aspect ratio, and group the image in batch with similar aspect ratio. We can train resnet101 and VGG16 with batchsize = 4 (4 images) on a sigle Titan X 12 GB. When training with 8 GPU, the maximum batchsize for each GPU is 3 images (Res101), with total batchsize = 24. 
+* **It supports multiple GPUs**. We use a multiple GPU wrapper (nn.DataParallel here) to make it flexible to use one or more GPUs, as a merit of the above two features.
 
-5) **It is faster**. With above merits, our training speed can achieve xxx / xxx (VGG/Res101) on single TITAN X Pascal GPU and xxx/xxx (VGG / Res101) on 8 TITAN X Pascal GPU.  
+* **It is memory efficient**. We limit the image aspect ratio, and group the image in batch with similar aspect ratio. We can train resnet101 and VGG16 with batchsize = 4 (4 images) on a sigle Titan X 12 GB. When training with 8 GPU, the maximum batchsize for each GPU is 3 images (Res101), with total batchsize = 24. 
 
-### Benchmarking
+* **It is fast**. With above merits, the training is fast. We report the training speed on NVIDIA TITAN Xp in the tables below.
+
+## Benchmarking
 
 We benchmark our code thoroughly on three datasets: pascal voc, mscoco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
 
-1. PASCAL VOC (Train/Test: 07trainval/07test) (lr_decay/max_epoch: 5/7)
+1). PASCAL VOC 2007 (Train/Test: 07trainval/07test) (lr_decay/max_epoch: 5/7)
 
-	 model     | lr        | GPUs     | Batch Size |  Speed / epoch | Memory / GPU | mAP 
-	-----------|-----------|----------|------------|-------|--------|-----
-	VGG-16     | 1e-3|1 Titan X | 1           |  0.46 hr | 3265   | 70.2   
-	VGG-16     | 3e-3|1 Titan X | 4          |  0.36 hr | 9083   | 0   
-	VGG-16     | 5e-3|8 Titan X | 27         |  0       | 0      | 0   
-	Res-101    | 1e-3|1 Titan X | 1          |  0.54 hr | 3200 MB  | 73.9   
-	Res-101    | 3e-3|1 Titan X | 4          |  0.48 hr | 9700 MB  | 0   
-	Res-101    | 5e-3|8 Titan X | 27         |  0.16 hr | 8400 MB  | 0   
-
-
-1. COCO (Train/Test: coco_train/coco_test) (lr_decay/max_epoch:5/7)
-
-	 model     | lr | GPUs     | Batch Size | Speed / epoch | Memory / GPU | mAP 
-	-----------|-----------|----------|------------|-------|--------|-----
-	VGG-16     | 1e-3 |1 Titan X | 1          |  10.4 hr | 0   | 0   
-	VGG-16     | 3e-3 |1 Titan X | 4          |  8.3 hr  | 0   | 0   
-	VGG-16     | 5e-3 |8 Titan X | 27         |  0       | 0   | 0   
-	Res-101    | 1e-3 |1 Titan X | 1          |  13.7 hr | 3300 MB | 0   
-	Res-101    | 3e-3 |1 Titan X | 4          |  11.6 hr | 9800 MB | 0   
-	Res-101    | 5e-3 |8 Titan X | 27         |  0       | 8400 MB | 0  
-
-#### Prepare Data 
-**PASCAL_VOC** and **COCO**:
-
-Please follow the instructions of [py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn#beyond-the-demo-installation-for-training-and-testing-models) to setup VOC and COCO datasets. The steps involve downloading data and optionally creating softlinks in the data folder. Since faster RCNN does not rely on pre-computed proposals, it is safe to ignore the steps that setup proposals.
-
-**ImageNet**:
+model     | lr        | GPUs     | Batch Size |  Speed / epoch | Memory / GPU | mAP 
+-----------|-----------|----------|------------|-------|--------|-----
+VGG-16     | 1e-3|1 Titan X | 1          |  0.46 hr | ~3265MB   | 70.2   
+VGG-16     | 3e-3|1 Titan X | 4          |  0.36 hr | ~9083MB   | N/A   
+VGG-16     | 5e-3|8 Titan X | 24         |  0.24 hr | ~11303MB  | N/A   
+Res-101    | 1e-3|1 Titan X | 1          |  0.54 hr | ~3200 MB  | 73.9   
+Res-101    | 3e-3|1 Titan X | 4          |  0.48 hr | ~9700 MB  | N/A   
+Res-101    | 5e-3|8 Titan X | 24         |  0.16 hr | ~8400 MB  | N/A   
 
 
-To train a resnet101, run:
+2). COCO (Train/Test: coco_train/coco_test) (lr_decay/max_epoch:5/7)
+
+model     | lr        | GPUs     | Batch Size | Speed / epoch | Memory / GPU | mAP 
+-----------|-----------|----------|------------|-------|--------|-----
+VGG-16     | 1e-3 |1 Titan X | 1          |  10.4 hr | N/A      | N/A   
+VGG-16     | 3e-3 |1 Titan X | 4          |  8.3 hr  | N/A      | N/A   
+VGG-16     | 5e-3 |8 Titan X | 24         |  N/A     | N/A      | N/A   
+Res-101    | 1e-3 |1 Titan X | 1          |  13.7 hr | ~3300 MB | N/A   
+Res-101    | 3e-3 |1 Titan X | 4          |  11.6 hr | ~9800 MB | N/A   
+Res-101    | 5e-3 |8 Titan X | 24         |  N/A     | ~8400 MB | N/A  
+
+**NOTE**. N/A means not available now. The benchmarking performance on these datasets will come along with our report soon.
+
+## Preparation 
+
+First of all, create a folder:
 ```
- CUDA_VISIBLE_DEVICES=0 python trainval_net.py --dataset pascal_voc --net resnet101
- ```
-Alternatively, to train a vgg16, run:
-```
-CUDA_VISIBLE_DEVICES=0 python trainval_net.py --dataset pascal_voc --net vgg16
+mkdir data
 ```
 
-Change dataset to "vg" is you want to train on visual genone dataset.
+### Data Preparation
 
+* **PASCAL_VOC 07+12**: Please follow the instructions in [py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn#beyond-the-demo-installation-for-training-and-testing-models) to prepare VOC datasets. Actually, you can refer to any others. After downloading the data, creat softlinks in the folder data/.
+
+* **COCO**: Please also follow the instructions in [py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn#beyond-the-demo-installation-for-training-and-testing-models) to prepare the data.
+
+* **Visual Genome**: Please follow the instructions in [bottom-up-attention](https://github.com/peteanderson80/bottom-up-attention) to prepare Visual Genome dataset. You need to download the images and object annotation files first, and then perform proprecessing to obtain the vocabulary and cleansed annotations based on the scripts provided in this repository.
+
+### Pretrained Model
+
+We used two pretrained models in our experiments, VGG and ResNet101. You can download these two models from:
+
+* VGG16: https://www.dropbox.com/s/s3brpk0bdq60nyb/vgg16_caffe.pth?dl=0
+
+* ResNet101: https://www.dropbox.com/s/iev3tkbz5wyyuz9/resnet101_caffe.pth?dl=0
+
+Download them and put them into the data/.
+
+**NOTE**. We compare the pretrained models from Pytorch and Caffe, and surprisingly find Caffe pretrained models have slightly better performance than Pytorch pretrained. We would suggest to use Caffe pretrained models from the above link to reproduce our results.
+
+### Compilation
+
+Compile the dependencies using following simple commands:
+
+```
+cd lib
+sh make.sh
+```
+
+## Train 
+
+To train a faster R-CNN model with vgg16 on pascal_voc, simply run:
+```
+CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --bs $BATCH_SIZE
+```
+where 'bs' is the batch size with default 1. Alternatively, to train with resnet101 on pascal_voc, simple run:
+```
+ CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net resnet101 --cuda --bs $BATCH_SIZE
+```
+
+Above, BATCH_SIZE can be set adaptively according to your GPU memory size. **On Titan Xp with 12G memory, it can be up to 4**.
+
+If you have multiple (say 8) Titan Xp GPUs, then just use them all! Try:
+```
+python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --mGPUs --bs 24
+```
+
+Change dataset to "coco" or 'vg' if you want to train on COCO or Visual Genome.
+
+## Test
+
+If you want to evlauate the detection performance of a pre-trained vgg16 model on pascal_voc test set, simply run
+```
+python test_net.py --dataset pascal_voc --net vgg16 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda
+```
+Specify the specific model session, chechepoch and checkpoint, e.g., SESSION=1, EPOCH=6, CHECKPOINT=416.
+
+## Authorship
+
+This project is equally contributed by [Jianwei Yang](https://github.com/jwyang) and [Jiasen Lu](https://github.com/jiasenlu).
