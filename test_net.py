@@ -53,7 +53,7 @@ def parse_args():
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
   parser.add_argument('--load_dir', dest='load_dir',
-                      help='directory to load models', default="model",
+                      help='directory to load models', default="/srv/share/jyang375/models",
                       nargs=argparse.REMAINDER)
   parser.add_argument('--cuda', dest='cuda',
                       help='whether use CUDA',
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     fasterRCNN.cuda()
 
   start = time.time()
-  max_per_image = 100
+  max_per_image = 300
   thresh = 0.05
   vis = args.vis
 
@@ -276,8 +276,10 @@ if __name__ == '__main__':
       sys.stdout.flush()
 
       if vis:
-          cv2.imshow('test', im2show)
-          cv2.waitKey(0)
+          cv2.imwrite('result.png', im2show)
+          pdb.set_trace()
+          #cv2.imshow('test', im2show)
+          #cv2.waitKey(0)
 
   with open(det_file, 'wb') as f:
       cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
