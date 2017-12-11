@@ -49,7 +49,7 @@ VGG-16     | 3e-3 |1 Titan X | 4          |  8.3 hr  | N/A      | N/A
 VGG-16     | 5e-3 |8 Titan X | 24         |  N/A     | N/A      | N/A   
 Res-101    | 1e-3 |1 Titan X | 1          |  13.7 hr | ~3300 MB | N/A   
 Res-101    | 3e-3 |1 Titan X | 4          |  11.6 hr | ~9800 MB | N/A   
-Res-101    | 5e-3 |8 Titan X | 24         |  N/A     | ~8400 MB | N/A  
+Res-101    | 5e-3 |8 Titan X | 24         |  3.5 hr  | ~8400 MB | N/A  
 
 **NOTE**. N/A means not available now. The benchmarking performance on these datasets will come along with our report soon. Though lack of the benchmark here, you can definitely use the code now! Train your model with the recent code, you will obtain a comparable object detection model to previous implementations on different datasets.
 
