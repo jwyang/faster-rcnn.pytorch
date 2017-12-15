@@ -30,8 +30,8 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 
 1). PASCAL VOC 2007 (Train/Test: 07trainval/07test) (lr_decay/max_epoch: 5/7)
 
-model     | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed / epoch | Memory / GPU | mAP 
------------|-----------|----------|------------|-------|--------|-----
+model      | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed / epoch | Memory / GPU | mAP 
+-----------|-----------|-----------|-----------|----------|------------|-------|--------|-----
 VGG-16     | 1 Titan X | 1 | 1e-3 | 5   | 7   |  0.46 hr | ~3265MB   | 70.2   
 VGG-16     | 1 Titan X | 4 | 4e-3 | 8   | 10  |  0.36 hr | ~9083MB   | N/A   
 VGG-16     | 8 Titan X | 16| 1e-2 | 8   | 10  |  0.16 hr | ~11303MB  | N/A 
@@ -45,7 +45,7 @@ Res-101    | 8 Titan X | 24| 2e-2 | 10  | 12  |  0.16 hr | ~8400 MB  | N/A
 2). COCO (Train/Test: coco_train/coco_test) (lr_decay/max_epoch:5/7)
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch | GPUs     |  Speed / epoch | Memory / GPU | mAP 
------------|-----------|----------|------------|-------|--------|-----
+-----------|-----------|-----------|-----------|----------|------------|-------|--------|-----
 VGG-16     | 1 Titan X | 1     |1e-3| 5   | 7   |  10.4 hr | N/A   | N/A   
 VGG-16     | 1 Titan X | 4     |4e-3| 8   | 10  |  8.3 hr | N/A   | N/A   
 VGG-16     | 8 Titan X | 16    |1e-2| 8   | 10  |  N/A | N/A  | N/A 
