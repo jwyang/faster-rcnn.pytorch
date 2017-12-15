@@ -32,9 +32,9 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 
 model    | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed / epoch | Memory / GPU | mAP 
 ---------|-----------|----|-----------|-----|-----|-------|--------|-----
-VGG-16     | 1 Titan X | 1 | 1e-3 | 5   | 7   |  0.46 hr | 3265MB   | 70.2   
+VGG-16     | 1 Titan X | 1 | 1e-3 | 5   | 7   |  0.46 hr | 3265MB   | 70.3   
 VGG-16     | 1 Titan X | 4 | 4e-3 | 8   | 10  |  0.36 hr | 9083MB   | N/A   
-VGG-16     | 8 Titan X | 16| 1e-2 | 8   | 10  |  0.16 hr | 11303MB  | N/A 
+VGG-16     | 8 Titan X | 16| 1e-2 | 8   | 10  |  0.19 hr | 11303MB  | 69.6 
 VGG-16     | 8 Titan X | 24| 2e-2 | 10  | 12  |  0.16 hr | 11303MB  | N/A   
 Res-101    | 1 Titan X | 1 | 1e-3 | 5   | 7   |  0.54 hr | 3200 MB  | 73.9   
 Res-101    | 1 Titan X | 4 | 4e-3 | 8   | 10  |  0.48 hr | 9700 MB  | N/A
