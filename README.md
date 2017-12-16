@@ -1,4 +1,4 @@
-# A Pytorch *Faster* Faster R-CNN Implementation
+# A *Faster* Pytorch Implementation of Faster R-CNN
 
 ## Introduction
 
