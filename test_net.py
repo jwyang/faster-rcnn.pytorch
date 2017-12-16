@@ -182,7 +182,7 @@ if __name__ == '__main__':
 
   start = time.time()
   max_per_image = 300
-  thresh = 0.05
+  thresh = 0.01
   vis = args.vis
 
   save_name = 'faster_rcnn_10'

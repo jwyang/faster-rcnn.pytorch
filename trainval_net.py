@@ -50,7 +50,7 @@ def parse_args():
                       default=1, type=int)
   parser.add_argument('--epochs', dest='max_epochs',
                       help='number of epochs to train',
-                      default=10, type=int)
+                      default=20, type=int)
   parser.add_argument('--disp_interval', dest='disp_interval',
                       help='number of iterations to display',
                       default=100, type=int)
@@ -78,6 +78,9 @@ def parse_args():
   parser.add_argument('--o', dest='optimizer',
                       help='training optimizer',
                       default="sgd", type=str)
+  parser.add_argument('--lr', dest='lr',
+                      help='starting learning rate',
+                      default=0.01, type=float)
   parser.add_argument('--lr_decay_step', dest='lr_decay_step',
                       help='step to do learning rate decay, unit is epoch',
                       default=5, type=int)
@@ -246,6 +249,10 @@ if __name__ == '__main__':
   fasterRCNN.create_architecture()
 
   lr = cfg.TRAIN.LEARNING_RATE
+  lr = args.lr
+  #tr_momentum = cfg.TRAIN.MOMENTUM
+  #tr_momentum = args.momentum
+
   params = []
   for key, value in dict(fasterRCNN.named_parameters()).items():
     if value.requires_grad:
@@ -280,18 +287,20 @@ if __name__ == '__main__':
   if args.cuda:
     fasterRCNN.cuda()
 
+  iters_per_epoch = int(train_size / args.batch_size)
+
   for epoch in range(args.start_epoch, args.max_epochs):
     # setting to train mode
     fasterRCNN.train()
     loss_temp = 0
     start = time.time()
 
-    if epoch % args.lr_decay_step == 0:
+    if epoch % (args.lr_decay_step + 1) == 0:
         adjust_learning_rate(optimizer, args.lr_decay_gamma)
         lr *= args.lr_decay_gamma
 
     data_iter = iter(dataloader)
-    for step in range(int(train_size / args.batch_size)):
+    for step in range(iters_per_epoch):
       data = data_iter.next()
       im_data.data.resize_(data[0].size()).copy_(data[0])
       im_info.data.resize_(data[1].size()).copy_(data[1])
