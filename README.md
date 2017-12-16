@@ -1,4 +1,4 @@
-# A Pytorch *Faster* Faster R-CNN Implementation
+# A *Faster* Pytorch Implementation of Faster R-CNN
 
 ## Introduction
 
@@ -26,32 +26,44 @@ During our implementing, we referred the above implementations, especailly [long
 
 ## Benchmarking
 
-We benchmark our code thoroughly on three datasets: pascal voc, mscoco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
+We benchmark our code thoroughly on three datasets: pascal voc, coco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
 
-1). PASCAL VOC 2007 (Train/Test: 07trainval/07test) (lr_decay/max_epoch: 5/7)
+1). PASCAL VOC 2007 (Train/Test: 07trainval/07test)
 
-model     | lr        | GPUs     | Batch Size |  Speed / epoch | Memory / GPU | mAP 
------------|-----------|----------|------------|-------|--------|-----
-VGG-16     | 1e-3|1 Titan X | 1          |  0.46 hr | ~3265MB   | 70.2   
-VGG-16     | 3e-3|1 Titan X | 4          |  0.36 hr | ~9083MB   | N/A   
-VGG-16     | 5e-3|8 Titan X | 24         |  0.16 hr | ~11303MB  | N/A   
-Res-101    | 1e-3|1 Titan X | 1          |  0.54 hr | ~3200 MB  | 73.9   
-Res-101    | 3e-3|1 Titan X | 4          |  0.48 hr | ~9700 MB  | N/A   
-Res-101    | 5e-3|8 Titan X | 24         |  0.16 hr | ~8400 MB  | N/A   
+model    | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
+---------|-----------|----|-----------|-----|-----|-------|--------|--------
+VGG-16     | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.46 hr | 3265MB   | 70.3   
+VGG-16     | 1 TitanX | 4 | 4e-3 | 7   | 8   |  0.36 hr | 9083MB   | 70.1   
+VGG-16     | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.6 
+VGG-16     | 8 TitanX | 24| 1e-2 | 10  | 11  |  0.16 hr | 11303MB  | 69.6   
+Res-101    | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.54 hr | 3200 MB  | 73.9   
+Res-101    | 1 TitanX | 4 | 4e-3 | 8   | 10  |  0.48 hr | 9700 MB  | N/A
+Res-101    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.21 hr | 8400 MB  | N/A  
+Res-101    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | N/A   
 
 
-2). COCO (Train/Test: coco_train/coco_test) (lr_decay/max_epoch:5/7)
+2). COCO (Train/Test: coco_train/coco_test)
 
-model     | lr        | GPUs     | Batch Size | Speed / epoch | Memory / GPU | mAP 
------------|-----------|----------|------------|-------|--------|-----
-VGG-16     | 1e-3 |1 Titan X | 1          |  10.4 hr | N/A      | N/A   
-VGG-16     | 3e-3 |1 Titan X | 4          |  8.3 hr  | N/A      | N/A   
-VGG-16     | 5e-3 |8 Titan X | 24         |  N/A     | N/A      | N/A   
-Res-101    | 1e-3 |1 Titan X | 1          |  13.7 hr | ~3300 MB | N/A   
-Res-101    | 3e-3 |1 Titan X | 4          |  11.6 hr | ~9800 MB | N/A   
-Res-101    | 5e-3 |8 Titan X | 24         |  N/A     | ~8400 MB | N/A  
+model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
+---------|-----------|-----|-----------|-----|-----|-------|--------|-----
+VGG-16     | 1 TitanX | 1     |1e-3| 5   | 7   |  10.4 hr | N/A   | N/A   
+VGG-16     | 1 TitanX | 4     |4e-3| 8   | 10  |  8.3 hr | N/A   | N/A   
+VGG-16     | 8 TitanX | 16    |1e-2| 8   | 10  |  N/A | N/A  | N/A 
+VGG-16     | 8 TitanX | 24    |1e-2| 10  | 12  |  N/A | N/A  | N/A   
+Res-101    | 1 TitanX | 1     |1e-3| 5   | 7   |  13.7 hr | ~3300 MB  | N/A   
+Res-101    | 1 TitanX | 4     |4e-3| 8   | 10  |  11.6 hr | ~9800 MB  | N/A
+Res-101    | 8 TitanX | 16    |1e-2| 8   | 10  |  N/A    |  N/A  | N/A    
+Res-101    | 8 TitanX | 24    |1e-2| 10  | 12  |  3.5 hr | ~8400 MB  | 34.3    
 
-**NOTE**. N/A means not available now. The benchmarking performance on these datasets will come along with our report soon.
+**NOTE**. N/A means not available now. The benchmarking performance on these datasets will come along with our report soon. Though lack of the benchmark here, you can definitely use the code now! Train your model with the recent code, you will obtain a comparable object detection model to previous implementations on different datasets.
+
+### What we are doing now
+
+* Run systematical experiments on PASCAL VOC 07/12, COCO, ImageNet, Visual Genome (VG) with different settings.
+
+* Find the right training regime for multi-GPU and multi-Image batch training. Now training with 24 images on 8 GPUs has a slight degradation of performance (>1.0 mAP drop on PASCAL VOC.)
+
+* Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.
 
 ## Preparation 
 
@@ -78,7 +90,9 @@ We used two pretrained models in our experiments, VGG and ResNet101. You can dow
 
 Download them and put them into the data/.
 
-**NOTE**. We compare the pretrained models from Pytorch and Caffe, and surprisingly find Caffe pretrained models have slightly better performance than Pytorch pretrained. We would suggest to use Caffe pretrained models from the above link to reproduce our results.
+**NOTE**. We compare the pretrained models from Pytorch and Caffe, and surprisingly find Caffe pretrained models have slightly better performance than Pytorch pretrained. We would suggest to use Caffe pretrained models from the above link to reproduce our results. 
+
+**If you want to use pytorch pre-trained models, please remember to transpose images from BGR to RGB, and also use the same data transformer (minus mean and normalize) as used in pretrained model.**
 
 ### Compilation
 
@@ -120,3 +134,20 @@ Specify the specific model session, chechepoch and checkpoint, e.g., SESSION=1, 
 ## Authorship
 
 This project is equally contributed by [Jianwei Yang](https://github.com/jwyang) and [Jiasen Lu](https://github.com/jiasenlu).
+
+## Citation
+
+    @article{jjfaster2rcnn,
+        Author = {Jianwei Yang and Jiasen Lu, Dhruv Batra, Devi Parikh},
+        Title = {A Faster Pytorch Implementation of Faster R-CNN},
+        Journal = {https://github.com/jwyang/faster-rcnn.pytorch},
+        Year = {2017}
+    } 
+    
+    @inproceedings{renNIPS15fasterrcnn,
+        Author = {Shaoqing Ren and Kaiming He and Ross Girshick and Jian Sun},
+        Title = {Faster {R-CNN}: Towards Real-Time Object Detection
+                 with Region Proposal Networks},
+        Booktitle = {Advances in Neural Information Processing Systems ({NIPS})},
+        Year = {2015}
+    }
