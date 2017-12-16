@@ -30,16 +30,16 @@ We benchmark our code thoroughly on three datasets: pascal voc, mscoco and image
 
 1). PASCAL VOC 2007 (Train/Test: 07trainval/07test) (lr_decay/max_epoch: 5/7)
 
-model    | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed / epoch | Memory / GPU | mAP 
----------|-----------|----|-----------|-----|-----|-------|--------|-----
+model    | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
+---------|-----------|----|-----------|-----|-----|-------|--------|--------
 VGG-16     | 1 Titan X | 1 | 1e-3 | 5   | 7   |  0.46 hr | 3265MB   | 70.3   
 VGG-16     | 1 Titan X | 4 | 4e-3 | 8   | 10  |  0.36 hr | 9083MB   | N/A   
-VGG-16     | 8 Titan X | 16| 1e-2 | 8   | 10  |  0.19 hr | 11303MB  | 69.6 
-VGG-16     | 8 Titan X | 24| 2e-2 | 10  | 12  |  0.16 hr | 11303MB  | N/A   
+VGG-16     | 8 Titan X | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.6 
+VGG-16     | 8 Titan X | 24| 1e-2 | 10  | 11  |  0.16 hr | 11303MB  | 69.6   
 Res-101    | 1 Titan X | 1 | 1e-3 | 5   | 7   |  0.54 hr | 3200 MB  | 73.9   
 Res-101    | 1 Titan X | 4 | 4e-3 | 8   | 10  |  0.48 hr | 9700 MB  | N/A
-Res-101    | 8 Titan X | 16| 1e-2 | 8   | 10  |  0.16 hr | 8400 MB  | N/A   
-Res-101    | 8 Titan X | 24| 2e-2 | 10  | 12  |  0.16 hr | 8400 MB  | N/A   
+Res-101    | 8 Titan X | 16| 1e-2 | 8   | 10  |  0.21 hr | 8400 MB  | N/A  
+Res-101    | 8 Titan X | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | N/A   
 
 
 2). COCO (Train/Test: coco_train/coco_test) (lr_decay/max_epoch:5/7)
@@ -49,11 +49,11 @@ model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed / e
 VGG-16     | 1 Titan X | 1     |1e-3| 5   | 7   |  10.4 hr | N/A   | N/A   
 VGG-16     | 1 Titan X | 4     |4e-3| 8   | 10  |  8.3 hr | N/A   | N/A   
 VGG-16     | 8 Titan X | 16    |1e-2| 8   | 10  |  N/A | N/A  | N/A 
-VGG-16     | 8 Titan X | 24    |2e-2| 10  | 12  |  N/A | N/A  | N/A   
+VGG-16     | 8 Titan X | 24    |1e-2| 10  | 12  |  N/A | N/A  | N/A   
 Res-101    | 1 Titan X | 1     |1e-3| 5   | 7   |  13.7 hr | ~3300 MB  | N/A   
 Res-101    | 1 Titan X | 4     |4e-3| 8   | 10  |  11.6 hr | ~9800 MB  | N/A
 Res-101    | 8 Titan X | 16    |1e-2| 8   | 10  |  N/A    |  N/A  | N/A    
-Res-101    | 8 Titan X | 24    |2e-2| 10  | 12  |  3.5 hr | ~8400 MB  | 34.3    
+Res-101    | 8 Titan X | 24    |1e-2| 10  | 12  |  3.5 hr | ~8400 MB  | 34.3    
 
 **NOTE**. N/A means not available now. The benchmarking performance on these datasets will come along with our report soon. Though lack of the benchmark here, you can definitely use the code now! Train your model with the recent code, you will obtain a comparable object detection model to previous implementations on different datasets.
 
@@ -61,7 +61,7 @@ Res-101    | 8 Titan X | 24    |2e-2| 10  | 12  |  3.5 hr | ~8400 MB  | 34.3
 
 * Run systematical experiments on PASCAL VOC 07/12, COCO, ImageNet, Visual Genome (VG) with different settings.
 
-* Find the right training regime for multi-GPU and multi-Image batch training. Now training with 24 images on 8 GPUs has a slight degradation of performance (~1.0 mAP drop on PASCAL VOC.)
+* Find the right training regime for multi-GPU and multi-Image batch training. Now training with 24 images on 8 GPUs has a slight degradation of performance (>1.0 mAP drop on PASCAL VOC.)
 
 * Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.
 
