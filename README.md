@@ -26,9 +26,9 @@ During our implementing, we referred the above implementations, especailly [long
 
 ## Benchmarking
 
-We benchmark our code thoroughly on three datasets: pascal voc, mscoco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
+We benchmark our code thoroughly on three datasets: pascal voc, coco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
 
-1). PASCAL VOC 2007 (Train/Test: 07trainval/07test) (lr_decay/max_epoch: 5/7)
+1). PASCAL VOC 2007 (Train/Test: 07trainval/07test)
 
 model    | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|----|-----------|-----|-----|-------|--------|--------
@@ -42,7 +42,7 @@ Res-101    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.21 hr | 8400 MB  | N/A  
 Res-101    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | N/A   
 
 
-2). COCO (Train/Test: coco_train/coco_test) (lr_decay/max_epoch:5/7)
+2). COCO (Train/Test: coco_train/coco_test)
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|-----
@@ -139,7 +139,7 @@ This project is equally contributed by [Jianwei Yang](https://github.com/jwyang)
 
     @article{jjfaster2rcnn,
         Author = {Jianwei Yang and Jiasen Lu, Dhruv Batra, Devi Parikh},
-        Title = {A Faster Implementation of Faster R-CNN},
+        Title = {A Faster Pytorch Implementation of Faster R-CNN},
         Journal = {https://github.com/jwyang/faster-rcnn.pytorch},
         Year = {2017}
     } 
