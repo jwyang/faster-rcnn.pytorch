@@ -119,7 +119,7 @@ if __name__ == '__main__':
       args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
 
   args.cfg_file = "cfgs/{}.yml".format(args.net)
-  
+
   if args.cfg_file is not None:
     cfg_from_file(args.cfg_file)
   if args.set_cfgs is not None:
@@ -183,8 +183,8 @@ if __name__ == '__main__':
     fasterRCNN.cuda()
 
   start = time.time()
-  max_per_image = 300
-  thresh = 0.01
+  max_per_image = 100
+  thresh = 0.0
   vis = args.vis
 
   save_name = 'faster_rcnn_10'
