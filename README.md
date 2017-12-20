@@ -36,9 +36,9 @@ VGG-16     | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.76 hr | 3265MB   | 70.3
 VGG-16     | 1 TitanX | 4 | 4e-3 | 7   | 8   |  0.50 hr | 9083MB   | 70.1   
 VGG-16     | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.6 
 VGG-16     | 8 TitanX | 24| 1e-2 | 10  | 11  |  0.16 hr | 11303MB  | 69.6   
-Res-101    | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.88 hr | 3200 MB  | 73.9   
-Res-101    | 1 TitanX | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | N/A
-Res-101    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | N/A  
+Res-101    | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.88 hr | 3200 MB  | 75.0   
+Res-101    | 1 TitanX | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.8
+Res-101    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 74.4 
 Res-101    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
 
 
