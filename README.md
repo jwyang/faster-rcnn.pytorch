@@ -20,9 +20,11 @@ During our implementing, we referred the above implementations, especailly [long
 
 * **It supports multiple GPUs**. We use a multiple GPU wrapper (nn.DataParallel here) to make it flexible to use one or more GPUs, as a merit of the above two features.
 
+* **It supports three pooling methods**. We integrate three pooling methods: roi pooing, roi align and roi crop. Besides, we convert them to support multi-image batch training.
+
 * **It is memory efficient**. We limit the image aspect ratio, and group the image in batch with similar aspect ratio. We can train resnet101 and VGG16 with batchsize = 4 (4 images) on a sigle Titan X 12 GB. When training with 8 GPU, the maximum batchsize for each GPU is 3 images (Res101), with total batchsize = 24. 
 
-* **It is fast**. With above merits, the training is fast. We report the training speed on NVIDIA TITAN Xp in the tables below.
+* **It is faster**. Based on the above modifications, the training is faster. We report the training speed on NVIDIA TITAN Xp in the tables below.
 
 ## Benchmarking
 
