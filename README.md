@@ -48,14 +48,12 @@ Res-101    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5  
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|-----
-VGG-16     | 1 TitanX | 1     |1e-3| 5   | 7   |  10.4 hr | N/A   | N/A   
-VGG-16     | 1 TitanX | 4     |4e-3| 8   | 10  |  8.3 hr | N/A   | N/A   
-VGG-16     | 8 TitanX | 16    |1e-2| 8   | 10  |  N/A | N/A  | N/A 
-VGG-16     | 8 TitanX | 24    |1e-2| 10  | 12  |  N/A | N/A  | N/A   
-Res-101    | 1 TitanX | 1     |1e-3| 5   | 7   |  13.7 hr | ~3300 MB  | N/A   
-Res-101    | 1 TitanX | 4     |4e-3| 8   | 10  |  11.6 hr | ~9800 MB  | N/A
-Res-101    | 8 TitanX | 16    |1e-2| 8   | 10  |  N/A    |  N/A  | N/A    
-Res-101    | 8 TitanX | 24    |1e-2| 10  | 12  |  3.5 hr | ~8400 MB  | 34.3    
+VGG-16     | 1 TitanX | 1     |1e-3| 5   | 7  |  N/A | N/A   | N/A   
+VGG-16     | 1 TitanX | 4     |4e-3| 8   | 10 |  N/A | N/A   | N/A   
+VGG-16     | 8 TitanX | 16    |1e-2| 4   | 6  |  N/A | N/A  | N/A 
+Res-101    | 1 TitanX | 1     |1e-3| 4   | 6  |  N/A | N/A  | N/A   
+Res-101    | 1 TitanX | 4     |4e-3| 4   | 6  |  N/A | N/A  | N/A
+Res-101    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7  
 
 **NOTE**. N/A means not available now. The benchmarking performance on these datasets will come along with our report soon. Though lack of the benchmark here, you can definitely use the code now! Train your model with the recent code, you will obtain a comparable object detection model to previous implementations on different datasets.
 
