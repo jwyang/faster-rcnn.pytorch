@@ -19,10 +19,11 @@ from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer, _affine_gri
 
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
-    def __init__(self, classes):
-        super(_fasterRCNN, self).__init__()
+    def __init__(self, classes, class_agnostic):
+        super(_fasterRCNN, self).__init__()    
         self.classes = classes
         self.n_classes = len(classes)
+        self.class_agnostic = class_agnostic
         # loss
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
@@ -90,6 +91,11 @@ class _fasterRCNN(nn.Module):
 
         # compute bbox offset
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)
+        if not self.class_agnostic:
+            # select the corresponding columns according to roi labels
+            bbox_pred_view = bbox_pred.view(bbox_pred.size(0), int(bbox_pred.size(1) / 4), 4)
+            bbox_pred_select = torch.gather(bbox_pred_view, 1, rois_label.long().view(rois_label.size(0), 1, 1).expand(rois_label.size(0), 1, 4))
+            bbox_pred = bbox_pred_select.squeeze(1)
 
         # compute object classification probability
         cls_score = self.RCNN_cls_score(pooled_feat)

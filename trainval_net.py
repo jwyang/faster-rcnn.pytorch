@@ -73,6 +73,9 @@ def parse_args():
   parser.add_argument('--bs', dest='batch_size',
                       help='batch_size',
                       default=1, type=int)
+  parser.add_argument('--cag', dest='class_agnostic',
+                      help='whether perform class_agnostic bbox regression',
+                      action='store_true')
 
 # config optimization
   parser.add_argument('--o', dest='optimizer',
@@ -235,13 +238,13 @@ if __name__ == '__main__':
 
   # initilize the network here.
   if args.net == 'vgg16':
-    fasterRCNN = vgg16(imdb.classes, pretrained=True)
+    fasterRCNN = vgg16(imdb.classes, pretrained=True, class_agnostic=args.class_agnostic)
   elif args.net == 'res101':
-    fasterRCNN = resnet(imdb.classes, 101, pretrained=True)
+    fasterRCNN = resnet(imdb.classes, 101, pretrained=True, class_agnostic=args.class_agnostic)
   elif args.net == 'res50':
-    fasterRCNN = resnet(imdb.classes, 50, pretrained=True)
+    fasterRCNN = resnet(imdb.classes, 50, pretrained=True, class_agnostic=args.class_agnostic)
   elif args.net == 'res152':
-    fasterRCNN = resnet(imdb.classes, 152, pretrained=True)
+    fasterRCNN = resnet(imdb.classes, 152, pretrained=True, class_agnostic=args.class_agnostic)
   else:
     print("network is not defined")
     pdb.set_trace()
@@ -278,7 +281,9 @@ if __name__ == '__main__':
     args.start_epoch = checkpoint['epoch']
     fasterRCNN.load_state_dict(checkpoint['model'])
     optimizer.load_state_dict(checkpoint['optimizer'])
-    lr = optimizer.param_groups[0]['lr']    
+    lr = optimizer.param_groups[0]['lr']
+    if 'pooling_mode' in checkpoint.keys():
+      cfg.POOLING_MODE = checkpoint['pooling_mode']   
     print("loaded checkpoint %s" % (load_name))
 
   if args.mGPUs:
@@ -363,7 +368,9 @@ if __name__ == '__main__':
         'session': args.session,
         'epoch': epoch + 1,
         'model': fasterRCNN.module.state_dict(),
-        "optimizer": optimizer.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'pooling_mode': cfg.POOLING_MODE,
+        'class_agnostic': args.class_agnostic,
       }, save_name)
     else:
       save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
@@ -371,7 +378,9 @@ if __name__ == '__main__':
         'session': args.session,
         'epoch': epoch + 1,
         'model': fasterRCNN.state_dict(),
-        "optimizer": optimizer.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'pooling_mode': cfg.POOLING_MODE,
+        'class_agnostic': args.class_agnostic,        
       }, save_name)
     print('save model: {}'.format(save_name))
 
