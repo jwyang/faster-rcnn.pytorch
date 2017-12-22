@@ -61,6 +61,9 @@ def parse_args():
   parser.add_argument('--mGPUs', dest='mGPUs',
                       help='whether use multiple GPUs',
                       action='store_true')
+  parser.add_argument('--cag', dest='class_agnostic',
+                      help='whether perform class_agnostic bbox regression',
+                      action='store_true')                      
   parser.add_argument('--parallel_type', dest='parallel_type',
                       help='which part of model to parallel, 0: all, 1: model before roi pooling',
                       default=0, type=int)
@@ -140,13 +143,13 @@ if __name__ == '__main__':
 
   # initilize the network here.
   if args.net == 'vgg16':
-    fasterRCNN = vgg16(imdb.classes, pretrained=False)
+    fasterRCNN = vgg16(imdb.classes, pretrained=False, class_agnostic=args.class_agnostic)
   elif args.net == 'res101':
-    fasterRCNN = resnet(imdb.classes, 101, pretrained=False)
+    fasterRCNN = resnet(imdb.classes, 101, pretrained=False, class_agnostic=args.class_agnostic)
   elif args.net == 'res50':
-    fasterRCNN = resnet(imdb.classes, 50, pretrained=False)
+    fasterRCNN = resnet(imdb.classes, 50, pretrained=False, class_agnostic=args.class_agnostic)
   elif args.net == 'res152':
-    fasterRCNN = resnet(imdb.classes, 152, pretrained=False)
+    fasterRCNN = resnet(imdb.classes, 152, pretrained=False, class_agnostic=args.class_agnostic)
   else:
     print("network is not defined")
     pdb.set_trace()
@@ -156,6 +159,10 @@ if __name__ == '__main__':
   print("load checkpoint %s" % (load_name))
   checkpoint = torch.load(load_name)
   fasterRCNN.load_state_dict(checkpoint['model'])
+  if 'pooling_mode' in checkpoint.keys():
+    cfg.POOLING_MODE = checkpoint['pooling_mode']
+
+
   print('load model successfully!')
   # initilize the tensor holder here.
   im_data = torch.FloatTensor(1)

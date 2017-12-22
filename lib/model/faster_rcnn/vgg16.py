@@ -17,7 +17,7 @@ from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
 import pdb
 
 class vgg16(_fasterRCNN):
-  def __init__(self, classes, pretrained=False, class_agnostic=True):
+  def __init__(self, classes, pretrained=False, class_agnostic=False):
     self.model_path = 'data/pretrained_model/vgg16_caffe.pth'
     self.dout_base_model = 512
     self.pretrained = pretrained

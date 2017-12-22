@@ -320,7 +320,8 @@ if __name__ == '__main__':
       # backward
       optimizer.zero_grad()
       loss.backward()                                                                                              
-      clip_gradient(fasterRCNN, 10.)
+      if args.net == "vgg16":
+          clip_gradient(graphRCNN, 10.)
       optimizer.step()
 
       if step % args.disp_interval == 0:
