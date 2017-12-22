@@ -50,7 +50,7 @@ model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epo
 ---------|-----------|-----|-----------|-----|-----|-------|--------|-----
 VGG-16     | 1 TitanX | 1     |1e-3| 5   | 7  |  N/A | N/A   | N/A   
 VGG-16     | 1 TitanX | 4     |4e-3| 8   | 10 |  N/A | N/A   | N/A   
-VGG-16     | 8 TitanX | 16    |1e-2| 4   | 6  |  N/A | N/A  | N/A 
+VGG-16     | 8 TitanX | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
 Res-101    | 1 TitanX | 1     |1e-3| 4   | 6  |  N/A | N/A  | N/A   
 Res-101    | 1 TitanX | 4     |4e-3| 4   | 6  |  N/A | N/A  | N/A
 Res-101    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7  
