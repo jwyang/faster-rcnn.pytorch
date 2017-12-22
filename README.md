@@ -30,7 +30,7 @@ During our implementing, we referred the above implementations, especailly [long
 
 We benchmark our code thoroughly on three datasets: pascal voc, coco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
 
-1). PASCAL VOC 2007 (Train/Test: 07trainval/07test)
+1). PASCAL VOC 2007 (Train/Test: 07trainval/07test, scale=600)
 
 model    | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|----|-----------|-----|-----|-------|--------|--------
@@ -44,7 +44,7 @@ Res-101    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 74.4 
 Res-101    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
 
 
-2). COCO (Train/Test: coco_train/coco_test)
+2). COCO (Train/Test: coco_train/coco_test, scale=800)
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|-----
