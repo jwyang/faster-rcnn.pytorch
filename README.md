@@ -13,7 +13,6 @@ This project is a *faster* faster R-CNN implementation, aimed to accelerating th
 * [ruotianluo/pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn), developed based on Pytorch + TensorFlow + Numpy
 
 During our implementing, we referred the above implementations, especailly [longcw/faster_rcnn_pytorch](https://github.com/longcw/faster_rcnn_pytorch). However, our implementation has several unique and new features compared with the above implementations:
-
 * **It is pure Pytorch code**. We convert all the numpy implementations to pytorch.
 
 * **It supports trainig batchsize > 1**. We revise all the layers, including dataloader, rpn, roi-pooling, etc., to train with multiple images at each iteration.
@@ -30,7 +29,7 @@ During our implementing, we referred the above implementations, especailly [long
 
 We benchmark our code thoroughly on three datasets: pascal voc, coco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
 
-1). PASCAL VOC 2007 (Train/Test: 07trainval/07test, scale=600)
+1). PASCAL VOC 2007 (Train/Test: 07trainval/07test, scale=600, ROI Pooling)
 
 model    | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|----|-----------|-----|-----|-------|--------|--------
@@ -44,7 +43,7 @@ Res-101    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 74.4 
 Res-101    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
 
 
-2). COCO (Train/Test: coco_train/coco_test, scale=800)
+2). COCO (Train/Test: coco_train/coco_test, scale=800, ROI Crop)
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|-----
