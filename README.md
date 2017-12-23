@@ -46,15 +46,9 @@ Res-101    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5  
 2). COCO (Train/Test: coco_train/coco_test, scale=800, ROI Crop)
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
----------|-----------|-----|-----------|-----|-----|-------|--------|-----
-VGG-16     | 1 TitanX | 1     |1e-3| 5   | 7  |  N/A | N/A   | N/A   
-VGG-16     | 1 TitanX | 4     |4e-3| 8   | 10 |  N/A | N/A   | N/A   
+---------|-----------|-----|-----------|-----|-----|-------|--------|----- 
 VGG-16     | 8 TitanX | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
-Res-101    | 1 TitanX | 1     |1e-3| 4   | 6  |  N/A | N/A  | N/A   
-Res-101    | 1 TitanX | 4     |4e-3| 4   | 6  |  N/A | N/A  | N/A
-Res-101    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7  
-
-**NOTE**. N/A means not available now. The benchmarking performance on these datasets will come along with our report soon. Though lack of the benchmark here, you can definitely use the code now! Train your model with the recent code, you will obtain a comparable object detection model to previous implementations on different datasets.
+Res-101    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
 
 ### What we are doing now
 
