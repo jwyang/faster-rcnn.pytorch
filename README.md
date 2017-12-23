@@ -61,8 +61,6 @@ Res-101    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
 
 * Run systematical experiments on PASCAL VOC 07/12, COCO, ImageNet, Visual Genome (VG) with different settings.
 
-* Find the right training regime for multi-GPU and multi-Image batch training. Now training with 24 images on 8 GPUs has a slight degradation of performance (>1.0 mAP drop on PASCAL VOC.)
-
 * Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.
 
 ## Preparation 
