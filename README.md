@@ -43,7 +43,7 @@ Res-101    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 74.4 
 Res-101    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
 
 
-2). COCO (Train/Test: coco_train/coco_test, scale=800, ROI Crop)
+2). COCO (Train/Test: coco_train/coco_test, scale=800, ROI Align)
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|----- 
