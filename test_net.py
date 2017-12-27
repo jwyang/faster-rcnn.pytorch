@@ -96,7 +96,9 @@ if __name__ == '__main__':
   print('Called with args:')
   print(args)
 
-
+  if torch.cuda.is_available() and not args.cuda:
+    print("WARNING: You have a CUDA device, so you should probably run with --cuda")
+    
   print('Using config:')
   pprint.pprint(cfg)
   np.random.seed(cfg.RNG_SEED)
@@ -137,7 +139,7 @@ if __name__ == '__main__':
 
   input_dir = args.load_dir + "/" + args.net + "/" + args.dataset
   if not os.path.exists(input_dir):
-    raise Exception('There is no input directory for loading network')
+    raise Exception('There is no input directory for loading network from ' + input_dir)
   load_name = os.path.join(input_dir,
     'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
 

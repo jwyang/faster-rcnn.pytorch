@@ -98,16 +98,17 @@ It will compile all the modules you need, including NMS, ROI_Pooing, ROI_Align a
 
 ## Train 
 
+Before training, set the right directory to save and load the trained models. Change the arguments "save_dir" and "load_dir" in trainval_net.py and test_net.py to adapt to your environment.
+
 To train a faster R-CNN model with vgg16 on pascal_voc, simply run:
 ```
 CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --bs $BATCH_SIZE
 ```
 where 'bs' is the batch size with default 1. Alternatively, to train with resnet101 on pascal_voc, simple run:
 ```
- CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net resnet101 --cuda --bs $BATCH_SIZE
+ CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net resnet101 --cuda --bs $BATCH_SIZE --num_workers $WORKER_NUMBER
 ```
-
-Above, BATCH_SIZE can be set adaptively according to your GPU memory size. **On Titan Xp with 12G memory, it can be up to 4**.
+Above, BATCH_SIZE and WORKER_NUMBER can be set adaptively according to your GPU memory size. **On Titan Xp with 12G memory, it can be up to 4**.
 
 If you have multiple (say 8) Titan Xp GPUs, then just use them all! Try:
 ```
