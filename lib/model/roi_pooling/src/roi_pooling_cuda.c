@@ -1,6 +1,6 @@
 #include <THC/THC.h>
 #include <math.h>
-#include "cuda/roi_pooling_kernel.h"
+#include "roi_pooling_kernel.h"
 
 extern THCState *state;
 
