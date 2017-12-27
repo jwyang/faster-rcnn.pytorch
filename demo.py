@@ -57,7 +57,7 @@ def parse_args():
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
   parser.add_argument('--load_dir', dest='load_dir',
-                      help='directory to load models', default="models",
+                      help='directory to load models', default="/srv/share/jyang375/models",
                       nargs=argparse.REMAINDER)
   parser.add_argument('--image_dir', dest='image_dir',
                       help='directory to load images', default="data/images",
@@ -274,5 +274,7 @@ if __name__ == '__main__':
       sys.stdout.flush()
 
       if vis:
-          cv2.imshow('test', im2show)
-          cv2.waitKey(0)
+          # cv2.imshow('test', im2show)
+          # cv2.waitKey(0)
+          result_path = os.path.join(args.image_dir, imglist[i][:-4] + "_det.jpg")
+          cv2.imwrite(result_path, im2show)

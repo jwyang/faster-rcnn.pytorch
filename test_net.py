@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
   if torch.cuda.is_available() and not args.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
-    
+
   print('Using config:')
   pprint.pprint(cfg)
   np.random.seed(cfg.RNG_SEED)
@@ -193,8 +193,13 @@ if __name__ == '__main__':
 
   start = time.time()
   max_per_image = 100
-  thresh = 0.0
+
   vis = args.vis
+  
+  if vis:
+    thresh = 0.05
+  else:
+    thresh = 0.0
 
   save_name = 'faster_rcnn_10'
   num_images = len(imdb.image_index)
