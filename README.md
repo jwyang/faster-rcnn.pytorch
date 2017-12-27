@@ -112,7 +112,7 @@ Above, BATCH_SIZE and WORKER_NUMBER can be set adaptively according to your GPU 
 
 If you have multiple (say 8) Titan Xp GPUs, then just use them all! Try:
 ```
-python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --mGPUs --bs 24
+python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --mGPUs --bs 24 --num_workers 8
 ```
 
 Change dataset to "coco" or 'vg' if you want to train on COCO or Visual Genome.
