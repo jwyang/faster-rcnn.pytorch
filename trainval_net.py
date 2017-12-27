@@ -83,7 +83,7 @@ def parse_args():
                       default="sgd", type=str)
   parser.add_argument('--lr', dest='lr',
                       help='starting learning rate',
-                      default=0.01, type=float)
+                      default=0.001, type=float)
   parser.add_argument('--lr_decay_step', dest='lr_decay_step',
                       help='step to do learning rate decay, unit is epoch',
                       default=5, type=int)
