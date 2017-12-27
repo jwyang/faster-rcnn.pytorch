@@ -5,12 +5,16 @@
 // Written by Shaoqing Ren
 // ------------------------------------------------------------------
 
-// #include "gpu_nms.hpp"
-#include <cuda.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <vector>
 #include <iostream>
-#include <stdio.h>
 #include "nms_cuda_kernel.h"
+
+#define CUDA_WARN(XXX) \
+    do { if (XXX != cudaSuccess) std::cout << "CUDA Error: " << \
+        cudaGetErrorString(XXX) << ", at line " << __LINE__ \
+<< std::endl; cudaDeviceSynchronize(); } while (0)
 
 #define CUDA_CHECK(condition) \
   /* Code block avoids redefinition of cudaError_t error */ \
@@ -34,8 +38,8 @@ __device__ inline float devIoU(float const * const a, float const * const b) {
   return interS / (Sa + Sb - interS);
 }
 
-__global__ void nms_kernel(const int n_boxes, const float nms_overlap_thresh,
-                           const float *dev_boxes, unsigned long long *dev_mask) {
+__global__ void nms_kernel(int n_boxes, float nms_overlap_thresh,
+                           float *dev_boxes, unsigned long long *dev_mask) {
   const int row_start = blockIdx.y;
   const int col_start = blockIdx.x;
 
@@ -80,12 +84,8 @@ __global__ void nms_kernel(const int n_boxes, const float nms_overlap_thresh,
   }
 }
 
-void nms_cuda_kernel(float* keep_out, float* num_out, float* boxes_host, int boxes_num,
+void nms_cuda_compute(int* keep_out, int *num_out, float* boxes_host, int boxes_num,
           int boxes_dim, float nms_overlap_thresh) {
-
-
-  printf("go to cuda kernel code");
-  // printf("threshold: %d\n", keep_out[0]);
 
   float* boxes_dev = NULL;
   unsigned long long* mask_dev = NULL;
@@ -106,7 +106,9 @@ void nms_cuda_kernel(float* keep_out, float* num_out, float* boxes_host, int box
               DIVUP(boxes_num, threadsPerBlock));
   dim3 threads(threadsPerBlock);
 
-  printf("run cuda kernel function");  
+  // printf("i am at line %d\n", boxes_num);
+  // printf("i am at line %d\n", boxes_dim);  
+
   nms_kernel<<<blocks, threads>>>(boxes_num,
                                   nms_overlap_thresh,
                                   boxes_dev,
@@ -121,21 +123,39 @@ void nms_cuda_kernel(float* keep_out, float* num_out, float* boxes_host, int box
   std::vector<unsigned long long> remv(col_blocks);
   memset(&remv[0], 0, sizeof(unsigned long long) * col_blocks);
 
+  // we need to create a memory for keep_out on cpu
+  // otherwise, the following code cannot run
+
+  int* keep_out_cpu = new int[boxes_num];
+
   int num_to_keep = 0;
   for (int i = 0; i < boxes_num; i++) {
     int nblock = i / threadsPerBlock;
     int inblock = i % threadsPerBlock;
 
     if (!(remv[nblock] & (1ULL << inblock))) {
-      keep_out[num_to_keep++] = i;
+      // orignal: keep_out[num_to_keep++] = i;
+      keep_out_cpu[num_to_keep++] = i;
       unsigned long long *p = &mask_host[0] + i * col_blocks;
       for (int j = nblock; j < col_blocks; j++) {
         remv[j] |= p[j];
       }
     }
   }
-  *num_out = num_to_keep;
 
+  // copy keep_out_cpu to keep_out on gpu
+  CUDA_WARN(cudaMemcpy(keep_out, keep_out_cpu, boxes_num * sizeof(int),cudaMemcpyHostToDevice));  
+
+  // *num_out = num_to_keep;
+
+  // original: *num_out = num_to_keep;
+  // copy num_to_keep to num_out on gpu
+
+  CUDA_WARN(cudaMemcpy(num_out, &num_to_keep, 1 * sizeof(int),cudaMemcpyHostToDevice));  
+
+  // release cuda memory
   CUDA_CHECK(cudaFree(boxes_dev));
   CUDA_CHECK(cudaFree(mask_dev));
+  // release cpu memory
+  delete []keep_out_cpu;
 }
