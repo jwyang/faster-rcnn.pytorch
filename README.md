@@ -94,6 +94,8 @@ cd lib
 sh make.sh
 ```
 
+It will compile all the modules you need, including NMS, ROI_Pooing, ROI_Align and ROI_Crop. The default version is compiled with Python 2.7, please compile by yourself if you are using a different python version.
+
 ## Train 
 
 To train a faster R-CNN model with vgg16 on pascal_voc, simply run:
