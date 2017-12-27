@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
   print('{:d} roidb entries'.format(len(roidb)))
 
-  input_dir = args.load_dir + "/" + args.net
+  input_dir = args.load_dir + "/" + args.net + "/" + args.dataset
   if not os.path.exists(input_dir):
     raise Exception('There is no input directory for loading network')
   load_name = os.path.join(input_dir,
@@ -231,9 +231,15 @@ if __name__ == '__main__':
           box_deltas = bbox_pred.data
           if cfg.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED:
           # Optionally normalize targets by a precomputed mean and stdev
+            if args.class_agnostic:
                 box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS).cuda() \
                            + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS).cuda()
                 box_deltas = box_deltas.view(1, -1, 4)
+            else:
+                box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS).cuda() \
+                           + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS).cuda()
+                box_deltas = box_deltas.view(1, -1, 4 * len(imdb.classes))
+
           pred_boxes = bbox_transform_inv(boxes, box_deltas, 1)
           pred_boxes = clip_boxes(pred_boxes, im_info.data, 1)
       else:
@@ -256,7 +262,11 @@ if __name__ == '__main__':
           if inds.numel() > 0:
             cls_scores = scores[:,j][inds]
             _, order = torch.sort(cls_scores, 0, True)
-            cls_boxes = pred_boxes[inds, :]
+            if args.class_agnostic:
+              cls_boxes = pred_boxes[inds, :]
+            else:
+              cls_boxes = pred_boxes[inds][:, j * 4:(j + 1) * 4]
+
             cls_dets = torch.cat((cls_boxes, cls_scores), 1)
             cls_dets = cls_dets[order]
             keep = nms(cls_dets, cfg.TEST.NMS)
