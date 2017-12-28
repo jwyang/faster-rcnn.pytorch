@@ -99,8 +99,6 @@ if __name__ == '__main__':
   if torch.cuda.is_available() and not args.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-  print('Using config:')
-  pprint.pprint(cfg)
   np.random.seed(cfg.RNG_SEED)
   if args.dataset == "pascal_voc":
       args.imdb_name = "voc_2007_trainval"
@@ -130,7 +128,9 @@ if __name__ == '__main__':
   if args.set_cfgs is not None:
     cfg_from_list(args.set_cfgs)
 
-
+  print('Using config:')
+  pprint.pprint(cfg)
+  
   cfg.TRAIN.USE_FLIPPED = False
   imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdbval_name, False)
   imdb.competition_mode(on=True)
@@ -157,7 +157,7 @@ if __name__ == '__main__':
     pdb.set_trace()
 
   fasterRCNN.create_architecture()
-
+  
   print("load checkpoint %s" % (load_name))
   checkpoint = torch.load(load_name)
   fasterRCNN.load_state_dict(checkpoint['model'])
