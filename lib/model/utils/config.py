@@ -285,6 +285,9 @@ __C.POOLING_MODE = 'crop'
 # Size of the pooled region after RoI pooling
 __C.POOLING_SIZE = 7
 
+# Maximal number of gt rois in an image during Training
+__C.MAX_NUM_GT_BOXES = 20
+
 # Anchor scales for RPN
 __C.ANCHOR_SCALES = [8,16,32]
 
