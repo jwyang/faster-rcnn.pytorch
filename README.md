@@ -125,6 +125,15 @@ python test_net.py --dataset pascal_voc --net vgg16 --checksession $SESSION --ch
 ```
 Specify the specific model session, chechepoch and checkpoint, e.g., SESSION=1, EPOCH=6, CHECKPOINT=416.
 
+## Demo
+
+If you want to run detection on your own images with a pre-trained model, add your own images to folder $ROOT/images, and then try
+```
+python demo.py --net vgg16 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda
+```
+
+Then you will find the detection results in folder $ROOT/images.
+
 ## Authorship
 
 This project is equally contributed by [Jianwei Yang](https://github.com/jwyang) and [Jiasen Lu](https://github.com/jiasenlu).
