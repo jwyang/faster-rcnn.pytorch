@@ -139,6 +139,7 @@ Below are some detection results:
 <div style="color:#0000FF" align="center">
 <img src="images/img3_det.jpg" width="430"/> <img src="images/img4_det.jpg" width="430"/>
 </div>
+
 ## Authorship
 
 This project is equally contributed by [Jianwei Yang](https://github.com/jwyang) and [Jiasen Lu](https://github.com/jiasenlu).
