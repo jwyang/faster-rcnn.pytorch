@@ -34,6 +34,8 @@ from model.nms.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
 from model.utils.net_utils import save_net, load_net, vis_detections
 from model.utils.blob import im_list_to_blob
+from model.faster_rcnn.vgg16 import vgg16
+from model.faster_rcnn.resnet import resnet
 import pdb
 
 def parse_args():
@@ -41,18 +43,15 @@ def parse_args():
   Parse input arguments
   """
   parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
+  parser.add_argument('--dataset', dest='dataset',
+                      help='training dataset',
+                      default='pascal_voc', type=str)  
   parser.add_argument('--cfg', dest='cfg_file',
                       help='optional config file',
                       default='cfgs/vgg16.yml', type=str)
-  parser.add_argument('--imdb', dest='imdb_name',
-                      help='dataset to train on',
-                      default='voc_2007_trainval', type=str)
-  parser.add_argument('--imdbval', dest='imdbval_name',
-                      help='dataset to validate on',
-                      default='voc_2007_test', type=str)
   parser.add_argument('--net', dest='net',
                       help='vgg16, res50, res101, res152',
-                      default='vgg16', type=str)
+                      default='res101', type=str)
   parser.add_argument('--set', dest='set_cfgs',
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
@@ -60,21 +59,35 @@ def parse_args():
                       help='directory to load models', default="/srv/share/jyang375/models",
                       nargs=argparse.REMAINDER)
   parser.add_argument('--image_dir', dest='image_dir',
-                      help='directory to load images', default="data/images",
-                      type=str)  
-  parser.add_argument('--ngpu', dest='ngpu',
-                      help='number of gpu',
-                      default=1, type=int)
+                      help='directory to load images for demo', default="images",
+                      nargs=argparse.REMAINDER)                      
+  parser.add_argument('--cuda', dest='cuda',
+                      help='whether use CUDA',
+                      action='store_true')
+  parser.add_argument('--mGPUs', dest='mGPUs',
+                      help='whether use multiple GPUs',
+                      action='store_true')
+  parser.add_argument('--cag', dest='class_agnostic',
+                      help='whether perform class_agnostic bbox regression',
+                      action='store_true')                      
+  parser.add_argument('--parallel_type', dest='parallel_type',
+                      help='which part of model to parallel, 0: all, 1: model before roi pooling',
+                      default=0, type=int)
   parser.add_argument('--checksession', dest='checksession',
                       help='checksession to load model',
-                      default=4, type=int)
+                      default=1, type=int)
   parser.add_argument('--checkepoch', dest='checkepoch',
                       help='checkepoch to load network',
-                      default=6, type=int)
+                      default=1, type=int)
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load network',
-                      default=10000, type=int)
-
+                      default=10021, type=int)
+  parser.add_argument('--bs', dest='batch_size',
+                      help='batch_size',
+                      default=1, type=int)
+  parser.add_argument('--vis', dest='vis',
+                      help='visualization mode',
+                      action='store_true')  
   args = parser.parse_args()
   return args
 
@@ -135,23 +148,41 @@ if __name__ == '__main__':
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
 
-  input_dir = args.load_dir + "/" + args.net
+  input_dir = args.load_dir + "/" + args.net + "/" + args.dataset
   if not os.path.exists(input_dir):
-    raise Exception('There is no input directory for loading network')
+    raise Exception('There is no input directory for loading network from ' + input_dir)
   load_name = os.path.join(input_dir,
     'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
 
-
-  classes = np.asarray(['__background__',
+  pascal_classes = np.asarray(['__background__',
                        'aeroplane', 'bicycle', 'bird', 'boat',
                        'bottle', 'bus', 'car', 'cat', 'chair',
                        'cow', 'diningtable', 'dog', 'horse',
                        'motorbike', 'person', 'pottedplant',
                        'sheep', 'sofa', 'train', 'tvmonitor'])
 
-  fasterRCNN = _fasterRCNN(args.net, classes)
+  # initilize the network here.
+  if args.net == 'vgg16':
+    fasterRCNN = vgg16(pascal_classes, pretrained=False, class_agnostic=args.class_agnostic)
+  elif args.net == 'res101':
+    fasterRCNN = resnet(pascal_classes, 101, pretrained=False, class_agnostic=args.class_agnostic)
+  elif args.net == 'res50':
+    fasterRCNN = resnet(pascal_classes, 50, pretrained=False, class_agnostic=args.class_agnostic)
+  elif args.net == 'res152':
+    fasterRCNN = resnet(pascal_classes, 152, pretrained=False, class_agnostic=args.class_agnostic)
+  else:
+    print("network is not defined")
+    pdb.set_trace()
+
+  fasterRCNN.create_architecture()
+  
+  print("load checkpoint %s" % (load_name))
   checkpoint = torch.load(load_name)
   fasterRCNN.load_state_dict(checkpoint['model'])
+  if 'pooling_mode' in checkpoint.keys():
+    cfg.POOLING_MODE = checkpoint['pooling_mode']
+
+
   print('load model successfully!')
 
   # pdb.set_trace()
@@ -165,7 +196,7 @@ if __name__ == '__main__':
   gt_boxes = torch.FloatTensor(1)
 
   # ship to cuda
-  if args.ngpu > 0:
+  if args.cuda > 0:
     im_data = im_data.cuda()
     im_info = im_info.cuda()
     num_boxes = num_boxes.cuda()
@@ -177,10 +208,10 @@ if __name__ == '__main__':
   num_boxes = Variable(num_boxes, volatile=True)
   gt_boxes = Variable(gt_boxes, volatile=True)
 
-  if args.ngpu > 0:
+  if args.cuda > 0:
     cfg.CUDA = True
 
-  if args.ngpu > 0:
+  if args.cuda > 0:
     fasterRCNN.cuda()
 
   fasterRCNN.eval()

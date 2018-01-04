@@ -25,7 +25,6 @@ import torch.optim as optim
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
-from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
 from model.rpn.bbox_transform import clip_boxes
 from model.nms.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
@@ -130,7 +129,7 @@ if __name__ == '__main__':
 
   print('Using config:')
   pprint.pprint(cfg)
-  
+
   cfg.TRAIN.USE_FLIPPED = False
   imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdbval_name, False)
   imdb.competition_mode(on=True)
