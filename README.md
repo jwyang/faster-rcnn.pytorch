@@ -58,7 +58,13 @@ Res-101    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
 
 ## Preparation 
 
-First of all, create a folder:
+
+First of all, clone the code
+```
+git clone https://github.com/jwyang/faster-rcnn.pytorch.git
+```
+
+Then, create a folder:
 ```
 mkdir data
 ```
@@ -87,7 +93,19 @@ Download them and put them into the data/.
 
 ### Compilation
 
-Compile the dependencies using following simple commands:
+As pointed out by [ruotianluo/pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn), choose the right `-arch` to compile the cuda code:
+
+  | GPU model  | Architecture |
+  | ------------- | ------------- |
+  | TitanX (Maxwell/Pascal) | sm_52 |
+  | GTX 960M | sm_50 |
+  | GTX 1080 (Ti) | sm_61 |
+  | Grid K520 (AWS g2.2xlarge) | sm_30 |
+  | Tesla K80 (AWS p2.xlarge) | sm_37 |
+  
+More details about setting the architecture can be found [here](http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/)
+
+Compile the cuda dependencies using following simple commands:
 
 ```
 cd lib
