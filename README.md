@@ -50,6 +50,12 @@ model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epo
 VGG-16     | 8 TitanX | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
 Res-101    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
 
+3). COCO (Train/Test: coco_train/coco_test, scale=600, ROI Align)
+
+model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
+---------|-----------|-----|-----------|-----|-----|-------|--------|----- 
+Res-101    | 8 TitanX | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
+
 ### What we are doing now
 
 * Run systematical experiments on PASCAL VOC 07/12, COCO, ImageNet, Visual Genome (VG) with different settings.
