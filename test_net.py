@@ -57,6 +57,9 @@ def parse_args():
   parser.add_argument('--cuda', dest='cuda',
                       help='whether use CUDA',
                       action='store_true')
+  parser.add_argument('--ls', dest='large_scale',
+                      help='whether use large imag scale',
+                      action='store_true')                           
   parser.add_argument('--mGPUs', dest='mGPUs',
                       help='whether use multiple GPUs',
                       action='store_true')
@@ -120,7 +123,7 @@ if __name__ == '__main__':
       args.imdbval_name = "vg_150-50-50_minival"
       args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
 
-  args.cfg_file = "cfgs/{}.yml".format(args.net)
+  args.cfg_file = "cfgs/{}_ls.yml".format(args.net) if args.large_scale else "cfgs/{}.yml".format(args.net)
 
   if args.cfg_file is not None:
     cfg_from_file(args.cfg_file)
