@@ -28,12 +28,12 @@ class _ProposalLayer(nn.Module):
     transformations to a set of regular boxes (called "anchors").
     """
 
-    def __init__(self, feat_stride, scales):
+    def __init__(self, feat_stride, scales, ratios):
         super(_ProposalLayer, self).__init__()
 
         self._feat_stride = feat_stride
-        anchor_scales = scales
-        self._anchors = torch.from_numpy(generate_anchors(scales=np.array(anchor_scales))).float()
+        self._anchors = torch.from_numpy(generate_anchors(scales=np.array(scales), 
+            ratios=np.array(ratios))).float()
         self._num_anchors = self._anchors.size(0)
 
         # rois blob: holds R regions of interest, each is a 5-tuple
