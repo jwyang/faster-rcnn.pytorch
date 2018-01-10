@@ -43,14 +43,14 @@ Res-101    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 74.4 
 Res-101    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
 
 
-2). COCO (Train/Test: coco_train/coco_test, scale=800, ROI Align)
+2). COCO (Train/Test: coco_train/coco_test, scale=800, max_size=1200, ROI Align)
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|----- 
 VGG-16     | 8 TitanX | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
 Res-101    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
 
-3). COCO (Train/Test: coco_train/coco_test, scale=600, ROI Align)
+3). COCO (Train/Test: coco_train/coco_test, scale=600, max_size=1000, ROI Align)
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|----- 
