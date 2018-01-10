@@ -44,6 +44,7 @@ class _ProposalTargetLayer(nn.Module):
         num_images = 1
         rois_per_image = int(cfg.TRAIN.BATCH_SIZE / num_images)
         fg_rois_per_image = int(np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))
+        fg_rois_per_image = 1 if fg_rois_per_image == 0 else fg_rois_per_image
 
         labels, rois, bbox_targets, bbox_inside_weights = self._sample_rois_pytorch(
             all_rois, gt_boxes, fg_rois_per_image,
@@ -194,7 +195,8 @@ class _ProposalTargetLayer(nn.Module):
             labels_batch[i].copy_(labels[i][keep_inds])
 
             # Clamp labels for the background RoIs to 0
-            labels_batch[i][fg_rois_per_this_image:] = 0
+            if fg_rois_per_this_image < rois_per_image:
+                labels_batch[i][fg_rois_per_this_image:] = 0
 
             rois_batch[i] = all_rois[i][keep_inds]
             rois_batch[i,:,0] = i
