@@ -55,6 +55,7 @@ Res-101    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|----- 
 Res-101    | 8 TitanX | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
+Res-101    | 8 TitanX | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
 
 ### What we are doing now
 
