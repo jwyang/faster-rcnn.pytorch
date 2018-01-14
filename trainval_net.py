@@ -379,8 +379,8 @@ if __name__ == '__main__':
                     fg_cnt = fasterRCNN.fg_cnt
                     bg_cnt = fasterRCNN.bg_cnt
 
-                print("[session %d][epoch %2d][iter %4d] total loss: %.6f,\
-                    lr: %.2e" % (args.session, epoch, step, loss_temp, lr))
+                print("[session %d][epoch %2d][iter %4d] total loss: %.6f",
+                      "lr: %.2e" % (args.session, epoch, step, loss_temp, lr))
                 print(">>>> fg/bg=(%d/%d), time cost: %.2fs" % (
                       fg_cnt, bg_cnt, end - start))
                 print(">>>> rpn_cls: %.6f" % loss_rpn_cls)
