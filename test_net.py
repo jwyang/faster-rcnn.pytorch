@@ -328,9 +328,13 @@ if __name__ == '__main__':
         misc_toc = time.time()
         nms_time = misc_toc - misc_tic
 
-        sys.stdout.write('im_detect: {:d}/{:d} {:.3f}s {:.3f}s   \r' \
-                         .format(i + 1, num_images, detect_time, nms_time))
-        sys.stdout.flush()
+        # Do not show flush here!
+        # sys.stdout.write('im_detect: {:d}/{:d} {:.3f}s {:.3f}s   \r' \
+        #                  .format(i + 1, num_images, detect_time, nms_time))
+        # sys.stdout.flush()
+
+        print('im_detect: {:d}/{:d} {:.3f}s {:.3f}s   \r' \
+              .format(i + 1, num_images, detect_time, nms_time))
 
         if vis:
             cv2.imwrite('result.png', im2show)
