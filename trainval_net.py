@@ -345,7 +345,7 @@ if __name__ == '__main__':
 
             fasterRCNN.zero_grad()
             _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = \
-                fasterRCNN(im_data, im_info, t_boxes, num_boxes)
+                fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
             loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
             loss_temp += loss.data[0]
 
