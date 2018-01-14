@@ -232,10 +232,9 @@ if __name__ == '__main__':
     dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size,
                              imdb.num_classes, training=True)
 
-    dataloader = torch.utils.data.DataLoader(dataset,
-                                             batch_size=args.batch_size,
-                                             sampler=sampler_batch,
-                                             num_workers=args.num_workers)
+    dataloader = torch.utils.data.DataLoader(
+        dataset, batch_size=args.batch_size, sampler=sampler_batch,
+        num_workers=args.num_workers)
 
     # initilize the tensor holder here.
     im_data = torch.FloatTensor(1)
@@ -303,10 +302,9 @@ if __name__ == '__main__':
         optimizer = torch.optim.SGD(params, momentum=cfg.TRAIN.MOMENTUM)
 
     if args.resume:
-        load_name = os.path.join(output_dir,
-                                 'faster_rcnn_{}_{}_{}.pth'.format(
-                                     args.checksession, args.checkepoch,
-                                     args.checkpoint))
+        load_name = os.path.join(
+            output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(
+                args.checksession, args.checkepoch, args.checkpoint))
         print("loading checkpoint %s" % (load_name))
         checkpoint = torch.load(load_name)
         args.session = checkpoint['session']
@@ -331,6 +329,7 @@ if __name__ == '__main__':
         fasterRCNN.train()
         loss_temp = 0
         start = time.time()
+        epoch_start = start  # count time for each epoch
 
         if epoch % (args.lr_decay_step + 1) == 0:
             adjust_learning_rate(optimizer, args.lr_decay_gamma)
@@ -345,10 +344,8 @@ if __name__ == '__main__':
             num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
             fasterRCNN.zero_grad()
-            _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data,
-                                                                     im_info,
-                                                                     gt_boxes,
-                                                                     num_boxes)
+            _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = \
+                fasterRCNN(im_data, im_info, t_boxes, num_boxes)
             loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
             loss_temp += loss.data[0]
 
@@ -382,7 +379,7 @@ if __name__ == '__main__':
                 print("[session %d][epoch %2d][iter %4d] total loss: %.6f, "
                       "lr: %.2e" % (args.session, epoch, step, loss_temp, lr))
                 print(">>>> fg/bg=(%d/%d), time cost: %.2fs" % (
-                      fg_cnt, bg_cnt, end - start))
+                    fg_cnt, bg_cnt, end - start))
                 print(">>>> rpn_cls: %.6f" % loss_rpn_cls)
                 print(">>>> rpn_box: %.6f" % loss_rpn_box)
                 print(">>>> rcnn_cls: %.6f" % loss_rcnn_cls)
@@ -428,5 +425,6 @@ if __name__ == '__main__':
             }, save_name)
         print('save model: {}'.format(save_name))
 
-        end = time.time()
-        print(end - start)
+        epoch_end = time.time()
+        print('time cost of epoch %2d: %.2fhr' %
+              (epoch, (epoch_end - epoch_start) / 3600))
