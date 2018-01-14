@@ -4,6 +4,7 @@ cp ../vgg16_caffe.pth ./data/pretrained_model/
 
 cd lib
 sh make.sh
-cd ..
+cd ../data
 
-ln -s ../VOCdevkit ./data/VOCdevkit2007
+ln -s ../../VOCdevkit VOCdevkit2007
+cd ..
