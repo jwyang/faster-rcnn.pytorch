@@ -383,7 +383,7 @@ if __name__ == '__main__':
                 print(">>>> rpn_cls: %.6f" % loss_rpn_cls)
                 print(">>>> rpn_box: %.6f" % loss_rpn_box)
                 print(">>>> rcnn_cls: %.6f" % loss_rcnn_cls)
-                print(">>>> rcnn_box %.6f\n" % loss_rcnn_box)
+                print(">>>> rcnn_box: %.6f\n" % loss_rcnn_box)
 
                 if args.use_tfboard:
                     info = {
