@@ -381,8 +381,8 @@ if __name__ == '__main__':
 
                 print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e"
                       % (args.session, epoch, step, loss_temp, lr))
-                print("\t\t\tfg/bg=(%d/%d), time cost: %.2fs" % (
-                fg_cnt, bg_cnt, end - start))
+                print("\t\t\tfg/bg=(%d/%d), time cost: %.f" % (
+                      fg_cnt, bg_cnt, end - start))
                 print("\t\t\trpn_cls: " +
                       "%.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" \
                     % (
