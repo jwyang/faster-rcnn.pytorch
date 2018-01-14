@@ -426,5 +426,5 @@ if __name__ == '__main__':
         print('save model: {}'.format(save_name))
 
         epoch_end = time.time()
-        print('time cost of epoch %2d: %.2fhr' %
+        print('time cost of epoch %2d: %.2fhr\n' %
               (epoch, (epoch_end - epoch_start) / 3600))
