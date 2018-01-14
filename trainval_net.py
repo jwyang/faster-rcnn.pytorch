@@ -379,14 +379,15 @@ if __name__ == '__main__':
                     fg_cnt = fasterRCNN.fg_cnt
                     bg_cnt = fasterRCNN.bg_cnt
 
-                print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e"
-                      % (args.session, epoch, step, loss_temp, lr))
-                print("\t\t\tfg/bg=(%d/%d), time cost: %.f" % (
+                print("[session %d][epoch %2d][iter %4d] total loss: %.6f, \
+                    lr: %.2e" % (args.session, epoch, step, loss_temp, lr))
+                print(">>>>fg/bg=(%d/%d), time cost: %.2fs" % (
                       fg_cnt, bg_cnt, end - start))
-                print("\t\t\trpn_cls: " +
-                      "%.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" \
-                    % (
-                    loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box))
+                print(">>>>rpn_cls: %.6f\n" % loss_rpn_cls)
+                print(">>>>rpn_box: %.6f\n" % loss_rpn_box)
+                print(">>>>rcnn_cls: %.6f\n" % loss_rcnn_cls)
+                print(">>>>rcnn_box %.6f\n" % loss_rcnn_box)
+                
                 if args.use_tfboard:
                     info = {
                         'loss': loss_temp,
