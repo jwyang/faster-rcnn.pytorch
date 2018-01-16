@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This project is a *faster* faster R-CNN implementation, aimed to accelerating the training of faster R-CNN object detection models. Recently, there are a number of good implementations:
+This project is a *faster* pytorch implementation of faster R-CNN, aimed to accelerating the training of faster R-CNN object detection models. Recently, there are a number of good implementations:
 
 * [rbgirshick/py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn), developed based on Pycaffe + Numpy
 
@@ -13,17 +13,18 @@ This project is a *faster* faster R-CNN implementation, aimed to accelerating th
 * [ruotianluo/pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn), developed based on Pytorch + TensorFlow + Numpy
 
 During our implementing, we referred the above implementations, especailly [longcw/faster_rcnn_pytorch](https://github.com/longcw/faster_rcnn_pytorch). However, our implementation has several unique and new features compared with the above implementations:
-* **It is pure Pytorch code**. We convert all the numpy implementations to pytorch.
 
-* **It supports trainig batchsize > 1**. We revise all the layers, including dataloader, rpn, roi-pooling, etc., to train with multiple images at each iteration.
+* **It is pure Pytorch code**. We convert all the numpy implementations to pytorch!
 
-* **It supports multiple GPUs**. We use a multiple GPU wrapper (nn.DataParallel here) to make it flexible to use one or more GPUs, as a merit of the above two features.
+* **It supports multi-image batch training**. We revise all the layers, including dataloader, rpn, roi-pooling, etc., to support multiple images in each minibatch.
 
-* **It supports three pooling methods**. We integrate three pooling methods: roi pooing, roi align and roi crop. Besides, we convert them to support multi-image batch training.
+* **It supports multiple GPUs training**. We use a multiple GPU wrapper (nn.DataParallel here) to make it flexible to use one or more GPUs, as a merit of the above two features.
 
-* **It is memory efficient**. We limit the image aspect ratio, and group the image in batch with similar aspect ratio. We can train resnet101 and VGG16 with batchsize = 4 (4 images) on a sigle Titan X 12 GB. When training with 8 GPU, the maximum batchsize for each GPU is 3 images (Res101), with total batchsize = 24. 
+* **It supports three pooling methods**. We integrate three pooling methods: roi pooing, roi align and roi crop. More importantly, we modify all of them to support multi-image batch training.
 
-* **It is faster**. Based on the above modifications, the training is faster. We report the training speed on NVIDIA TITAN Xp in the tables below.
+* **It is memory efficient**. We limit the image aspect ratio, and group images with similar aspect ratios into a minibatch. As such, we can train resnet101 and VGG16 with batchsize = 4 (4 images) on a sigle Titan X (12 GB). When training with 8 GPU, the maximum batchsize for each GPU is 3 (Res101), totally 24.
+
+* **It is faster**. Based on the above modifications, the training is much faster. We report the training speed on NVIDIA TITAN Xp in the tables below.
 
 ## Benchmarking
 
@@ -63,6 +64,8 @@ Res-101    | 8 TitanX | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
 * Run systematical experiments on PASCAL VOC 07/12, COCO, ImageNet, Visual Genome (VG) with different settings.
 
 * Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.
+
+* And it will support python3 soon!*
 
 ## Preparation 
 
@@ -111,7 +114,7 @@ As pointed out by [ruotianluo/pytorch-faster-rcnn](https://github.com/ruotianluo
   | Grid K520 (AWS g2.2xlarge) | sm_30 |
   | Tesla K80 (AWS p2.xlarge) | sm_37 |
   
-More details about setting the architecture can be found [here](http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/)
+More details about setting the architecture can be found [here](https://developer.nvidia.com/cuda-gpus) or [here](http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/)
 
 Compile the cuda dependencies using following simple commands:
 
