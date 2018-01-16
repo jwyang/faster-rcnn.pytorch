@@ -60,7 +60,7 @@ model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epo
 [Res-101]()    | 8 TitanX | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
 
 
-* Click the links in the above tables to download our pre-trained faster r-cnn models. *
+* Click the links in the above tables to download our pre-trained faster r-cnn models.
 
 ### What we are doing now
 
@@ -68,7 +68,7 @@ model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epo
 
 * Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.
 
-* And it will support python3 soon!*
+* And it will support python3 soon!
 
 ## Preparation 
 
