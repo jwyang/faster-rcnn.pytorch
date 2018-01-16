@@ -47,9 +47,9 @@ __version__ = '1.0.1'
 import json
 import datetime
 import time
-# import matplotlib.pyplot as plt
-# from matplotlib.collections import PatchCollection
-# from matplotlib.patches import Polygon
+import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Polygon
 import numpy as np
 # from skimage.draw import polygon
 import urllib
