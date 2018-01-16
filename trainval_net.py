@@ -61,7 +61,7 @@ def parse_args():
   parser.add_argument('--save_dir', dest='save_dir',
                       help='directory to save models', default="/srv/share/jyang375/models",
                       nargs=argparse.REMAINDER)
-  parser.add_argument('--num_workers', dest='num_workers',
+  parser.add_argument('--nw', dest='num_workers',
                       help='number of worker to load data',
                       default=0, type=int)
   parser.add_argument('--cuda', dest='cuda',
@@ -316,8 +316,13 @@ if __name__ == '__main__':
       num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
       fasterRCNN.zero_grad()
-      _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
-      loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
+      rois, cls_prob, bbox_pred, \
+      rpn_loss_cls, rpn_loss_box, \
+      RCNN_loss_cls, RCNN_loss_bbox, \
+      rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+
+      loss = rpn_loss_cls.mean() + rpn_loss_box.mean() \
+           + RCNN_loss_cls.mean() + RCNN_loss_bbox.mean()
       loss_temp += loss.data[0]
 
       # backward
@@ -333,19 +338,19 @@ if __name__ == '__main__':
           loss_temp /= args.disp_interval
 
         if args.mGPUs:
-          loss_rpn_cls = 0
-          loss_rpn_box = 0
-          loss_rcnn_cls = 0
-          loss_rcnn_box = 0
-          fg_cnt = 0
-          bg_cnt = 0
+          loss_rpn_cls = rpn_loss_cls.mean().data[0]
+          loss_rpn_box = rpn_loss_box.mean().data[0]
+          loss_rcnn_cls = RCNN_loss_cls.mean().data[0]
+          loss_rcnn_box = RCNN_loss_bbox.mean().data[0]
+          fg_cnt = torch.sum(rois_label.data.ne(0))
+          bg_cnt = rois_label.data.numel() - fg_cnt
         else:
-          loss_rpn_cls = fasterRCNN.RCNN_rpn.rpn_loss_cls.data[0]
-          loss_rpn_box = fasterRCNN.RCNN_rpn.rpn_loss_box.data[0]
-          loss_rcnn_cls = fasterRCNN.RCNN_loss_cls.data[0]
-          loss_rcnn_box = fasterRCNN.RCNN_loss_bbox.data[0]
-          fg_cnt = fasterRCNN.fg_cnt
-          bg_cnt = fasterRCNN.bg_cnt
+          loss_rpn_cls = rpn_loss_cls.data[0]
+          loss_rpn_box = rpn_loss_box.data[0]
+          loss_rcnn_cls = RCNN_loss_cls.data[0]
+          loss_rcnn_box = RCNN_loss_bbox.data[0]
+          fg_cnt = torch.sum(rois_label.data.ne(0))
+          bg_cnt = rois_label.data.numel() - fg_cnt
 
         print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
                                 % (args.session, epoch, step, loss_temp, lr))
