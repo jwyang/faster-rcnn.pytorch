@@ -34,30 +34,33 @@ We benchmark our code thoroughly on three datasets: pascal voc, coco and imagene
 
 model    | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|----|-----------|-----|-----|-------|--------|--------
-VGG-16     | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.76 hr | 3265MB   | 71.0   
-VGG-16     | 1 TitanX | 4 | 4e-3 | 8   | 10   |  0.50 hr | 9083MB   | 70.7   
-VGG-16     | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.6 
-VGG-16     | 8 TitanX | 24| 1e-2 | 10  | 11  |  0.16 hr | 11303MB  | 69.6   
-Res-101    | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.88 hr | 3200 MB  | 75.4   
-Res-101    | 1 TitanX | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.8
-Res-101    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 74.4 
-Res-101    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
+[VGG-16]()     | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.76 hr | 3265MB   | 71.0   
+[VGG-16]()     | 1 TitanX | 4 | 4e-3 | 8   | 10   |  0.50 hr | 9083MB   | 70.7   
+[VGG-16]()     | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.6 
+[VGG-16]()     | 8 TitanX | 24| 1e-2 | 10  | 11  |  0.16 hr | 11303MB  | 69.6   
+[Res-101]()    | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.88 hr | 3200 MB  | 75.4   
+[Res-101]()    | 1 TitanX | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.8
+[Res-101]()    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 74.4 
+[Res-101]()    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
 
 
 2). COCO (Train/Test: coco_train/coco_test, scale=800, max_size=1200, ROI Align)
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|----- 
-VGG-16     | 8 TitanX | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
-Res-101    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
-Res-101    | 8 TitanX | 16    |1e-2| 4   | 10  |  6.0 hr    |10956 MB  | 37.0
+[VGG-16]()     | 8 TitanX | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
+[Res-101]()    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
+[Res-101]()    | 8 TitanX | 16    |1e-2| 4   | 10  |  6.0 hr    |10956 MB  | 37.0
 
 3). COCO (Train/Test: coco_train/coco_test, scale=600, max_size=1000, ROI Align)
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|----- 
-Res-101    | 8 TitanX | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
-Res-101    | 8 TitanX | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
+[Res-101]()    | 8 TitanX | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
+[Res-101]()    | 8 TitanX | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
+
+
+* Click the links in the above tables to download our pre-trained faster r-cnn models.
 
 ### What we are doing now
 
@@ -65,7 +68,7 @@ Res-101    | 8 TitanX | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
 
 * Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.
 
-* And it will support python3 soon!*
+* And it will support python3 soon!
 
 ## Preparation 
 
@@ -92,7 +95,7 @@ mkdir data
 
 We used two pretrained models in our experiments, VGG and ResNet101. You can download these two models from:
 
-* VGG16: https://www.dropbox.com/s/s3brpk0bdq60nyb/vgg16_caffe.pth?dl=0
+* VGG16: https://www.dropbox.com/s/iev3tkbz5wyyuz9/resnet101_caffe.pth?dl=0
 
 * ResNet101: https://www.dropbox.com/s/iev3tkbz5wyyuz9/resnet101_caffe.pth?dl=0
 
@@ -131,17 +134,29 @@ Before training, set the right directory to save and load the trained models. Ch
 
 To train a faster R-CNN model with vgg16 on pascal_voc, simply run:
 ```
-CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --bs $BATCH_SIZE
+CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py \
+                   --dataset pascal_voc --net vgg16 \
+                   --bs $BATCH_SIZE --nw $WORKER_NUMBER \
+                   --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP \
+                   --cuda
 ```
 where 'bs' is the batch size with default 1. Alternatively, to train with resnet101 on pascal_voc, simple run:
 ```
- CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net resnet101 --cuda --bs $BATCH_SIZE --num_workers $WORKER_NUMBER
+ CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py \
+                    --dataset pascal_voc --net resnet101 \
+                    --bs $BATCH_SIZE --nw $WORKER_NUMBER \
+                    --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP \
+                    --cuda
 ```
 Above, BATCH_SIZE and WORKER_NUMBER can be set adaptively according to your GPU memory size. **On Titan Xp with 12G memory, it can be up to 4**.
 
 If you have multiple (say 8) Titan Xp GPUs, then just use them all! Try:
 ```
-python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --mGPUs --bs 24 --num_workers 8
+python trainval_net.py --dataset pascal_voc --net vgg16 \
+                       --bs 24 --nw 8 \
+                       --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP \
+                       --cuda --mGPUs
+
 ```
 
 Change dataset to "coco" or 'vg' if you want to train on COCO or Visual Genome.
@@ -150,7 +165,9 @@ Change dataset to "coco" or 'vg' if you want to train on COCO or Visual Genome.
 
 If you want to evlauate the detection performance of a pre-trained vgg16 model on pascal_voc test set, simply run
 ```
-python test_net.py --dataset pascal_voc --net vgg16 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda
+python test_net.py --dataset pascal_voc --net vgg16 \
+                   --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT \
+                   --cuda
 ```
 Specify the specific model session, chechepoch and checkpoint, e.g., SESSION=1, EPOCH=6, CHECKPOINT=416.
 
@@ -158,7 +175,9 @@ Specify the specific model session, chechepoch and checkpoint, e.g., SESSION=1, 
 
 If you want to run detection on your own images with a pre-trained model, add your own images to folder $ROOT/images, and then try
 ```
-python demo.py --net vgg16 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda
+python demo.py --net vgg16 \
+               --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT \
+               --cuda
 ```
 
 Then you will find the detection results in folder $ROOT/images.
