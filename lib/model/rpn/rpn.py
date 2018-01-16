@@ -13,32 +13,41 @@ import math
 import pdb
 import time
 
+
 class _RPN(nn.Module):
     """ region proposal network """
+
     def __init__(self, din):
         super(_RPN, self).__init__()
-        
+
         self.din = din  # get depth of input feature map, e.g., 512
         self.anchor_scales = cfg.ANCHOR_SCALES
         self.anchor_ratios = cfg.ANCHOR_RATIOS
         self.feat_stride = cfg.FEAT_STRIDE[0]
 
-        # define the convrelu layers processing input feature map
+        # define the convrelu layers processing input feature map with padding
+        # TODO: set RPN channels rather than fixed 512
         self.RPN_Conv = nn.Conv2d(self.din, 512, 3, 1, 1, bias=True)
 
         # define bg/fg classifcation score layer
-        self.nc_score_out = len(self.anchor_scales) * len(self.anchor_ratios) * 2 # 2(bg/fg) * 9 (anchors)
+        self.nc_score_out = len(self.anchor_scales) * len(
+            self.anchor_ratios) * 2  # 2(bg/fg) * 9 (anchors)
         self.RPN_cls_score = nn.Conv2d(512, self.nc_score_out, 1, 1, 0)
 
         # define anchor box offset prediction layer
-        self.nc_bbox_out = len(self.anchor_scales) * len(self.anchor_ratios) * 4 # 4(coords) * 9 (anchors)
+        self.nc_bbox_out = len(self.anchor_scales) * len(
+            self.anchor_ratios) * 4  # 4(coords) * 9 (anchors)
         self.RPN_bbox_pred = nn.Conv2d(512, self.nc_bbox_out, 1, 1, 0)
 
         # define proposal layer
-        self.RPN_proposal = _ProposalLayer(self.feat_stride, self.anchor_scales, self.anchor_ratios)
+        self.RPN_proposal = _ProposalLayer(self.feat_stride,
+                                           self.anchor_scales,
+                                           self.anchor_ratios)
 
         # define anchor target layer
-        self.RPN_anchor_target = _AnchorTargetLayer(self.feat_stride, self.anchor_scales, self.anchor_ratios)
+        self.RPN_anchor_target = _AnchorTargetLayer(self.feat_stride,
+                                                    self.anchor_scales,
+                                                    self.anchor_ratios)
 
         self.rpn_loss_cls = 0
         self.rpn_loss_box = 0
@@ -55,7 +64,6 @@ class _RPN(nn.Module):
         return x
 
     def forward(self, base_feat, im_info, gt_boxes, num_boxes):
-
         batch_size = base_feat.size(0)
 
         # return feature map after convrelu layer
@@ -74,7 +82,7 @@ class _RPN(nn.Module):
         cfg_key = 'TRAIN' if self.training else 'TEST'
 
         rois = self.RPN_proposal((rpn_cls_prob.data, rpn_bbox_pred.data,
-                                 im_info, cfg_key))
+                                  im_info, cfg_key))
 
         self.rpn_loss_cls = 0
         self.rpn_loss_box = 0
@@ -83,27 +91,35 @@ class _RPN(nn.Module):
         if self.training:
             assert gt_boxes is not None
 
-            rpn_data = self.RPN_anchor_target((rpn_cls_score.data, gt_boxes, im_info, num_boxes))
+            rpn_data = self.RPN_anchor_target(
+                (rpn_cls_score.data, gt_boxes, im_info, num_boxes))
 
             # compute classification loss
-            rpn_cls_score = rpn_cls_score_reshape.permute(0, 2, 3, 1).contiguous().view(batch_size, -1, 2)
+            rpn_cls_score = rpn_cls_score_reshape.permute(
+                0, 2, 3, 1).contiguous().view(batch_size, -1, 2)
             rpn_label = rpn_data[0].view(batch_size, -1)
 
             rpn_keep = Variable(rpn_label.view(-1).ne(-1).nonzero().view(-1))
-            rpn_cls_score = torch.index_select(rpn_cls_score.view(-1,2), 0, rpn_keep)
-            rpn_label = torch.index_select(rpn_label.view(-1), 0, rpn_keep.data)
+            rpn_cls_score = torch.index_select(
+                rpn_cls_score.view(-1, 2), 0, rpn_keep)
+            rpn_label = torch.index_select(
+                rpn_label.view(-1), 0, rpn_keep.data)
             rpn_label = Variable(rpn_label.long())
             self.rpn_loss_cls = F.cross_entropy(rpn_cls_score, rpn_label)
             fg_cnt = torch.sum(rpn_label.data.ne(0))
 
-            rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights = rpn_data[1:]
+            rpn_bbox_targets, rpn_bbox_inside_weights, \
+                rpn_bbox_outside_weights = rpn_data[1:]
 
             # compute bbox regression loss
             rpn_bbox_inside_weights = Variable(rpn_bbox_inside_weights)
             rpn_bbox_outside_weights = Variable(rpn_bbox_outside_weights)
             rpn_bbox_targets = Variable(rpn_bbox_targets)
 
-            self.rpn_loss_box = _smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights,
-                                                            rpn_bbox_outside_weights, sigma=3, dim=[1,2,3])
+            self.rpn_loss_box = _smooth_l1_loss(rpn_bbox_pred,
+                                                rpn_bbox_targets,
+                                                rpn_bbox_inside_weights,
+                                                rpn_bbox_outside_weights,
+                                                sigma=3, dim=[1, 2, 3])
 
         return rois, self.rpn_loss_cls, self.rpn_loss_box
