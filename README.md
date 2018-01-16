@@ -32,7 +32,7 @@ We benchmark our code thoroughly on three datasets: pascal voc, coco and imagene
 
 1). PASCAL VOC 2007 (Train/Test: 07trainval/07test, scale=600, ROI Pooling/ROI Crop)
 
-model    | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
+model    | #GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|----|-----------|-----|-----|-------|--------|--------
 [VGG-16]()     | 1 | 1 | 1e-3 | 5   | 7   |  0.76 hr | 3265MB   | 71.0   
 [VGG-16]()     | 1 | 4 | 4e-3 | 8   | 10   |  0.50 hr | 9083MB   | 70.7   
@@ -41,12 +41,12 @@ model    | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed/epo
 [Res-101]()    | 1 | 1 | 1e-3 | 5   | 7   |  0.88 hr | 3200 MB  | 75.4   
 [Res-101]()    | 1 | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.8
 [Res-101]()    | 8 | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 74.4 
-[Res-101](https://www.dropbox.com/s/cn8gneumg4gjo9i/faster_rcnn_1_12_416.pth?dl=0)    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
+[Res-101](https://www.dropbox.com/s/cn8gneumg4gjo9i/faster_rcnn_1_12_416.pth?dl=0)    | 8 | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
 
 
 2). COCO (Train/Test: coco_train/coco_test, scale=800, max_size=1200, ROI Align)
 
-model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
+model     | #GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|----- 
 [VGG-16]()     | 8 | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
 [Res-101]()    | 8 | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
@@ -54,7 +54,7 @@ model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epo
 
 3). COCO (Train/Test: coco_train/coco_test, scale=600, max_size=1000, ROI Align)
 
-model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
+model     | #GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|----- 
 [Res-101]()    | 8 | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
 [Res-101]()    | 8 | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
