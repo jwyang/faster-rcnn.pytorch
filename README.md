@@ -64,6 +64,8 @@ Res-101    | 8 TitanX | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
 
 * Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.
 
+* And it will support python3 soon!*
+
 ## Preparation 
 
 
