@@ -254,11 +254,13 @@ if __name__ == '__main__':
       num_boxes.data.resize_(1).zero_()
 
       # pdb.set_trace()
-
-
       det_tic = time.time()
 
-      rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+      rois, cls_prob, bbox_pred, \
+      rpn_loss_cls, rpn_loss_box, \
+      RCNN_loss_cls, RCNN_loss_bbox, \
+      rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+      
       scores = cls_prob.data
       boxes = rois.data[:, :, 1:5]
 
