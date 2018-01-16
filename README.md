@@ -134,7 +134,11 @@ Before training, set the right directory to save and load the trained models. Ch
 
 To train a faster R-CNN model with vgg16 on pascal_voc, simply run:
 ```
-CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --bs $BATCH_SIZE --nw $WORKER_NUMBER --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP
+CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py \
+                   --dataset pascal_voc --net vgg16 \
+                   --bs $BATCH_SIZE --nw $WORKER_NUMBER \
+                   --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP \
+                   --cuda
 ```
 where 'bs' is the batch size with default 1. Alternatively, to train with resnet101 on pascal_voc, simple run:
 ```
