@@ -11,4 +11,5 @@ class _RoIPooling(Module):
         self.spatial_scale = float(spatial_scale)
 
     def forward(self, features, rois):
-        return RoIPoolFunction(self.pooled_height, self.pooled_width, self.spatial_scale)(features, rois)
+        return RoIPoolFunction(self.pooled_height, self.pooled_width,
+                               self.spatial_scale)(features, rois)
