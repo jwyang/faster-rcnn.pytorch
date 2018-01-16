@@ -134,17 +134,18 @@ Before training, set the right directory to save and load the trained models. Ch
 
 To train a faster R-CNN model with vgg16 on pascal_voc, simply run:
 ```
-CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --bs $BATCH_SIZE
+CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --bs $BATCH_SIZE --nw $WORKER_NUMBER --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP
 ```
 where 'bs' is the batch size with default 1. Alternatively, to train with resnet101 on pascal_voc, simple run:
 ```
- CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net resnet101 --cuda --bs $BATCH_SIZE --num_workers $WORKER_NUMBER
+ CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net resnet101 --cuda --bs $BATCH_SIZE --nw $WORKER_NUMBER --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP
 ```
 Above, BATCH_SIZE and WORKER_NUMBER can be set adaptively according to your GPU memory size. **On Titan Xp with 12G memory, it can be up to 4**.
 
 If you have multiple (say 8) Titan Xp GPUs, then just use them all! Try:
 ```
-python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --mGPUs --bs 24 --num_workers 8
+python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --mGPUs --bs 24 --nw 8 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP
+
 ```
 
 Change dataset to "coco" or 'vg' if you want to train on COCO or Visual Genome.
