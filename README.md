@@ -142,13 +142,20 @@ CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py \
 ```
 where 'bs' is the batch size with default 1. Alternatively, to train with resnet101 on pascal_voc, simple run:
 ```
- CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py --dataset pascal_voc --net resnet101 --cuda --bs $BATCH_SIZE --nw $WORKER_NUMBER --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP
+ CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py \
+                    --dataset pascal_voc --net resnet101 \
+                    --bs $BATCH_SIZE --nw $WORKER_NUMBER \
+                    --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP \
+                    --cuda
 ```
 Above, BATCH_SIZE and WORKER_NUMBER can be set adaptively according to your GPU memory size. **On Titan Xp with 12G memory, it can be up to 4**.
 
 If you have multiple (say 8) Titan Xp GPUs, then just use them all! Try:
 ```
-python trainval_net.py --dataset pascal_voc --net vgg16 --cuda --mGPUs --bs 24 --nw 8 --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP
+python trainval_net.py --dataset pascal_voc --net vgg16 \
+                       --bs 24 --nw 8 \
+                       --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP \
+                       --cuda --mGPUs
 
 ```
 
@@ -158,7 +165,9 @@ Change dataset to "coco" or 'vg' if you want to train on COCO or Visual Genome.
 
 If you want to evlauate the detection performance of a pre-trained vgg16 model on pascal_voc test set, simply run
 ```
-python test_net.py --dataset pascal_voc --net vgg16 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda
+python test_net.py --dataset pascal_voc --net vgg16 \
+                   --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT \
+                   --cuda
 ```
 Specify the specific model session, chechepoch and checkpoint, e.g., SESSION=1, EPOCH=6, CHECKPOINT=416.
 
@@ -166,7 +175,9 @@ Specify the specific model session, chechepoch and checkpoint, e.g., SESSION=1, 
 
 If you want to run detection on your own images with a pre-trained model, add your own images to folder $ROOT/images, and then try
 ```
-python demo.py --net vgg16 --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT --cuda
+python demo.py --net vgg16 \
+               --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT \
+               --cuda
 ```
 
 Then you will find the detection results in folder $ROOT/images.
