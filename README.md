@@ -34,30 +34,33 @@ We benchmark our code thoroughly on three datasets: pascal voc, coco and imagene
 
 model    | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|----|-----------|-----|-----|-------|--------|--------
-VGG-16     | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.76 hr | 3265MB   | 71.0   
-VGG-16     | 1 TitanX | 4 | 4e-3 | 8   | 10   |  0.50 hr | 9083MB   | 70.7   
-VGG-16     | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.6 
-VGG-16     | 8 TitanX | 24| 1e-2 | 10  | 11  |  0.16 hr | 11303MB  | 69.6   
-Res-101    | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.88 hr | 3200 MB  | 75.4   
-Res-101    | 1 TitanX | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.8
-Res-101    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 74.4 
-Res-101    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
+[VGG-16]()     | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.76 hr | 3265MB   | 71.0   
+[VGG-16]()     | 1 TitanX | 4 | 4e-3 | 8   | 10   |  0.50 hr | 9083MB   | 70.7   
+[VGG-16]()     | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.6 
+[VGG-16]()     | 8 TitanX | 24| 1e-2 | 10  | 11  |  0.16 hr | 11303MB  | 69.6   
+[Res-101]()    | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.88 hr | 3200 MB  | 75.4   
+[Res-101]()    | 1 TitanX | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.8
+[Res-101]()    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 74.4 
+[Res-101]()    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
 
 
 2). COCO (Train/Test: coco_train/coco_test, scale=800, max_size=1200, ROI Align)
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|----- 
-VGG-16     | 8 TitanX | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
-Res-101    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
-Res-101    | 8 TitanX | 16    |1e-2| 4   | 10  |  6.0 hr    |10956 MB  | 37.0
+[VGG-16]()     | 8 TitanX | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
+[Res-101]()    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
+[Res-101]()    | 8 TitanX | 16    |1e-2| 4   | 10  |  6.0 hr    |10956 MB  | 37.0
 
 3). COCO (Train/Test: coco_train/coco_test, scale=600, max_size=1000, ROI Align)
 
 model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
 ---------|-----------|-----|-----------|-----|-----|-------|--------|----- 
-Res-101    | 8 TitanX | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
-Res-101    | 8 TitanX | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
+[Res-101]()    | 8 TitanX | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
+[Res-101]()    | 8 TitanX | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
+
+
+* Click the links in the above tables to download our pre-trained faster r-cnn models. *
 
 ### What we are doing now
 
