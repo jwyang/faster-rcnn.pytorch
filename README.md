@@ -111,7 +111,7 @@ As pointed out by [ruotianluo/pytorch-faster-rcnn](https://github.com/ruotianluo
   | Grid K520 (AWS g2.2xlarge) | sm_30 |
   | Tesla K80 (AWS p2.xlarge) | sm_37 |
   
-More details about setting the architecture can be found [here](http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/)
+More details about setting the architecture can be found [here](https://developer.nvidia.com/cuda-gpus) or [here](http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/)
 
 Compile the cuda dependencies using following simple commands:
 
