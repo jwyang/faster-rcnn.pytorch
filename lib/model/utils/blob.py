@@ -8,9 +8,8 @@
 """Blob helper functions."""
 
 import numpy as np
-#from scipy.misc import imread, imresize
+# from scipy.misc import imread, imresize
 import cv2
-
 
 
 def im_list_to_blob(ims):
@@ -28,9 +27,10 @@ def im_list_to_blob(ims):
 
     return blob
 
+
 def prep_im_for_blob(im, pixel_means, target_size, max_size):
     """Mean subtract and scale an image for use in a blob."""
-    
+
     im = im.astype(np.float32, copy=False)
     im -= pixel_means
     # im = im[:, :, ::-1]
