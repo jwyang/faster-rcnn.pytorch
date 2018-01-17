@@ -183,7 +183,9 @@ python demo.py --net vgg16 \
                --cuda
 ```
 
-Then you will find the detection results in folder $ROOT/images.
+Then you will find the detection results in folder $ROOT/images. 
+
+**Note the default demo.py merely support pascal_voc categories. You need to change the [line](https://github.com/jwyang/faster-rcnn.pytorch/blob/530f3fdccaa60d05fa068bc2148695211586bd88/demo.py#L156) to adapt your own model.**
 
 Below are some detection results:
 
