@@ -30,7 +30,7 @@ During our implementing, we referred the above implementations, especailly [long
 
 We benchmark our code thoroughly on three datasets: pascal voc, coco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
 
-1). PASCAL VOC 2007 (Train/Test: 07trainval/07test, scale=600, ROI Pooling/ROI Crop)
+1). PASCAL VOC 2007 (Train/Test: 07trainval/07test, scale=600, ROI Align)
 
 model    | #GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Time/epoch | Memory/GPU | mAP 
 ---------|-----|-------|-------|-------|-------|-------|--------|--------
@@ -39,9 +39,9 @@ VGG-16     | 1 | 4 | 4e-3 | 8   | 10  |  0.50 hr | 9083MB   | 70.7
 VGG-16     | 8 | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.6
 VGG-16     | 8 | 24| 1e-2 | 10  | 11  |  0.16 hr | 11303MB  | 69.6
 Res-101    | 1 | 1 | 1e-3 | 5   | 7   |  0.88 hr | 3200 MB  | 75.4
-Res-101    | 1 | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.8
-Res-101    | 8 | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 74.4 
-[Res-101](https://www.dropbox.com/s/cn8gneumg4gjo9i/faster_rcnn_1_12_416.pth?dl=0)    | 8 | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
+Res-101    | 1 | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.5
+[Res-101](https://www.dropbox.com/s/5is50y01m1l9hbu/faster_rcnn_1_10_625.pth?dl=0)    | 8 | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 75.2 
+[Res-101](https://www.dropbox.com/s/cn8gneumg4gjo9i/faster_rcnn_1_12_416.pth?dl=0)    | 8 | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 75.1   
 
 
 2). COCO (Train/Test: coco_train/coco_test, scale=800, max_size=1200, ROI Align)
