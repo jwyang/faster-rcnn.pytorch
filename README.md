@@ -144,7 +144,7 @@ CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py \
 where 'bs' is the batch size with default 1. Alternatively, to train with resnet101 on pascal_voc, simple run:
 ```
  CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py \
-                    --dataset pascal_voc --net resnet101 \
+                    --dataset pascal_voc --net res101 \
                     --bs $BATCH_SIZE --nw $WORKER_NUMBER \
                     --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP \
                     --cuda
