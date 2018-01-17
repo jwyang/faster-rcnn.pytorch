@@ -176,7 +176,7 @@ Specify the specific model session, chechepoch and checkpoint, e.g., SESSION=1, 
 
 ## Demo
 
-If you want to run detection on your own images with a pre-trained model, add your own images to folder $ROOT/images, and then try
+If you want to run detection on your own images with a pre-trained model, download the pretrained model lined in above tables or train your own models at firt, then add images to folder $ROOT/images, and then run
 ```
 python demo.py --net vgg16 \
                --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT \
