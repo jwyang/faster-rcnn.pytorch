@@ -2,8 +2,7 @@ import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable, gradcheck
-from torch.autograd.gradcheck import gradgradcheck
+from torch.autograd import Variable
 import torchvision.models as models
 from torch.autograd import Variable
 import numpy as np
@@ -20,7 +19,7 @@ from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer, _affine_gri
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
     def __init__(self, classes, class_agnostic):
-        super(_fasterRCNN, self).__init__()    
+        super(_fasterRCNN, self).__init__()
         self.classes = classes
         self.n_classes = len(classes)
         self.class_agnostic = class_agnostic
