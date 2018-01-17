@@ -40,7 +40,7 @@ class _ProposalTargetLayer(nn.Module):
         self.BBOX_INSIDE_WEIGHTS = self.BBOX_INSIDE_WEIGHTS.type_as(gt_boxes)
 
         gt_boxes_append = gt_boxes.new(gt_boxes.size()).zero_()
-        gt_boxes_append[:, :, 1:5] = gt_boxes[:, :, :4]
+        gt_boxes_append[:, :, 1:5] = gt_boxes[:, :, :4]  # add a new axis
 
         # Include ground-truth boxes in the set of candidate rois
         all_rois = torch.cat([all_rois, gt_boxes_append], 1)
@@ -51,6 +51,7 @@ class _ProposalTargetLayer(nn.Module):
             np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))
         fg_rois_per_image = 1 if fg_rois_per_image == 0 else fg_rois_per_image
 
+        # TODO: add reid functions
         labels, rois, bbox_targets, bbox_inside_weights = \
             self._sample_rois_pytorch(all_rois, gt_boxes, fg_rois_per_image,
                 rois_per_image, self._num_classes)
@@ -140,6 +141,7 @@ class _ProposalTargetLayer(nn.Module):
             -1).index(offset.view(-1)).view(batch_size, -1)
 
         labels_batch = labels.new(batch_size, rois_per_image).zero_()
+        # TODO: rectify 5 with 6
         rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
         gt_rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
         # Guard against the case when an image has fewer than
