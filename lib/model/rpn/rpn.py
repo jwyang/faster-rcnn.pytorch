@@ -68,10 +68,11 @@ class _RPN(nn.Module):
 
         # return feature map after convrelu layer
         rpn_conv1 = F.relu(self.RPN_Conv(base_feat), inplace=True)
-        # get rpn classification score
+        # get rpn cls score (shape: batch * (num_anchors * 2) * h * w)
         rpn_cls_score = self.RPN_cls_score(rpn_conv1)
 
         rpn_cls_score_reshape = self.reshape(rpn_cls_score, 2)
+        # TODO: fix softmax function with new version format
         rpn_cls_prob_reshape = F.softmax(rpn_cls_score_reshape)
         rpn_cls_prob = self.reshape(rpn_cls_prob_reshape, self.nc_score_out)
 
@@ -91,6 +92,11 @@ class _RPN(nn.Module):
         if self.training:
             assert gt_boxes is not None
 
+            # rpn_data consist of
+            #     1. labels
+            #     2. bbox_targets
+            #     3. bbox_inside_weights
+            #     4. bbox_outside_weights
             rpn_data = self.RPN_anchor_target(
                 (rpn_cls_score.data, gt_boxes, im_info, num_boxes))
 
