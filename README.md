@@ -30,37 +30,38 @@ During our implementing, we referred the above implementations, especailly [long
 
 We benchmark our code thoroughly on three datasets: pascal voc, coco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
 
-1). PASCAL VOC 2007 (Train/Test: 07trainval/07test, scale=600, ROI Pooling/ROI Crop)
+1). PASCAL VOC 2007 (Train/Test: 07trainval/07test, scale=600, ROI Align)
 
-model    | GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
----------|-----------|----|-----------|-----|-----|-------|--------|--------
-[VGG-16]()     | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.76 hr | 3265MB   | 71.0   
-[VGG-16]()     | 1 TitanX | 4 | 4e-3 | 8   | 10   |  0.50 hr | 9083MB   | 70.7   
-[VGG-16]()     | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.6 
-[VGG-16]()     | 8 TitanX | 24| 1e-2 | 10  | 11  |  0.16 hr | 11303MB  | 69.6   
-[Res-101]()    | 1 TitanX | 1 | 1e-3 | 5   | 7   |  0.88 hr | 3200 MB  | 75.4   
-[Res-101]()    | 1 TitanX | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.8
-[Res-101]()    | 8 TitanX | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 74.4 
-[Res-101](https://www.dropbox.com/s/cn8gneumg4gjo9i/faster_rcnn_1_12_416.pth?dl=0)    | 8 TitanX | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 74.5   
+model    | #GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Time/epoch | Memory/GPU | mAP 
+---------|-----|-------|-------|-------|-------|-------|--------|--------
+VGG-16     | 1 | 1 | 1e-3 | 5   | 7   |  0.76 hr | 3265MB   | 71.0
+VGG-16     | 1 | 4 | 4e-3 | 8   | 10  |  0.50 hr | 9083MB   | 70.7
+[VGG-16](https://www.dropbox.com/s/1a31y7vicby0kvy/faster_rcnn_1_10_625.pth?dl=0)     | 8 | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.7
+VGG-16     | 8 | 24| 1e-2 | 10  | 11  |  0.16 hr | 11303MB  | 69.6
+[Res-101](https://www.dropbox.com/s/4v3or0054kzl19q/faster_rcnn_1_7_10021.pth?dl=0)   | 1 | 1 | 1e-3 | 5   | 7   |  0.88 hr | 3200 MB  | 75.2
+Res-101    | 1 | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.5
+[Res-101](https://www.dropbox.com/s/5is50y01m1l9hbu/faster_rcnn_1_10_625.pth?dl=0)    | 8 | 16| 1e-2 | 8   | 10  |  0.23 hr | 8400 MB  | 75.2 
+[Res-101](https://www.dropbox.com/s/cn8gneumg4gjo9i/faster_rcnn_1_12_416.pth?dl=0)    | 8 | 24| 1e-2 | 10  | 12  |  0.17 hr | 10327MB  | 75.1   
 
 
 2). COCO (Train/Test: coco_train/coco_test, scale=800, max_size=1200, ROI Align)
 
-model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
----------|-----------|-----|-----------|-----|-----|-------|--------|----- 
-[VGG-16]()     | 8 TitanX | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
-[Res-101]()    | 8 TitanX | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
-[Res-101]()    | 8 TitanX | 16    |1e-2| 4   | 10  |  6.0 hr    |10956 MB  | 37.0
+model     | #GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Time/epoch | Memory/GPU | mAP 
+---------|-----------|-----|-------|-----|-----|-------|--------|----- 
+VGG-16     | 8 | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
+Res-101    | 8 | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
+Res-101    | 8 | 16    |1e-2| 4   | 10  |  6.0 hr    |10956 MB  | 37.0
 
 3). COCO (Train/Test: coco_train/coco_test, scale=600, max_size=1000, ROI Align)
 
-model     | GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Speed/epoch | Memory/GPU | mAP 
----------|-----------|-----|-----------|-----|-----|-------|--------|----- 
-[Res-101]()    | 8 TitanX | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
-[Res-101]()    | 8 TitanX | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
+model     | #GPUs | Batch Size |lr        | lr_decay | max_epoch     |  Time/epoch | Memory/GPU | mAP 
+---------|-----------|-----|--------|-----|-----|-------|--------|----- 
+Res-101    | 8 | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
+Res-101    | 8 | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
 
 
 * Click the links in the above tables to download our pre-trained faster r-cnn models.
+* If not mentioned, the GPU we used is NVIDIA Titan X Pascal (12GB).
 
 ### What we are doing now
 
@@ -95,9 +96,9 @@ mkdir data
 
 We used two pretrained models in our experiments, VGG and ResNet101. You can download these two models from:
 
-* VGG16: https://www.dropbox.com/s/iev3tkbz5wyyuz9/resnet101_caffe.pth?dl=0
+* VGG16: [Dropbox](https://www.dropbox.com/s/s3brpk0bdq60nyb/vgg16_caffe.pth?dl=0), [VT Server](https://filebox.ece.vt.edu/~jw2yang/faster-rcnn/pretrained-base-models/vgg16_caffe.pth)
 
-* ResNet101: https://www.dropbox.com/s/iev3tkbz5wyyuz9/resnet101_caffe.pth?dl=0
+* ResNet101: [Dropbox](https://www.dropbox.com/s/iev3tkbz5wyyuz9/resnet101_caffe.pth?dl=0), [VT Server](https://filebox.ece.vt.edu/~jw2yang/faster-rcnn/pretrained-base-models/resnet101_caffe.pth)
 
 Download them and put them into the data/.
 
@@ -143,7 +144,7 @@ CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py \
 where 'bs' is the batch size with default 1. Alternatively, to train with resnet101 on pascal_voc, simple run:
 ```
  CUDA_VISIBLE_DEVICES=$GPU_ID python trainval_net.py \
-                    --dataset pascal_voc --net resnet101 \
+                    --dataset pascal_voc --net res101 \
                     --bs $BATCH_SIZE --nw $WORKER_NUMBER \
                     --lr $LEARNING_RATE --lr_decay_step $DECAY_STEP \
                     --cuda
