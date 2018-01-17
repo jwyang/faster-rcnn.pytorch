@@ -10,13 +10,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# TODO: delete redundant datasets
 
 __sets = {}
 from datasets.pascal_voc import pascal_voc
 # from datasets.coco import coco
 from datasets.imagenet import imagenet
 from datasets.vg import vg
+from datasets.psdb import psdb
 
 import numpy as np
 
@@ -66,6 +66,11 @@ for split in ['train', 'val', 'val1', 'val2', 'test']:
     __sets[name] = (
         lambda split=split, devkit_path=devkit_path, data_path=data_path:
             imagenet(split, devkit_path, data_path))
+
+# set up psdb
+for split in ['train', 'test']:
+    name = 'psdb_{}'.format(split)
+    __sets[name] = (lambda split=split: psdb(split))
 
 
 def get_imdb(name):
