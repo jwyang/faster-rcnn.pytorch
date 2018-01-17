@@ -49,7 +49,7 @@ class _fasterRCNN(nn.Module):
         batch_size = im_data.size(0)
 
         im_info = im_info.data
-        gt_boxes = gt_boxes.data
+        gt_boxes = gt_boxes.data  # Note that gt_boxes is not Variable
         num_boxes = num_boxes.data
 
         # feed image data to base model to obtain base feature map
@@ -167,6 +167,6 @@ class _fasterRCNN(nn.Module):
         # TODO: add initializing reid net
 
     def create_architecture(self):
-        # TODO: add pid information here for all networks (better to use cfg)
+        # TODO: add lut and queue here for all networks (better to use cfg)
         self._init_modules()
         self._init_weights()
