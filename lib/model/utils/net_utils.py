@@ -8,6 +8,7 @@ from model.utils.config import cfg
 from model.roi_crop.functions.roi_crop import RoICropFunction
 import cv2
 import pdb
+import random
 
 def save_net(fname, net):
     import h5py
