@@ -36,7 +36,7 @@ model    | #GPUs | Batch Size | lr        | lr_decay | max_epoch     |  Time/epo
 ---------|-----|-------|-------|-------|-------|-------|--------|--------
 VGG-16     | 1 | 1 | 1e-3 | 5   | 7   |  0.76 hr | 3265MB   | 71.0
 VGG-16     | 1 | 4 | 4e-3 | 8   | 10  |  0.50 hr | 9083MB   | 70.7
-VGG-16     | 8 | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.6
+[VGG-16](https://www.dropbox.com/s/1a31y7vicby0kvy/faster_rcnn_1_10_625.pth?dl=0)     | 8 | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.7
 VGG-16     | 8 | 24| 1e-2 | 10  | 11  |  0.16 hr | 11303MB  | 69.6
 [Res-101](https://www.dropbox.com/s/4v3or0054kzl19q/faster_rcnn_1_7_10021.pth?dl=0)   | 1 | 1 | 1e-3 | 5   | 7   |  0.88 hr | 3200 MB  | 75.2
 Res-101    | 1 | 4 | 4e-3 | 8   | 10  |  0.60 hr | 9700 MB  | 74.5
