@@ -61,11 +61,10 @@ class roibatchLoader(data.Dataset):
             index_ratio = index
 
         # get the anchor index for current sample index
-        # here we set the anchor index to the last one
-        # sample in this group
+        # here we set the anchor index to the last one sample in this group
         minibatch_db = [self._roidb[index_ratio]]
         blobs = get_minibatch(minibatch_db, self._num_classes)
-        data = torch.from_numpy(blobs['data'])
+        data = torch.from_numpy(blobs['data'])  # image batch
         im_info = torch.from_numpy(blobs['im_info'])
         # we need to random shuffle the bounding box.
         data_height, data_width = data.size(1), data.size(2)
@@ -198,7 +197,7 @@ class roibatchLoader(data.Dataset):
             else:
                 num_boxes = 0
 
-                # permute trim_data to adapt to downstream processing
+            # permute trim_data to adapt to downstream processing
             padding_data = padding_data.permute(2, 0, 1).contiguous()
             im_info = im_info.view(3)
 
