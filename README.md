@@ -61,7 +61,7 @@ Res-101    | 8 | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
 
 
 * Click the links in the above tables to download our pre-trained faster r-cnn models.
-* If not mentioned, the GPUs we used is NVIDIA Titan X Pascal (12GB).
+* If not mentioned, the GPU we used is NVIDIA Titan X Pascal (12GB).
 
 ### What we are doing now
 
