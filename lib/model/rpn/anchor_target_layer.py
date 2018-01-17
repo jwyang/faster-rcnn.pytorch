@@ -56,7 +56,7 @@ class _AnchorTargetLayer(nn.Module):
         im_info = input[2]
         num_boxes = input[3]
 
-        # map of shape (..., H, W)
+        # map of shape (..., H, W) -> shape of feature map
         height, width = rpn_cls_score.size(2), rpn_cls_score.size(3)
 
         batch_size = gt_boxes.size(0)
@@ -107,7 +107,7 @@ class _AnchorTargetLayer(nn.Module):
         if not cfg.TRAIN.RPN_CLOBBER_POSITIVES:
             labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
-        gt_max_overlaps[gt_max_overlaps == 0] = 1e-5
+        gt_max_overlaps[gt_max_overlaps == 0] = 1e-5  # do not know why
         keep = torch.sum(overlaps.eq(
             gt_max_overlaps.view(batch_size, 1, -1).expand_as(overlaps)), 2)
 
