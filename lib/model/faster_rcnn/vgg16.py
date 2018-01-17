@@ -24,6 +24,7 @@ class vgg16(_fasterRCNN):
         self.pretrained = pretrained
         self.class_agnostic = class_agnostic
         self.detection_dimension = 4096
+        # TODO: add reid_feat_dim and query_mode here
 
         _fasterRCNN.__init__(self, classes, class_agnostic)
 
@@ -34,6 +35,8 @@ class vgg16(_fasterRCNN):
             state_dict = torch.load(self.model_path)
             vgg.load_state_dict(
                 {k: v for k, v in state_dict.items() if k in vgg.state_dict()})
+
+        # TODO: query net does not need cls_score and bbox_pred
 
         vgg.classifier = nn.Sequential(
             *list(vgg.classifier._modules.values())[:-1])
@@ -61,6 +64,8 @@ class vgg16(_fasterRCNN):
         else:
             self.RCNN_bbox_pred = nn.Linear(self.detection_dimension,
                                             4 * self.n_classes)
+
+        # TODO: add reid fully-connected layer
 
     def _head_to_tail(self, pool5):
 
