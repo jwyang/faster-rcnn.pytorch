@@ -59,7 +59,7 @@ def parse_args():
     parser.add_argument('--checkpoint_interval', dest='checkpoint_interval',
                         help='number of iterations to display',
                         default=10000, type=int)
-
+    # TODO: change saving dir of trained models
     parser.add_argument('--save_dir', dest='save_dir',
                         help='directory to save models',
                         default="./models",
@@ -69,6 +69,7 @@ def parse_args():
                         default=0, type=int)
     parser.add_argument('--cuda', dest='cuda',
                         help='whether use CUDA',
+                        default=True,
                         action='store_true')
     parser.add_argument('--ls', dest='large_scale',
                         help='whether use large imag scale',
@@ -130,23 +131,23 @@ class sampler(Sampler):
         self.num_per_batch = int(num_data / batch_size)
         self.batch_size = batch_size
         self.range = torch.arange(0, batch_size).view(1, batch_size).long()
-        self.leftover_flag = False
+        self.leftover_flag = False  # a flag to show the last batch
         if num_data % batch_size:
             self.leftover = torch.arange(self.num_per_batch * batch_size,
                                          num_data).long()
             self.leftover_flag = True
 
     def __iter__(self):
-        rand_num = torch.randperm(self.num_per_batch).view(-1,
-                                                           1) * self.batch_size
-        self.rand_num = rand_num.expand(self.num_per_batch,
-                                        self.batch_size) + self.range
+        rand_num = torch.randperm(self.num_per_batch).view(
+            -1, 1) * self.batch_size
+        self.rand_num = rand_num.expand(
+            self.num_per_batch, self.batch_size) + self.range
 
         self.rand_num_view = self.rand_num.view(-1)
 
         if self.leftover_flag:
-            self.rand_num_view = torch.cat((self.rand_num_view, self.leftover),
-                                           0)
+            self.rand_num_view = torch.cat(
+                (self.rand_num_view, self.leftover), 0)
 
         return iter(self.rand_num_view)
 
@@ -200,7 +201,7 @@ if __name__ == '__main__':
         args.net) if args.large_scale else "cfgs/{}.yml".format(args.net)
 
     if args.cfg_file is not None:
-        cfg_from_file(args.cfg_file)
+        cfg_from_file(args.cfg_file)  # merge yml file to cfg
     if args.set_cfgs is not None:
         cfg_from_list(args.set_cfgs)
 
@@ -324,7 +325,7 @@ if __name__ == '__main__':
 
     iters_per_epoch = int(train_size / args.batch_size)
 
-    for epoch in range(args.start_epoch, args.max_epochs):
+    for epoch in range(args.start_epoch, args.max_epochs + 1):
         # setting to train mode
         fasterRCNN.train()
         loss_temp = 0
@@ -337,7 +338,13 @@ if __name__ == '__main__':
 
         data_iter = iter(dataloader)
         for step in range(iters_per_epoch):
-            data = data_iter.next()
+            # data is a list consists of
+            #     1. image batch with padding and permuted channels
+            #     2. im_info about scaled H and W and scaling coefficient
+            #     3. padded gt_boxes (length is 20 eg. and #column is 5)
+            #     4. quantity of real gt_boxes (less than 20 generally)
+            # TODO: add pid label into gt_boxes contained in data
+            data = data_iter.next()  # data are shuffled here
             im_data.data.resize_(data[0].size()).copy_(data[0])
             im_info.data.resize_(data[1].size()).copy_(data[1])
             gt_boxes.data.resize_(data[2].size()).copy_(data[2])
@@ -353,7 +360,7 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             loss.backward()
             if args.net == "vgg16":
-                clip_gradient(fasterRCNN, 10.)
+                clip_gradient(fasterRCNN, 10.)  # do not know why
             optimizer.step()
 
             if step % args.disp_interval == 0:
