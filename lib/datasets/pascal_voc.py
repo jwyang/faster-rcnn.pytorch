@@ -36,7 +36,7 @@ class pascal_voc(imdb):
     def __init__(self, image_set, year, devkit_path=None):
         imdb.__init__(self, 'voc_' + year + '_' + image_set)
         self._year = year
-        self._image_set = image_set
+        self._image_set = image_set  # {str}
         self._devkit_path = self._get_default_path() if devkit_path is None \
             else devkit_path
         self._data_path = os.path.join(self._devkit_path, 'VOC' + self._year)
@@ -48,7 +48,7 @@ class pascal_voc(imdb):
                          'sheep', 'sofa', 'train', 'tvmonitor')
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_ext = '.jpg'
-        self._image_index = self._load_image_set_index()
+        self._image_index = self._load_image_set_index()  # str list of imname
         # Default to roidb handler
         # self._roidb_handler = self.selective_search_roidb
         self._roidb_handler = self.gt_roidb
@@ -61,7 +61,7 @@ class pascal_voc(imdb):
                        'use_diff': False,
                        'matlab_eval': False,
                        'rpn_file': None,
-                       'min_size': 2}
+                       'min_size': 2}  # TODO: unknown variable
 
         assert os.path.exists(self._devkit_path), \
             'VOCdevkit path does not exist: {}'.format(self._devkit_path)
@@ -114,7 +114,7 @@ class pascal_voc(imdb):
         """
         Return the database of ground-truth regions of interest.
 
-        This function loads/saves from/to a cache file to speed up future calls.
+        This function loads/saves from/to a cache file to speed up future calls
         """
         cache_file = os.path.join(self.cache_path, self.name + '_gt_roidb.pkl')
         if os.path.exists(cache_file):
@@ -136,7 +136,7 @@ class pascal_voc(imdb):
         Return the database of selective search regions of interest.
         Ground-truth ROIs are also included.
 
-        This function loads/saves from/to a cache file to speed up future calls.
+        This function loads/saves from/to a cache file to speed up future calls
         """
         cache_file = os.path.join(self.cache_path,
                                   self.name + '_selective_search_roidb.pkl')
@@ -257,8 +257,10 @@ class pascal_voc(imdb):
 
     def _get_voc_results_file_template(self):
         # VOCdevkit/results/VOC2007/Main/<comp_id>_det_test_aeroplane.txt
-        filename = self._get_comp_id() + '_det_' + self._image_set + '_{:s}.txt'
-        filedir = os.path.join(self._devkit_path, 'results', 'VOC' + self._year, 'Main')
+        filename = self._get_comp_id() + '_det_' + self._image_set + \
+                   '_{:s}.txt'
+        filedir = os.path.join(self._devkit_path, 'results',
+                               'VOC' + self._year, 'Main')
         if not os.path.exists(filedir):
             os.makedirs(filedir)
         path = os.path.join(filedir, filename)
