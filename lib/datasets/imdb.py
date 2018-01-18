@@ -31,7 +31,7 @@ class imdb(object):
         else:
             self._classes = classes
         self._image_index = []
-        # TODO: add probe here for re-id
+        self._probes = []
         self._obj_proposer = 'gt'
         self._roidb = None
         self._roidb_handler = self.default_roidb
@@ -89,6 +89,10 @@ class imdb(object):
     def num_images(self):
         return len(self.image_index)
 
+    @property
+    def probes(self):
+        return self._probes
+
     def image_path_at(self, i):
         raise NotImplementedError
 
@@ -127,6 +131,8 @@ class imdb(object):
                      'gt_overlaps': self.roidb[i]['gt_overlaps'],
                      'gt_classes': self.roidb[i]['gt_classes'],
                      'flipped': True}
+            if 'gt_pids' in self.roidb[i]:
+                entry['gt_pids'] = self.roidb[i]['gt_pids']
             self.roidb.append(entry)
         self._image_index = self._image_index * 2
 
