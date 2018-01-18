@@ -36,7 +36,7 @@ def get_minibatch(roidb, num_classes):
     assert len(im_scales) == 1, "Single batch only"
     assert len(roidb) == 1, "Single batch only"
 
-    # gt boxes: (x1, y1, x2, y2, cls)
+    # gt boxes: (x1, y1, x2, y2, cls, pid)
     if cfg.TRAIN.USE_ALL_GT:
         # Include all ground truth boxes
         gt_inds = np.where(roidb[0]['gt_classes'] != 0)[0]
@@ -47,11 +47,13 @@ def get_minibatch(roidb, num_classes):
     gt_boxes = np.empty((len(gt_inds), 5), dtype=np.float32)
     gt_boxes[:, 0:4] = roidb[0]['boxes'][gt_inds, :] * im_scales[0]
     gt_boxes[:, 4] = roidb[0]['gt_classes'][gt_inds]
+    if 'gt_pids' in roidb[0]:
+        gt_boxes = np.hstack(
+            [gt_boxes, roidb[0]['gt_pids'][gt_inds, np.newaxis]])
     blobs['gt_boxes'] = gt_boxes
     blobs['im_info'] = np.array(
         [[im_blob.shape[1], im_blob.shape[2], im_scales[0]]],
         dtype=np.float32)
-
     blobs['img_id'] = roidb[0]['img_id']
 
     return blobs
