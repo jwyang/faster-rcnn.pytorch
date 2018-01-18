@@ -50,7 +50,8 @@ model     | #GPUs | batch size |lr        | lr_decay | max_epoch     |  time/epo
 ---------|--------|-----|--------|-----|-----|-------|--------|----- 
 VGG-16     | 8 | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
 Res-101    | 8 | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
-Res-101    | 8 | 16    |1e-2| 4   | 10  |  6.0 hr    |10956 MB  | 37.0
+[Res-101](https://www.dropbox.com/s/be0isevd22eikqb/faster_rcnn_1_10_14657.pth?dl=0)    | 8 | 16    |1e-2| 4   | 10  |  6.0 hr    |10956 MB  | 37.0
+**NOTE**. Since the above models use scale=800, you need add "--ls" at the end of test command.
 
 3). COCO (Train/Test: coco_train/coco_test, scale=600, max_size=1000, ROI Align)
 
