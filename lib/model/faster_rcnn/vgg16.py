@@ -24,7 +24,8 @@ class vgg16(_fasterRCNN):
         self.pretrained = pretrained
         self.class_agnostic = class_agnostic
         self.detection_dimension = 4096
-        # TODO: add reid_feat_dim and query_mode here
+        self.reid_feat_dim = 256
+        self.query = False
 
         _fasterRCNN.__init__(self, classes, class_agnostic)
 
