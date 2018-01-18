@@ -33,7 +33,7 @@ We benchmark our code thoroughly on three datasets: pascal voc, coco and imagene
 1). PASCAL VOC 2007 (Train/Test: 07trainval/07test, scale=600, ROI Align)
 
 model    | #GPUs | batch size | lr        | lr_decay | max_epoch     |  time/epoch | memory/GPU | mAP 
----------|-----|-------|-------|-------|-------|-------|--------|--------
+---------|-----------|-----|--------|-----|-----|-------|--------|-----
 [VGG-16](https://www.dropbox.com/s/sqzwahasczavco9/faster_rcnn_1_7_10021.pth?dl=0)     | 1 | 1 | 1e-3 | 5   | 7   |  0.76 hr | 3265MB   | 70.2
 [VGG-16](https://www.dropbox.com/s/l2paqfjbbmx6d9f/faster_rcnn_1_10_2504.pth?dl=0)     | 1 | 4 | 4e-3 | 8   | 10  |  0.50 hr | 9083MB   | 70.7
 [VGG-16](https://www.dropbox.com/s/1a31y7vicby0kvy/faster_rcnn_1_10_625.pth?dl=0)     | 8 | 16| 1e-2 | 8   | 10  |  0.19 hr | 5291MB   | 69.7
