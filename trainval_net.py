@@ -43,7 +43,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
     parser.add_argument('--dataset', dest='dataset',
                         help='training dataset',
-                        default='pascal_voc', type=str)
+                        default='psdb', type=str)
     parser.add_argument('--net', dest='net',
                         help='vgg16, res101',
                         default='vgg16', type=str)
@@ -59,10 +59,9 @@ def parse_args():
     parser.add_argument('--checkpoint_interval', dest='checkpoint_interval',
                         help='number of iterations to display',
                         default=10000, type=int)
-    # TODO: change saving dir of trained models
     parser.add_argument('--save_dir', dest='save_dir',
                         help='directory to save models',
-                        default="./models",
+                        default="./output/trained",
                         nargs=argparse.REMAINDER)
     parser.add_argument('--num_workers', dest='num_workers',
                         help='number of worker to load data',
@@ -196,6 +195,11 @@ if __name__ == '__main__':
         args.imdbval_name = "vg_150-50-50_minival"
         args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS',
                          '[0.5,1,2]', 'MAX_NUM_GT_BOXES', '50']
+
+    elif args.dataset == 'psdb':
+        args.imdb_name = 'psdb_train'
+        args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS',
+                         '[0.5,1,2]', 'MAX_NUM_GT_BOXES', '20'] # FIXME: 20?
 
     args.cfg_file = "cfgs/{}_ls.yml".format(
         args.net) if args.large_scale else "cfgs/{}.yml".format(args.net)
