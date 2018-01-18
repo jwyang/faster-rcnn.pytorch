@@ -58,8 +58,8 @@ VGG-16     | 8 | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2
 
 model     | #GPUs | batch size |lr        | lr_decay | max_epoch     |  time/epoch | mem/GPU | mAP 
 ---------|--------|-----|--------|-----|-----|-------|--------|----- 
-Res-101    | 8 | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
-Res-101    | 8 | 24    |1e-2| 4   | 9  |  5.4 hr    |10659 MB  | 34.2
+[Res-101](https://www.dropbox.com/s/y171ze1sdw1o2ph/faster_rcnn_1_6_9771.pth?dl=0)    | 8 | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
+[Res-101](https://www.dropbox.com/s/dpq6qv0efspelr3/faster_rcnn_1_10_9771.pth?dl=0)    | 8 | 24    |1e-2| 4   | 10  |  5.4 hr    |10659 MB  | 34.5
 
 
 * Click the links in the above tables to download our pre-trained faster r-cnn models.
