@@ -49,7 +49,7 @@ VGG-16     | 1 | 4 | 4e-3 | 8   | 10  |  0.50 hr | 9083MB   | 70.7
 model     | #GPUs | batch size |lr        | lr_decay | max_epoch     |  time/epoch | mem/GPU | mAP 
 ---------|--------|-----|--------|-----|-----|-------|--------|----- 
 VGG-16     | 8 | 16    |1e-2| 4   | 6  |  4.9 hr | 7192 MB  | 29.2 
-Res-101    | 8 | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.7
+[Res-101](https://www.dropbox.com/s/5if6l7mqsi4rfk9/faster_rcnn_1_6_14657.pth?dl=0)    | 8 | 16    |1e-2| 4   | 6  |  6.0 hr    |10956 MB  | 36.2
 [Res-101](https://www.dropbox.com/s/be0isevd22eikqb/faster_rcnn_1_10_14657.pth?dl=0)    | 8 | 16    |1e-2| 4   | 10  |  6.0 hr    |10956 MB  | 37.0
 
 **NOTE**. Since the above models use scale=800, you need add "--ls" at the end of test command.
