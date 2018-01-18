@@ -1,3 +1,4 @@
+from __future__ import print_function
 # --------------------------------------------------------
 # Faster R-CNN
 # Copyright (c) 2015 Microsoft
@@ -34,6 +35,12 @@ import pdb
 #       [ -35.,  -79.,   52.,   96.],
 #       [ -79., -167.,   96.,  184.],
 #       [-167., -343.,  184.,  360.]])
+
+try:
+    xrange          # Python 2
+except NameError:
+    xrange = range  # Python 3
+
 
 def generate_anchors(base_size=16, ratios=[0.5, 1, 2],
                      scales=2**np.arange(3, 6)):
@@ -101,6 +108,6 @@ if __name__ == '__main__':
     import time
     t = time.time()
     a = generate_anchors()
-    print time.time() - t
-    print a
+    print(time.time() - t)
+    print(a)
     from IPython import embed; embed()

@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 # --------------------------------------------------------
 # Fast R-CNN
 # Copyright (c) 2015 Microsoft
@@ -15,10 +17,16 @@ import cPickle
 import gzip
 import PIL
 import json
-from vg_eval import vg_eval
+from .vg_eval import vg_eval
 from model.utils.config import cfg
 import pickle
 import pdb
+
+try:
+    xrange          # Python 2
+except NameError:
+    xrange = range  # Python 3
+
 
 class vg(imdb):
     def __init__(self, version, image_set, ):
@@ -121,11 +129,11 @@ class vg(imdb):
         if self._image_set == "minitrain":
           return os.path.join(self._data_path, 'train.txt')
         if self._image_set == "smalltrain":
-          return os.path.join(self._data_path, 'train.txt')          
+          return os.path.join(self._data_path, 'train.txt')
         if self._image_set == "minival":
           return os.path.join(self._data_path, 'val.txt')
         if self._image_set == "smallval":
-          return os.path.join(self._data_path, 'val.txt')          
+          return os.path.join(self._data_path, 'val.txt')
         else:
           return os.path.join(self._data_path, self._image_set+'.txt')
 
@@ -141,7 +149,7 @@ class vg(imdb):
           if self._image_set == "minitrain":
             metadata = metadata[:1000]
           elif self._image_set == "smalltrain":
-            metadata = metadata[:20000]            
+            metadata = metadata[:20000]
           elif self._image_set == "minival":
             metadata = metadata[:100]
           elif self._image_set == "smallval":
@@ -172,13 +180,13 @@ class vg(imdb):
         Return the database of ground-truth regions of interest.
 
         This function loads/saves from/to a cache file to speed up future calls.
-        """        
+        """
         cache_file = os.path.join(self.cache_path, self.name + '_gt_roidb.pkl')
         if os.path.exists(cache_file):
             fid = gzip.open(cache_file,'rb')
             roidb = cPickle.load(fid)
             fid.close()
-            print '{} gt roidb loaded from {}'.format(self.name, cache_file)
+            print('{} gt roidb loaded from {}'.format(self.name, cache_file))
             return roidb
 
         gt_roidb = [self._load_vg_annotation(index)
@@ -186,7 +194,7 @@ class vg(imdb):
         fid = gzip.open(cache_file,'wb')
         cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
         fid.close()
-        print 'wrote gt roidb to {}'.format(cache_file)
+        print('wrote gt roidb to {}'.format(cache_file))
         return gt_roidb
 
     def _get_size(self, index):
@@ -227,7 +235,7 @@ class vg(imdb):
                 y2 = min(height-1,float(bbox.find('ymax').text))
                 # If bboxes are not positive, just give whole image coords (there are a few examples)
                 if x2 < x1 or y2 < y1:
-                    print 'Failed bbox in %s, object %s' % (filename, obj_name)
+                    print('Failed bbox in %s, object %s' % (filename, obj_name))
                     x1 = 0
                     y1 = 0
                     x2 = width-1
@@ -312,7 +320,7 @@ class vg(imdb):
         for cls_ind, cls in enumerate(classes):
             if cls == '__background__':
                 continue
-            print 'Writing "{}" vg results file'.format(cls)
+            print('Writing "{}" vg results file'.format(cls))
             filename = self._get_vg_results_file_template(output_dir).format(cls)
             with open(filename, 'wt') as f:
                 for im_ind, index in enumerate(self.image_index):
@@ -334,7 +342,7 @@ class vg(imdb):
         thresh = []
         # The PASCAL VOC metric changed in 2010
         use_07_metric = False
-        print 'VOC07 metric? ' + ('Yes' if use_07_metric else 'No')
+        print('VOC07 metric? ' + ('Yes' if use_07_metric else 'No'))
         if not os.path.isdir(output_dir):
             os.mkdir(output_dir)
         # Load ground truth
