@@ -163,6 +163,7 @@ if __name__ == '__main__':
                                  args.checkpoint))
 
     # initilize the network here.
+    # TODO: add `query` parameter for every query net
     if args.net == 'vgg16':
         fasterRCNN = vgg16(imdb.classes, pretrained=False,
                            class_agnostic=args.class_agnostic)
