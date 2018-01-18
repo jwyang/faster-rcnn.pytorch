@@ -31,19 +31,30 @@ class _fasterRCNN(nn.Module):
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
 
-        # define rpn
-        # TODO: query net does not need rpn
-        self.RCNN_rpn = _RPN(self.dout_base_model)
+        # define rpn (query net does not need rpn)
+        if not self.query:
+            self.RCNN_rpn = _RPN(self.dout_base_model)
 
-        self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
-        self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE,
-                                         1.0 / 16.0)
-        self.RCNN_roi_align = RoIAlignAvg(cfg.POOLING_SIZE, cfg.POOLING_SIZE,
-                                          1.0 / 16.0)
+            self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
+            self.RCNN_roi_pool = _RoIPooling(
+                cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0 / 16.0)
+            self.RCNN_roi_align = RoIAlignAvg(
+                cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0 / 16.0)
 
-        self.grid_size = cfg.POOLING_SIZE * 2 \
-            if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE
-        self.RCNN_roi_crop = _RoICrop()
+            self.grid_size = cfg.POOLING_SIZE * 2 \
+                if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE
+            self.RCNN_roi_crop = _RoICrop()
+
+        # TODO: set different num_pid and queue_size for different datasets
+        if self.training:
+            self.num_pid = 5532
+            self.queue_size = 5000
+            self.lut_momentum = 0.5  # TODO: use exponentially weighted average
+
+            self.register_buffer('lut', torch.zeros(
+                self.num_pid, self.reid_feat_dim).cuda())
+            self.register_buffer('queue', torch.zeros(
+                self.queue_size, self.reid_feat_dim).cuda())
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
         batch_size = im_data.size(0)
@@ -167,6 +178,5 @@ class _fasterRCNN(nn.Module):
         # TODO: add initializing reid net
 
     def create_architecture(self):
-        # TODO: add lut and queue here for all networks (better to use cfg)
         self._init_modules()
         self._init_weights()
