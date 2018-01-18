@@ -66,7 +66,9 @@ class vgg16(_fasterRCNN):
                 self.RCNN_bbox_pred = nn.Linear(self.detection_dimension,
                                                 4 * self.n_classes)
 
-        # TODO: add reid fully-connected layer
+        # add fully-connected layer for reid for both query and gallery net
+        self.REID_feat_net = nn.Linear(self.detection_dimension,
+                                       self.reid_feat_dim)
 
     def _head_to_tail(self, pool5):
 
