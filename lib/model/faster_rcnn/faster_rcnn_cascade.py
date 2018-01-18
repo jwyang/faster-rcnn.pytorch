@@ -22,17 +22,18 @@ from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer, \
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
 
-    def __init__(self, classes, class_agnostic):
+    def __init__(self, classes, class_agnostic, query):
         super(_fasterRCNN, self).__init__()
         self.classes = classes
         self.n_classes = len(classes)
         self.class_agnostic = class_agnostic
+        self.query = query
         # loss
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
 
         # define rpn (query net does not need rpn)
-        if not self.query:
+        if not self.query: # FIXME: maybe here is an error about roi-pooling
             self.RCNN_rpn = _RPN(self.dout_base_model)
 
             self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
