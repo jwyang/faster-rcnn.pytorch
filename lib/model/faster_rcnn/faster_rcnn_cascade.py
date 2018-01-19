@@ -67,13 +67,15 @@ class _fasterRCNN(nn.Module):
         # feed image data to base model to obtain base feature map
         base_feat = self.RCNN_base(im_data)
 
+        # TODO: maybe query does not need RPN but only roi-pooling
         # feed base feature map tp RPN to obtain rois
         rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info,
                                                           gt_boxes, num_boxes)
 
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
-            roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes)
+            roi_data = self.RCNN_proposal_target(
+                rois, gt_boxes, num_boxes, self.num_pid)
             rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws = \
                 roi_data
 
