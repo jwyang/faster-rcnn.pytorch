@@ -19,8 +19,8 @@ import pdb
 
 class _ProposalTargetLayer(nn.Module):
     """
-    Assign object detection proposals to ground-truth targets. Produces proposal
-    classification labels and bounding-box regression targets.
+    Assign object detection proposals to ground-truth targets. Produces
+    proposal classification labels and bounding-box regression targets.
     """
 
     def __init__(self, nclasses):
@@ -33,17 +33,17 @@ class _ProposalTargetLayer(nn.Module):
         self.BBOX_INSIDE_WEIGHTS = torch.FloatTensor(
             cfg.TRAIN.BBOX_INSIDE_WEIGHTS)
 
-    def forward(self, all_rois, gt_boxes, num_boxes):
+    def forward(self, all_rois, gt_boxes, num_boxes, num_pid):
 
         self.BBOX_NORMALIZE_MEANS = self.BBOX_NORMALIZE_MEANS.type_as(gt_boxes)
         self.BBOX_NORMALIZE_STDS = self.BBOX_NORMALIZE_STDS.type_as(gt_boxes)
         self.BBOX_INSIDE_WEIGHTS = self.BBOX_INSIDE_WEIGHTS.type_as(gt_boxes)
 
         gt_boxes_append = gt_boxes.new(gt_boxes.size()).zero_()
-        gt_boxes_append[:, :, 1:5] = gt_boxes[:, :, :4]  # add a new axis
+        gt_boxes_append[:, :, 1:5] = gt_boxes[:, :, :4]
 
-        # Include ground-truth boxes in the set of candidate rois
-        all_rois = torch.cat([all_rois, gt_boxes_append], 1)
+        # Include ground-truth boxes in the set of candidate rois in the front
+        all_rois = torch.cat([gt_boxes_append[:, :, :5], all_rois], 1)
 
         num_images = 1
         rois_per_image = int(cfg.TRAIN.BATCH_SIZE / num_images)
@@ -51,15 +51,15 @@ class _ProposalTargetLayer(nn.Module):
             np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))
         fg_rois_per_image = 1 if fg_rois_per_image == 0 else fg_rois_per_image
 
-        # TODO: add reid functions
-        labels, rois, bbox_targets, bbox_inside_weights = \
+        # reid label is added here
+        labels, rois, bbox_targets, bbox_inside_weights, pid_label = \
             self._sample_rois_pytorch(all_rois, gt_boxes, fg_rois_per_image,
-                rois_per_image, self._num_classes)
+                rois_per_image, self._num_classes, num_pid)
 
         bbox_outside_weights = (bbox_inside_weights > 0).float()
 
         return rois, labels, bbox_targets, bbox_inside_weights, \
-               bbox_outside_weights
+               bbox_outside_weights, pid_label
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
@@ -120,7 +120,7 @@ class _ProposalTargetLayer(nn.Module):
         return targets
 
     def _sample_rois_pytorch(self, all_rois, gt_boxes, fg_rois_per_image,
-                             rois_per_image, num_classes):
+                             rois_per_image, num_classes, num_pid):
         """Generate a random sample of RoIs comprising foreground and
         background examples.
         """
@@ -141,9 +141,10 @@ class _ProposalTargetLayer(nn.Module):
             -1).index(offset.view(-1)).view(batch_size, -1)
 
         labels_batch = labels.new(batch_size, rois_per_image).zero_()
-        # TODO: rectify 5 with 6
+        pid_label_batch = labels.new(batch_size, rois_per_image).zero_()
         rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
-        gt_rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
+        # rectify 5 to 6
+        gt_rois_batch = all_rois.new(batch_size, rois_per_image, 6).zero_()
         # Guard against the case when an image has fewer than
         # max_fg_rois_per_image foreground RoIs
         for i in range(batch_size):
@@ -230,6 +231,14 @@ class _ProposalTargetLayer(nn.Module):
 
             gt_rois_batch[i] = gt_boxes[i][gt_assignment[i][keep_inds]]
 
+            # set pid_label for selected rois
+            if gt_boxes.size(2) > 5:
+                pid_label_batch[i] = \
+                    gt_boxes[i][gt_assignment[i], [5]][keep_inds].contiguous()
+                pid_label_batch[i][fg_rois_per_this_image:] = num_pid
+            else:
+                pid_label_batch = None
+
         bbox_target_data = self._compute_targets_pytorch(
             rois_batch[:, :, 1:5], gt_rois_batch[:, :, :4])
 
@@ -237,4 +246,5 @@ class _ProposalTargetLayer(nn.Module):
             self._get_bbox_regression_labels_pytorch(bbox_target_data,
                                                      labels_batch, num_classes)
 
-        return labels_batch, rois_batch, bbox_targets, bbox_inside_weights
+        return labels_batch, rois_batch, bbox_targets, bbox_inside_weights, \
+               pid_label_batch
