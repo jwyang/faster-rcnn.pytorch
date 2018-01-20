@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 # --------------------------------------------------------
 # Faster R-CNN
 # Copyright (c) 2015 Microsoft
@@ -14,12 +15,18 @@ import numpy as np
 import numpy.random as npr
 
 from model.utils.config import cfg
-from generate_anchors import generate_anchors
-from bbox_transform import clip_boxes, bbox_overlaps_batch, bbox_transform_batch
+from .generate_anchors import generate_anchors
+from .bbox_transform import clip_boxes, bbox_overlaps_batch, bbox_transform_batch
 
 import pdb
 
 DEBUG = False
+
+try:
+    long        # Python 2
+except NameError:
+    long = int  # Python 3
+
 
 class _AnchorTargetLayer(nn.Module):
     """
@@ -117,9 +124,9 @@ class _AnchorTargetLayer(nn.Module):
             # subsample positive labels if we have too many
             if sum_fg[i] > num_fg:
                 fg_inds = torch.nonzero(labels[i] == 1).view(-1)
-                # torch.randperm seems has a bug on multi-gpu setting that cause the segfault. 
+                # torch.randperm seems has a bug on multi-gpu setting that cause the segfault.
                 # See https://github.com/pytorch/pytorch/issues/1868 for more details.
-                # use numpy instead.                
+                # use numpy instead.
                 #rand_num = torch.randperm(fg_inds.size(0)).type_as(gt_boxes).long()
                 rand_num = torch.from_numpy(np.random.permutation(fg_inds.size(0))).type_as(gt_boxes).long()
                 disable_inds = fg_inds[rand_num[:fg_inds.size(0)-num_fg]]

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 # --------------------------------------------------------
 # Fast/er R-CNN
 # Licensed under The MIT License [see LICENSE for details]
@@ -8,7 +9,7 @@ import xml.etree.ElementTree as ET
 import os
 import cPickle
 import numpy as np
-from voc_eval import voc_ap
+from .voc_eval import voc_ap
 
 
 

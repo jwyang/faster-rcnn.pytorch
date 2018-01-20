@@ -309,7 +309,7 @@ if __name__ == '__main__':
 
     data_iter = iter(dataloader)
     for step in range(iters_per_epoch):
-      data = data_iter.next()
+      data = next(data_iter)
       im_data.data.resize_(data[0].size()).copy_(data[0])
       im_info.data.resize_(data[1].size()).copy_(data[1])
       gt_boxes.data.resize_(data[2].size()).copy_(data[2])
