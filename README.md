@@ -72,13 +72,11 @@ Thanks to [Remi](https://github.com/Cadene) for providing the pretrained detecti
 * Click the links in the above tables to download our pre-trained faster r-cnn models.
 * If not mentioned, the GPU we used is NVIDIA Titan X Pascal (12GB).
 
-### What we are doing now
+### What we are going to do
 
-* Run systematical experiments on PASCAL VOC 07/12, COCO, ImageNet, Visual Genome (VG) with different settings.
-
-* Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.
-
-* And it will support python3 soon!
+- [] Support both python2 and python3.
+- [] Run systematical experiments on PASCAL VOC 07/12, COCO, ImageNet, Visual Genome (VG) with different settings.
+- [] Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.
 
 ## Preparation 
 
