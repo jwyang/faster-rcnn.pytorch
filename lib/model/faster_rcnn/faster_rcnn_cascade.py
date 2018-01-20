@@ -17,6 +17,7 @@ import time
 import pdb
 from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer, \
     _affine_grid_gen, _affine_theta
+from oim import oim
 
 
 class _fasterRCNN(nn.Module):
@@ -33,7 +34,7 @@ class _fasterRCNN(nn.Module):
         self.RCNN_loss_bbox = 0
 
         # define rpn (query net does not need rpn)
-        if not self.query: # FIXME: maybe here is an error about roi-pooling
+        if not self.query:  # FIXME: maybe here is an error about roi-pooling
             self.RCNN_rpn = _RPN(self.dout_base_model)
 
             self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
@@ -50,7 +51,7 @@ class _fasterRCNN(nn.Module):
         if self.training:
             self.num_pid = 5532
             self.queue_size = 5000
-            self.lut_momentum = 0.5  # TODO: use exponentially weighted average
+            self.lut_momentum = 0.5
 
             self.register_buffer('lut', torch.zeros(
                 self.num_pid, self.reid_feat_dim).cuda())
@@ -76,10 +77,12 @@ class _fasterRCNN(nn.Module):
         if self.training:
             roi_data = self.RCNN_proposal_target(
                 rois, gt_boxes, num_boxes, self.num_pid)
-            rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws = \
-                roi_data
+            rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws, \
+            aux_label = roi_data
 
             rois_label = Variable(rois_label.view(-1))
+            # add auxiliary_label
+            aux_label = Variable(aux_label.view(-1))
             rois_target = Variable(rois_target.view(-1, rois_target.size(2)))
             rois_inside_ws = Variable(
                 rois_inside_ws.view(-1, rois_inside_ws.size(2)))
@@ -87,6 +90,7 @@ class _fasterRCNN(nn.Module):
                 rois_outside_ws.view(-1, rois_outside_ws.size(2)))
         else:
             rois_label = None
+            aux_label = None
             rois_target = None
             rois_inside_ws = None
             rois_outside_ws = None
@@ -137,8 +141,13 @@ class _fasterRCNN(nn.Module):
         cls_score = self.RCNN_cls_score(pooled_feat)
         cls_prob = F.softmax(cls_score)
 
+        # get reid feature
+        reid_feat = self.REID_feat_net(pooled_feat)
+
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
+        # set reid loss
+        self.REID_loss = 0
 
         if self.training:
             # classification loss
@@ -153,12 +162,33 @@ class _fasterRCNN(nn.Module):
                                                   rois_inside_ws,
                                                   rois_outside_ws)
 
+            # OIM loss
+            # TODO: optimize the algorithm here
+            # aux_label is used to update lut and queue
+            # pid_label is used to compute loss
+            aux_label_np = aux_label.data.cpu().numpy()
+            invalid_ind = np.where(
+                (aux_label_np < 0) | (aux_label_np >= self.num_pid))
+            aux_label_np[invalid_ind] = -1
+            pid_label = Variable(
+                torch.from_numpy(aux_label_np).long().cuda()).view(-1)
+            aux_label = aux_label.long().view(-1)
+
+            reid_result = oim(reid_feat, aux_label, self.lut, self.queue,
+                              momentum=self.lut_momentum)
+            reid_loss_weight = torch.cat([torch.ones(self.num_pid).cuda(),
+                                          torch.zeros(self.queue_size).cuda()])
+            self.REID_loss = F.cross_entropy(
+                reid_result * 10., pid_label, weight=reid_loss_weight,
+                ignore_index=-1)
+
         rcnn_loss = self.RCNN_loss_cls + self.RCNN_loss_bbox
+        reid_loss = self.REID_loss
 
         cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
         bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
 
-        return rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss
+        return rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss, reid_loss
 
     def _init_weights(self):
         def normal_init(m, mean, stddev, truncated=False):
