@@ -17,17 +17,6 @@ class OIM(autograd.Function):
         self.save_for_backward(inputs, targets)
         outputs_labeled = inputs.mm(self.lut.t())
         outputs_unlabeled = inputs.mm(self.queue.t())
-        # # ======================test=======================
-        # for i, (x, y) in enumerate(zip(inputs, targets)):
-        #     if y == -1:
-        #         tmp = torch.cat((self.queue[1:], x.view(1, -1)), 0)
-        #         self.queue[:, :] = tmp[:, :]
-        #     elif y < len(self.lut):
-        #         self.lut[y] = self.momentum * self.lut[y] + \
-        #                       (1. - self.momentum * x)
-        #         self.lut[y] /= self.lut[y].norm()
-        #     else:
-        #         continue
         return torch.cat((outputs_labeled, outputs_unlabeled), 1)
 
     def backward(self, grad_outputs):
