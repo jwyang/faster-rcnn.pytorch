@@ -201,7 +201,7 @@ class roibatchLoader(data.Dataset):
             padding_data = padding_data.permute(2, 0, 1).contiguous()
             im_info = im_info.view(3)
 
-            return padding_data, im_info, gt_boxes_padding, num_boxes
+            return padding_data, im_info, gt_boxes.float(), num_boxes
         else:
             data = data.permute(0, 3, 1, 2).contiguous().view(3, data_height,
                                                               data_width)
