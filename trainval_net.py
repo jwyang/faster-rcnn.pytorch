@@ -355,9 +355,10 @@ if __name__ == '__main__':
             num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
             fasterRCNN.zero_grad()
-            _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = \
+            _, cls_prob, bbox_pred, rpn_loss, rcnn_loss, reid_loss = \
                 fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
-            loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
+            loss = (rpn_loss.sum() + rcnn_loss.sum() + reid_loss) /\
+                   rpn_loss.size(0)
             loss_temp += loss.data[0]
 
             # backward
@@ -377,6 +378,7 @@ if __name__ == '__main__':
                     loss_rpn_box = 0
                     loss_rcnn_cls = 0
                     loss_rcnn_box = 0
+                    loss_reid = 0
                     fg_cnt = 0
                     bg_cnt = 0
                 else:
@@ -384,6 +386,7 @@ if __name__ == '__main__':
                     loss_rpn_box = fasterRCNN.RCNN_rpn.rpn_loss_box.data[0]
                     loss_rcnn_cls = fasterRCNN.RCNN_loss_cls.data[0]
                     loss_rcnn_box = fasterRCNN.RCNN_loss_bbox.data[0]
+                    loss_reid = fasterRCNN.REID_loss.data[0]
                     fg_cnt = fasterRCNN.fg_cnt
                     bg_cnt = fasterRCNN.bg_cnt
 
@@ -394,7 +397,8 @@ if __name__ == '__main__':
                 print(">>>> rpn_cls: %.6f" % loss_rpn_cls)
                 print(">>>> rpn_box: %.6f" % loss_rpn_box)
                 print(">>>> rcnn_cls: %.6f" % loss_rcnn_cls)
-                print(">>>> rcnn_box: %.6f\n" % loss_rcnn_box)
+                print(">>>> rcnn_box: %.6f" % loss_rcnn_box)
+                print(">>>> reid: %.6f\n" % loss_reid)
 
                 if args.use_tfboard:
                     info = {
