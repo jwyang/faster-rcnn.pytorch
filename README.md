@@ -61,6 +61,12 @@ model     | #GPUs | batch size |lr        | lr_decay | max_epoch     |  time/epo
 [Res-101](https://www.dropbox.com/s/y171ze1sdw1o2ph/faster_rcnn_1_6_9771.pth?dl=0)    | 8 | 24    |1e-2| 4   | 6  |  5.4 hr    |10659 MB  | 33.9
 [Res-101](https://www.dropbox.com/s/dpq6qv0efspelr3/faster_rcnn_1_10_9771.pth?dl=0)    | 8 | 24    |1e-2| 4   | 10  |  5.4 hr    |10659 MB  | 34.5
 
+3). Visual Genome (Train/Test: vg_train/vg_test, scale=600, max_size=1000, ROI Align, category=2500)
+
+model     | #GPUs | batch size |lr        | lr_decay | max_epoch     |  time/epoch | mem/GPU | mAP 
+---------|--------|-----|--------|-----|-----|-------|--------|----- 
+[Res-101](http://data.lip6.fr/cadene/faster-rcnn.pytorch/faster_rcnn_1_19_48611.pth)    | 8 | 24    |1e-2| -   | 20  |  5.4 hr    |10659 MB  | 4.4
+Thanks to [Remi](https://github.com/Cadene) for providing the pretrained detection model!
 
 * Click the links in the above tables to download our pre-trained faster r-cnn models.
 * If not mentioned, the GPU we used is NVIDIA Titan X Pascal (12GB).
