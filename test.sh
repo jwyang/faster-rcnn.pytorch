@@ -20,7 +20,7 @@ exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
 python test_net.py \
-    --dataset pascal_voc \
+    --dataset ${DATASET} \
     --net ${NET} \
     --checksession ${SESSION} \
     --checkepoch ${EPOCHS} \
