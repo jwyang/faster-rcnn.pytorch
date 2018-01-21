@@ -74,7 +74,7 @@ Thanks to [Remi](https://github.com/Cadene) for providing the pretrained detecti
 
 ### What we are going to do
 
-- [x] Support both python2 and python3.
+- [x] Support both python2 and python3 (great thanks to [cclauss](https://github.com/cclauss)).
 - [ ] Run systematical experiments on PASCAL VOC 07/12, COCO, ImageNet, Visual Genome (VG) with different settings.
 - [ ] Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.
 
