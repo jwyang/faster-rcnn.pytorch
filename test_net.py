@@ -16,12 +16,11 @@ import pprint
 import pdb
 import time
 import cv2
-import cPickle
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
 import torch.optim as optim
-
+import pickle
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
@@ -320,7 +319,7 @@ if __name__ == '__main__':
           #cv2.waitKey(0)
 
   with open(det_file, 'wb') as f:
-      cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
+      pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
 
   print('Evaluating detections')
   imdb.evaluate_detections(all_boxes, output_dir)

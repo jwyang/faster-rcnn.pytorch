@@ -14,13 +14,12 @@ import os
 import numpy as np
 import scipy.sparse
 import subprocess
-import cPickle
 import math
 import glob
 import uuid
 import scipy.io as sio
 import xml.etree.ElementTree as ET
-
+import pickle
 from .imdb import imdb
 from .imdb import ROOT_DIR
 from . import ds_utils
@@ -125,14 +124,14 @@ class pascal_voc(imdb):
         cache_file = os.path.join(self.cache_path, self.name + '_gt_roidb.pkl')
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
-                roidb = cPickle.load(fid)
+                roidb = pickle.load(fid)
             print('{} gt roidb loaded from {}'.format(self.name, cache_file))
             return roidb
 
         gt_roidb = [self._load_pascal_annotation(index)
                     for index in self.image_index]
         with open(cache_file, 'wb') as fid:
-            cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
+            pickle.dump(gt_roidb, fid, pickle.HIGHEST_PROTOCOL)
         print('wrote gt roidb to {}'.format(cache_file))
 
         return gt_roidb
@@ -149,7 +148,7 @@ class pascal_voc(imdb):
 
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
-                roidb = cPickle.load(fid)
+                roidb = pickle.load(fid)
             print('{} ss roidb loaded from {}'.format(self.name, cache_file))
             return roidb
 
@@ -160,7 +159,7 @@ class pascal_voc(imdb):
         else:
             roidb = self._load_selective_search_roidb(None)
         with open(cache_file, 'wb') as fid:
-            cPickle.dump(roidb, fid, cPickle.HIGHEST_PROTOCOL)
+            pickle.dump(roidb, fid, pickle.HIGHEST_PROTOCOL)
         print('wrote ss roidb to {}'.format(cache_file))
 
         return roidb
@@ -181,7 +180,7 @@ class pascal_voc(imdb):
         assert os.path.exists(filename), \
             'rpn data not found at: {}'.format(filename)
         with open(filename, 'rb') as f:
-            box_list = cPickle.load(f)
+            box_list = pickle.load(f)
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
     def _load_selective_search_roidb(self, gt_roidb):
@@ -316,8 +315,8 @@ class pascal_voc(imdb):
                 use_07_metric=use_07_metric)
             aps += [ap]
             print('AP for {} = {:.4f}'.format(cls, ap))
-            with open(os.path.join(output_dir, cls + '_pr.pkl'), 'w') as f:
-                cPickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
+            with open(os.path.join(output_dir, cls + '_pr.pkl'), 'wb') as f:
+                pickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
         print('Mean AP = {:.4f}'.format(np.mean(aps)))
         print('~~~~~~~~')
         print('Results:')

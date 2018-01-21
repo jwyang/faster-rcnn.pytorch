@@ -13,7 +13,6 @@ import datasets.ds_utils as ds_utils
 import xml.etree.ElementTree as ET
 import numpy as np
 import scipy.sparse
-import cPickle
 import gzip
 import PIL
 import json
@@ -21,7 +20,6 @@ from .vg_eval import vg_eval
 from model.utils.config import cfg
 import pickle
 import pdb
-
 try:
     xrange          # Python 2
 except NameError:
@@ -184,7 +182,7 @@ class vg(imdb):
         cache_file = os.path.join(self.cache_path, self.name + '_gt_roidb.pkl')
         if os.path.exists(cache_file):
             fid = gzip.open(cache_file,'rb')
-            roidb = cPickle.load(fid)
+            roidb = pickl.load(fid)
             fid.close()
             print('{} gt roidb loaded from {}'.format(self.name, cache_file))
             return roidb
@@ -192,7 +190,7 @@ class vg(imdb):
         gt_roidb = [self._load_vg_annotation(index)
                     for index in self.image_index]
         fid = gzip.open(cache_file,'wb')
-        cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(gt_roidb, fid, pickle.HIGHEST_PROTOCOL)
         fid.close()
         print('wrote gt roidb to {}'.format(cache_file))
         return gt_roidb
@@ -369,8 +367,8 @@ class vg(imdb):
             nposs += [float(npos)]
             print('AP for {} = {:.4f} (npos={:,})'.format(cls, ap, npos))
             if pickle:
-                with open(os.path.join(output_dir, cls + '_pr.pkl'), 'w') as f:
-                    cPickle.dump({'rec': rec, 'prec': prec, 'ap': ap,
+                with open(os.path.join(output_dir, cls + '_pr.pkl'), 'wb') as f:
+                    pickle.dump({'rec': rec, 'prec': prec, 'ap': ap,
                         'scores': scores, 'npos':npos}, f)
 
         # Set thresh to mean for classes with poor results
