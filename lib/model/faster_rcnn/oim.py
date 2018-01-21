@@ -31,7 +31,7 @@ class OIM(autograd.Function):
                 self.queue[:, :] = tmp[:, :]
             elif y < len(self.lut):
                 self.lut[y] = self.momentum * self.lut[y] + \
-                              (1. - self.momentum * x)
+                              (1. - self.momentum) * x
                 self.lut[y] /= self.lut[y].norm()
             else:
                 continue
