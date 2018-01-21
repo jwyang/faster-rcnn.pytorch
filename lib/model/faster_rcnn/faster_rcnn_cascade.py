@@ -141,8 +141,8 @@ class _fasterRCNN(nn.Module):
         cls_score = self.RCNN_cls_score(pooled_feat)
         cls_prob = F.softmax(cls_score)
 
-        # get reid feature
-        reid_feat = self.REID_feat_net(pooled_feat)
+        # get reid feature, remember to normalize
+        reid_feat = F.normalize(self.REID_feat_net(pooled_feat))
 
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
