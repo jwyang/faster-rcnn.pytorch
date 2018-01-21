@@ -182,7 +182,7 @@ class vg(imdb):
         cache_file = os.path.join(self.cache_path, self.name + '_gt_roidb.pkl')
         if os.path.exists(cache_file):
             fid = gzip.open(cache_file,'rb')
-            roidb = pickl.load(fid)
+            roidb = pickle.load(fid)
             fid.close()
             print('{} gt roidb loaded from {}'.format(self.name, cache_file))
             return roidb
