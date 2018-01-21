@@ -402,6 +402,6 @@ class vg(imdb):
 
 
 if __name__ == '__main__':
-    d = datasets.vg('val')
+    d = vg('val')
     res = d.roidb
     from IPython import embed; embed()
