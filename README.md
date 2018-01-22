@@ -65,7 +65,7 @@ model     | #GPUs | batch size |lr        | lr_decay | max_epoch     |  time/epo
 
 model     | #GPUs | batch size |lr        | lr_decay | max_epoch     |  time/epoch | mem/GPU | mAP 
 ---------|--------|-----|--------|-----|-----|-------|--------|----- 
-[Res-101](http://data.lip6.fr/cadene/faster-rcnn.pytorch/faster_rcnn_1_19_48611.pth)    | 8 | 24    |1e-2| -   | 20  |  5.4 hr    |10659 MB  | 4.4
+[Res-101](http://data.lip6.fr/cadene/faster-rcnn.pytorch/faster_rcnn_1_19_48611.pth)    | 1 | 4    |1e-3| 5   | 20  |  3.7 hr    |12707 MB  | 4.4
 
 Thanks to [Remi](https://github.com/Cadene) for providing the pretrained detection model!
 
