@@ -224,14 +224,16 @@ def resnet152(pretrained=False):
 
 class resnet(_fasterRCNN):
     def __init__(self, classes, num_layers=101, pretrained=False,
-                 class_agnostic=False, query=False):
+                 class_agnostic=False, training=True, query=False):
         self.model_path = 'data/pretrained_model/resnet101_caffe.pth'
         self.dout_base_model = 1024  # rpn channels
         self.pretrained = pretrained
         self.class_agnostic = class_agnostic
-        # TODO: add detection_dimension
+        # add detection_dimension
+        self.detection_dimension = 2048
+        self.reid_feat_dim = 256
 
-        _fasterRCNN.__init__(self, classes, class_agnostic)
+        _fasterRCNN.__init__(self, classes, class_agnostic, training, query)
 
     def _init_modules(self):
         # TODO: add other number layers
@@ -250,11 +252,19 @@ class resnet(_fasterRCNN):
 
         self.RCNN_top = nn.Sequential(resnet.layer4)
 
-        self.RCNN_cls_score = nn.Linear(2048, self.n_classes)
-        if self.class_agnostic:
-            self.RCNN_bbox_pred = nn.Linear(2048, 4)
-        else:
-            self.RCNN_bbox_pred = nn.Linear(2048, 4 * self.n_classes)
+        # query net does not need cls_score and bbox_pred
+        if not self.query:
+            self.RCNN_cls_score = nn.Linear(self.detection_dimension,
+                                            self.n_classes)
+            if self.class_agnostic:
+                self.RCNN_bbox_pred = nn.Linear(self.detection_dimension, 4)
+            else:
+                self.RCNN_bbox_pred = nn.Linear(self.detection_dimension,
+                                                4 * self.n_classes)
+
+        # add fully-connected layer for both query and gallery net
+        self.REID_feat_net = nn.Linear(self.detection_dimension,
+                                       self.reid_feat_dim)
 
         # Fix blocks
         for p in self.RCNN_base[0].parameters(): p.requires_grad = False
