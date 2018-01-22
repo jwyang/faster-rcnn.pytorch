@@ -34,22 +34,24 @@ class _fasterRCNN(nn.Module):
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
 
-        # define rpn (query net does not need rpn)
-        if not self.query:  # FIXME: maybe here is an error about roi-pooling
+        # define rpn (query net does not need rpn but need roi pooling)
+        if not self.query:
             self.RCNN_rpn = _RPN(self.dout_base_model)
 
-            self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
-            self.RCNN_roi_pool = _RoIPooling(
-                cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0 / 16.0)
-            self.RCNN_roi_align = RoIAlignAvg(
-                cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0 / 16.0)
+        self.RCNN_roi_pool = _RoIPooling(
+            cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0 / 16.0)
+        self.RCNN_roi_align = RoIAlignAvg(
+            cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0 / 16.0)
 
-            self.grid_size = cfg.POOLING_SIZE * 2 \
-                if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE
-            self.RCNN_roi_crop = _RoICrop()
+        self.grid_size = cfg.POOLING_SIZE * 2 \
+            if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE
+        self.RCNN_roi_crop = _RoICrop()
 
         # TODO: set different num_pid and queue_size for different datasets
+        # both query and gallery net do not need proposal target layer
         if self.training:
+            self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
+
             self.num_pid = 5532
             self.queue_size = 5000
             self.lut_momentum = 0.5
