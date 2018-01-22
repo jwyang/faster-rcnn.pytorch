@@ -21,7 +21,7 @@ class vgg16(_fasterRCNN):
     def __init__(self, classes, pretrained=False, class_agnostic=False,
                  training=True, query=False):
         self.model_path = 'data/pretrained_model/vgg16_caffe.pth'
-        self.dout_base_model = 512  # rpn channels
+        self.dout_base_model = 512  # channels before rpn
         self.pretrained = pretrained
         self.class_agnostic = class_agnostic
         self.detection_dimension = 4096
