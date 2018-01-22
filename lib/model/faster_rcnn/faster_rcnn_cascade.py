@@ -23,11 +23,12 @@ from oim import oim
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
 
-    def __init__(self, classes, class_agnostic, query):
+    def __init__(self, classes, class_agnostic, training, query):
         super(_fasterRCNN, self).__init__()
         self.classes = classes
         self.n_classes = len(classes)
         self.class_agnostic = class_agnostic
+        self.training = training
         self.query = query
         # loss
         self.RCNN_loss_cls = 0
