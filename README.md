@@ -67,7 +67,7 @@ model     | #GPUs | batch size |lr        | lr_decay | max_epoch     |  time/epo
 ---------|--------|-----|--------|-----|-----|-------|--------|----- 
 [Res-101](http://data.lip6.fr/cadene/faster-rcnn.pytorch/faster_rcnn_1_19_48611.pth)    | 1 P100 | 4    |1e-3| 5   | 20  |  3.7 hr    |12707 MB  | 4.4
 
-Thanks to [Remi](https://github.com/Cadene) for providing the pretrained detection model!
+Thanks to [Remi](https://github.com/Cadene) for providing the pretrained detection model on visual genome!
 
 * Click the links in the above tables to download our pre-trained faster r-cnn models.
 * If not mentioned, the GPU we used is NVIDIA Titan X Pascal (12GB).
