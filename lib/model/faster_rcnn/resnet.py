@@ -226,7 +226,7 @@ class resnet(_fasterRCNN):
     def __init__(self, classes, num_layers=101, pretrained=False,
                  class_agnostic=False, training=True, query=False):
         self.model_path = 'data/pretrained_model/resnet101_caffe.pth'
-        self.dout_base_model = 1024  # rpn channels
+        self.dout_base_model = 1024  # channels before rpn
         self.pretrained = pretrained
         self.class_agnostic = class_agnostic
         # add detection_dimension
