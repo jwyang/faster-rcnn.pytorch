@@ -16,6 +16,7 @@ import pprint
 import pdb
 import time
 import cv2
+cv2.setNumThreads(0) # fix a multithreading problem to allow DataLoader(num_workers=x>0) 
 import torch
 from torch.autograd import Variable
 import torch.nn as nn

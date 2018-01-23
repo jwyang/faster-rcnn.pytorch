@@ -7,6 +7,7 @@ import torchvision.models as models
 from model.utils.config import cfg
 from model.roi_crop.functions.roi_crop import RoICropFunction
 import cv2
+cv2.setNumThreads(0) # fix a multithreading problem to allow DataLoader(num_workers=x>0) 
 import pdb
 import random
 

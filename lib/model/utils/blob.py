@@ -10,6 +10,7 @@
 import numpy as np
 # from scipy.misc import imread, imresize
 import cv2
+cv2.setNumThreads(0) # fix a multithreading problem to allow DataLoader(num_workers=x>0) 
 
 try:
     xrange          # Python 2
