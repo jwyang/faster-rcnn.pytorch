@@ -26,6 +26,10 @@ During our implementing, we referred the above implementations, especailly [long
 
 * **It is faster**. Based on the above modifications, the training is much faster. We report the training speed on NVIDIA TITAN Xp in the tables below.
 
+## Other Resources
+
+* [Feature Pyramid Network (FPN)](https://github.com/jwyang/fpn.pytorch)
+
 ## Benchmarking
 
 We benchmark our code thoroughly on three datasets: pascal voc, coco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
