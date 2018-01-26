@@ -34,9 +34,9 @@ class _fasterRCNN(nn.Module):
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
 
-        # define rpn (query net does not need rpn but need roi pooling)
-        if not self.query:
-            self.RCNN_rpn = _RPN(self.dout_base_model)
+        # define rpn (query net does not but still need to define)
+        # FIXME: perhaps we can fix it by controlling loading trained models
+        self.RCNN_rpn = _RPN(self.dout_base_model)
 
         self.RCNN_roi_pool = _RoIPooling(
             cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0 / 16.0)
@@ -73,8 +73,11 @@ class _fasterRCNN(nn.Module):
 
         # TODO: maybe query does not need RPN but only roi-pooling
         # feed base feature map tp RPN to obtain rois
-        rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info,
-                                                          gt_boxes, num_boxes)
+        if not self.query:
+            rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(
+                base_feat, im_info, gt_boxes, num_boxes)
+        else:
+            rois = gt_boxes
 
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
@@ -127,24 +130,30 @@ class _fasterRCNN(nn.Module):
         # feed pooled features to top model
         pooled_feat = self._head_to_tail(pooled_feat)
 
-        # compute bbox offset
-        bbox_pred = self.RCNN_bbox_pred(pooled_feat)
-        if self.training and not self.class_agnostic:
-            # select the corresponding columns according to roi labels
-            bbox_pred_view = bbox_pred.view(bbox_pred.size(0),
-                                            int(bbox_pred.size(1) / 4), 4)
-            bbox_pred_select = torch.gather(bbox_pred_view, 1,
-                                            rois_label.long().view(
-                                                rois_label.size(0), 1,
-                                                1).expand(rois_label.size(0),
-                                                          1, 4))
-            bbox_pred = bbox_pred_select.squeeze(1)
+        # query net does not need to compute bbox_pred and cls_prob
+        if not self.query:
+            # compute bbox offset
+            bbox_pred = self.RCNN_bbox_pred(pooled_feat)
+            if self.training and not self.class_agnostic:
+                # select the corresponding columns according to roi labels
+                bbox_pred_view = bbox_pred.view(bbox_pred.size(0),
+                                                int(bbox_pred.size(1) / 4), 4)
+                bbox_pred_select = torch.gather(
+                    bbox_pred_view, 1,
+                    rois_label.long().view(rois_label.size(0),
+                                           1, 1).expand(
+                        rois_label.size(0), 1, 4))
+                bbox_pred = bbox_pred_select.squeeze(1)
 
-        # compute object classification probability
-        cls_score = self.RCNN_cls_score(pooled_feat)
-        cls_prob = F.softmax(cls_score)
+            # compute object classification probability
+            cls_score = self.RCNN_cls_score(pooled_feat)
+            cls_prob = F.softmax(cls_score)
+        else:
+            bbox_pred = 0
+            cls_prob = 0
 
         # get reid feature, remember to normalize
+        # TODO: support batch reid features
         reid_feat = F.normalize(self.REID_feat_net(pooled_feat))
 
         self.RCNN_loss_cls = 0
@@ -188,10 +197,14 @@ class _fasterRCNN(nn.Module):
         rcnn_loss = self.RCNN_loss_cls + self.RCNN_loss_bbox
         reid_loss = self.REID_loss
 
-        cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
-        bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
+        if not self.query:
+            cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
+            bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
 
-        return rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss, reid_loss
+        if self.training:
+            return rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss, reid_loss
+        else:
+            return rois, reid_feat, cls_prob, bbox_pred
 
     def _init_weights(self):
         def normal_init(m, mean, stddev, truncated=False):
