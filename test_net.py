@@ -23,6 +23,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from roi_data_layer.roidb import combined_roidb
+from roi_data_layer.minibatch import _get_image_blob
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, \
     get_output_dir
@@ -42,11 +43,11 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
     parser.add_argument('--dataset', dest='dataset',
-                        help='training dataset',
-                        default='pascal_voc', type=str)
+                        help='test dataset',
+                        default='psdb', type=str)
     parser.add_argument('--cfg', dest='cfg_file',
                         help='optional config file',
-                        default='cfgs/vgg16.yml', type=str)
+                        default='cfgs/res101.yml', type=str)
     parser.add_argument('--net', dest='net',
                         help='vgg16, res50, res101, res152',
                         default='res101', type=str)
@@ -55,10 +56,11 @@ def parse_args():
                         nargs=argparse.REMAINDER)
     parser.add_argument('--load_dir', dest='load_dir',
                         help='directory to load models',
-                        default="./models",
+                        default="./output/trained",
                         nargs=argparse.REMAINDER)
     parser.add_argument('--cuda', dest='cuda',
                         help='whether use CUDA',
+                        default=True,
                         action='store_true')
     parser.add_argument('--ls', dest='large_scale',
                         help='whether use large imag scale',
@@ -78,10 +80,10 @@ def parse_args():
                         default=1, type=int)
     parser.add_argument('--checkepoch', dest='checkepoch',
                         help='checkepoch to load network',
-                        default=1, type=int)
+                        default=5, type=int)
     parser.add_argument('--checkpoint', dest='checkpoint',
                         help='checkpoint to load network',
-                        default=10021, type=int)
+                        default=22411, type=int)
     parser.add_argument('--bs', dest='batch_size',
                         help='batch_size',
                         default=1, type=int)
@@ -135,6 +137,12 @@ if __name__ == '__main__':
         args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS',
                          '[0.5,1,2]']
 
+    elif args.dataset == "psdb":
+        args.imdb_name = 'psdb_train'
+        args.imdbval_name = 'psdb_test'
+        args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS',
+                         '[0.5,1,2]']
+
     args.cfg_file = "cfgs/{}_ls.yml".format(
         args.net) if args.large_scale else "cfgs/{}.yml".format(args.net)
 
@@ -163,32 +171,60 @@ if __name__ == '__main__':
                                  args.checkpoint))
 
     # initilize the network here.
-    # TODO: add `query` parameter for every query net
+    # add `query` parameter for every query net
     if args.net == 'vgg16':
-        fasterRCNN = vgg16(imdb.classes, pretrained=False,
-                           class_agnostic=args.class_agnostic)
+        query_net = vgg16(imdb.classes, pretrained=False,
+                          class_agnostic=args.class_agnostic, query=True)
+        gallery_net = vgg16(imdb.classes, pretrained=False,
+                            class_agnostic=args.class_agnostic)
     elif args.net == 'res101':
-        fasterRCNN = resnet(imdb.classes, 101, pretrained=False,
-                            class_agnostic=args.class_agnostic)
+        query_net = resnet(imdb.classes, 101, pretrained=False,
+                           class_agnostic=args.class_agnostic,
+                           training=False, query=True)
+        gallery_net = resnet(imdb.classes, 101, pretrained=False,
+                             class_agnostic=args.class_agnostic,
+                             training=False)
     elif args.net == 'res50':
-        fasterRCNN = resnet(imdb.classes, 50, pretrained=False,
-                            class_agnostic=args.class_agnostic)
+        query_net = resnet(imdb.classes, 50, pretrained=False,
+                           class_agnostic=args.class_agnostic, query=True)
+        gallery_net = resnet(imdb.classes, 50, pretrained=False,
+                             class_agnostic=args.class_agnostic)
     elif args.net == 'res152':
-        fasterRCNN = resnet(imdb.classes, 152, pretrained=False,
-                            class_agnostic=args.class_agnostic)
+        query_net = resnet(imdb.classes, 152, pretrained=False,
+                           class_agnostic=args.class_agnostic, query=True)
+        gallery_net = resnet(imdb.classes, 152, pretrained=False,
+                             class_agnostic=args.class_agnostic)
     else:
         print("network is not defined")
         pdb.set_trace()
 
-    fasterRCNN.create_architecture()
+    query_net.create_architecture()
+    gallery_net.create_architecture()
 
     print("load checkpoint %s" % (load_name))
     checkpoint = torch.load(load_name)
-    fasterRCNN.load_state_dict(checkpoint['model'])
+    # lut and queue are not needed during testing
+    if 'lut' in checkpoint['model'] and 'queue' in checkpoint['model']:
+        del checkpoint['model']['lut']
+        del checkpoint['model']['queue']
+
+    query_net.load_state_dict(checkpoint['model'])
+    gallery_net.load_state_dict(checkpoint['model'])
     if 'pooling_mode' in checkpoint.keys():
         cfg.POOLING_MODE = checkpoint['pooling_mode']
-
     print('load model successfully!')
+
+    if args.cuda:
+        cfg.CUDA = True
+
+    if args.cuda:
+        query_net.cuda()
+        gallery_net.cuda()
+
+    # #######################################################################
+    # ===========================test for gallery============================
+    # #######################################################################
+
     # initilize the tensor holder here.
     im_data = torch.FloatTensor(1)
     im_info = torch.FloatTensor(1)
@@ -208,12 +244,6 @@ if __name__ == '__main__':
     num_boxes = Variable(num_boxes, volatile=True)
     gt_boxes = Variable(gt_boxes, volatile=True)
 
-    if args.cuda:
-        cfg.CUDA = True
-
-    if args.cuda:
-        fasterRCNN.cuda()
-
     start = time.time()
     max_per_image = 100
 
@@ -226,8 +256,8 @@ if __name__ == '__main__':
 
     save_name = 'faster_rcnn_10'
     num_images = len(imdb.image_index)
-    all_boxes = [[[] for _ in xrange(num_images)]
-                 for _ in xrange(imdb.num_classes)]
+    all_boxes = [0 for _ in xrange(num_images)]
+    all_features = [0 for _ in range(num_images)]
 
     output_dir = get_output_dir(imdb, save_name)
     dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size,
@@ -242,7 +272,7 @@ if __name__ == '__main__':
     _t = {'im_detect': time.time(), 'misc': time.time()}
     det_file = os.path.join(output_dir, 'detections.pkl')
 
-    fasterRCNN.eval()
+    gallery_net.eval()
     empty_array = np.transpose(np.array([[], [], [], [], []]), (1, 0))
     for i in range(num_images):
 
@@ -253,12 +283,11 @@ if __name__ == '__main__':
         num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
         det_tic = time.time()
-        rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data,
-                                                                    im_info,
-                                                                    gt_boxes,
-                                                                    num_boxes)
+        rois, reid_feat, cls_prob, bbox_pred= gallery_net(im_data, im_info,
+                                                          gt_boxes, num_boxes)
         scores = cls_prob.data
         boxes = rois.data[:, :, 1:5]
+        features = reid_feat.data
 
         if cfg.TEST.BBOX_REG:
             # Apply bounding-box regression deltas
@@ -294,37 +323,39 @@ if __name__ == '__main__':
         if vis:
             im = cv2.imread(imdb.image_path_at(i))
             im2show = np.copy(im)
-        for j in xrange(1, imdb.num_classes):
-            inds = torch.nonzero(scores[:, j] > thresh).view(-1)
-            # if there is det
-            if inds.numel() > 0:
-                cls_scores = scores[:, j][inds]
-                _, order = torch.sort(cls_scores, 0, True)
-                if args.class_agnostic:
-                    cls_boxes = pred_boxes[inds, :]
-                else:
-                    cls_boxes = pred_boxes[inds][:, j * 4:(j + 1) * 4]
-
-                cls_dets = torch.cat((cls_boxes, cls_scores), 1)
-                cls_dets = cls_dets[order]
-                keep = nms(cls_dets, cfg.TEST.NMS)
-                cls_dets = cls_dets[keep.view(-1).long()]
-                if vis:
-                    im2show = vis_detections(im2show, imdb.classes[j],
-                                             cls_dets.cpu().numpy(), 0.3)
-                all_boxes[j][i] = cls_dets.cpu().numpy()
+        j = 1
+        inds = torch.nonzero(scores[:, j] > thresh).view(-1)
+        # if there is det
+        if inds.numel() > 0:
+            cls_scores = scores[:, j][inds]
+            _, order = torch.sort(cls_scores, 0, True)
+            if args.class_agnostic:
+                cls_boxes = pred_boxes[inds, :]
             else:
-                all_boxes[j][i] = empty_array
+                cls_boxes = pred_boxes[inds][:, j * 4:(j + 1) * 4]
 
-        # Limit to max_per_image detections *over all classes*
-        if max_per_image > 0:
-            image_scores = np.hstack([all_boxes[j][i][:, -1]
-                                      for j in xrange(1, imdb.num_classes)])
-            if len(image_scores) > max_per_image:
-                image_thresh = np.sort(image_scores)[-max_per_image]
-                for j in xrange(1, imdb.num_classes):
-                    keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
-                    all_boxes[j][i] = all_boxes[j][i][keep, :]
+            cls_dets = torch.cat((cls_boxes, cls_scores), 1)
+            cls_dets = cls_dets[order]
+            keep = nms(cls_dets, cfg.TEST.NMS).view(-1).long()
+            cls_dets = cls_dets[keep]
+            if vis:
+                   im2show = vis_detections(im2show, imdb.classes[j],
+                                            cls_dets.cpu().numpy(), 0.3)
+            all_boxes[i] = cls_dets.cpu().numpy()
+            all_features[i] = features[inds][keep].cpu().numpy()
+        else:
+            all_boxes[i] = empty_array
+            all_features[i] = None
+
+        # TODO: test this function
+        # # Limit to max_per_image detections *over all classes*
+        # if max_per_image > 0:
+        #     image_scores = np.hstack([all_boxes[i][:, -1]])
+        #     if len(image_scores) > max_per_image:
+        #         image_thresh = np.sort(image_scores)[-max_per_image]
+        #         keep = np.where(all_boxes[i][:, -1] >= image_thresh)[0]
+        #         all_boxes[i] = all_boxes[i][keep, :]
+        #         all_features['feat'][i] = all_features['feat'][i][keep]
 
         misc_toc = time.time()
         nms_time = misc_toc - misc_tic
@@ -334,7 +365,7 @@ if __name__ == '__main__':
         #                  .format(i + 1, num_images, detect_time, nms_time))
         # sys.stdout.flush()
 
-        print('im_detect: {:d}/{:d} {:.3f}s {:.3f}s   \r' \
+        print('im_detect: {:d}/{:d} {:.3f}s {:.3f}s   \r'
               .format(i + 1, num_images, detect_time, nms_time))
 
         if vis:
@@ -343,11 +374,77 @@ if __name__ == '__main__':
             # cv2.imshow('test', im2show)
             # cv2.waitKey(0)
 
-    with open(det_file, 'wb') as f:
-        cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
+    del gallery_net
 
-    print('Evaluating detections')
-    imdb.evaluate_detections(all_boxes, output_dir)
+    # #######################################################################
+    # ===========================test for query============================
+    # #######################################################################
+
+    # initialize the tensor holder here.
+    im_data = torch.FloatTensor(1)
+    im_info = torch.FloatTensor(1)
+    num_boxes = torch.LongTensor(1)
+    gt_boxes = torch.FloatTensor(1)
+
+    # ship to cuda
+    if args.cuda:
+        im_data = im_data.cuda()
+        im_info = im_info.cuda()
+        num_boxes = num_boxes.cuda()
+        gt_boxes = gt_boxes.cuda()
+
+    # make variable
+    im_data = Variable(im_data, volatile=True)
+    im_info = Variable(im_info, volatile=True)
+    num_boxes = Variable(num_boxes, volatile=True)
+    gt_boxes = Variable(gt_boxes, volatile=True)
+
+    num_querys = len(imdb.probes)
+    query_features = [0 for _ in xrange(num_querys)]
+
+    # timers
+    _t_ = {'query_exfeat': time.time()}
+    query_net.eval()
+
+    for i in xrange(num_querys):
+        im_name, roi = imdb.probes[i]
+        im = [{'image': im_name, 'flipped': False}]
+        roi = np.hstack([np.array([[0]]), roi.reshape(1, 4)])
+
+        ex_feat_tic = time.time()
+
+        im_blob, im_scales = _get_image_blob(im, [0])
+        roi = roi * im_scales[0]  # very important!!!
+        im_info_ = np.array([[im_blob.shape[1], im_blob.shape[2],
+                              im_scales[0]]], dtype=np.float32)
+
+        # TODO: maybe some problems here
+        data = [torch.from_numpy(im_blob), torch.from_numpy(im_info_),
+                torch.from_numpy(roi), torch.from_numpy(np.array([1]))]
+        data[0] = data[0].permute(0, 3, 1, 2).contiguous().view(
+            3, data[0].size(1), data[0].size(2)).unsqueeze(0)
+
+        im_data.data.resize_(data[0].size()).copy_(data[0])
+        im_info.data.resize_(data[1].size()).copy_(data[1])
+        gt_boxes.data.resize_(data[2].size()).copy_(data[2])
+        num_boxes.data.resize_(data[3].size()).copy_(data[3])
+
+        rois, q_feats, cls_p, bbox_p = query_net(im_data, im_info, gt_boxes,
+                                                 num_boxes)
+        query_features[i] = q_feats[0].data.cpu().numpy()
+
+        ex_feat_toc = time.time()
+        ex_time = ex_feat_toc - ex_feat_tic
+        print('query_exfeat: {:d}/{:d} {:.3f}s'.format(i + 1,
+                                                       num_querys, ex_time))
+
+    del query_net
+
+    # evaluations
+    imdb.evaluate_detections(all_boxes, det_thresh=0.5)
+    imdb.evaluate_detections(all_boxes, det_thresh=0.5, labeled_only=True)
+    imdb.evaluate_search(all_boxes, all_features, query_features,
+                         det_thresh=0.5, gallery_size=100, dump_json=None)
 
     end = time.time()
     print("test time: %0.4fs" % (end - start))
