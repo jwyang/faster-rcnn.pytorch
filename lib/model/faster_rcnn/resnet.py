@@ -252,15 +252,15 @@ class resnet(_fasterRCNN):
 
         self.RCNN_top = nn.Sequential(resnet.layer4)
 
-        # query net does not need cls_score and bbox_pred
-        if not self.query:
-            self.RCNN_cls_score = nn.Linear(self.detection_dimension,
-                                            self.n_classes)
-            if self.class_agnostic:
-                self.RCNN_bbox_pred = nn.Linear(self.detection_dimension, 4)
-            else:
-                self.RCNN_bbox_pred = nn.Linear(self.detection_dimension,
-                                                4 * self.n_classes)
+        # query net does not need cls_score and bbox_pred but we need to define
+        # FIXME: perhaps we can fix it by controlling loading trained models
+        self.RCNN_cls_score = nn.Linear(self.detection_dimension,
+                                        self.n_classes)
+        if self.class_agnostic:
+            self.RCNN_bbox_pred = nn.Linear(self.detection_dimension, 4)
+        else:
+            self.RCNN_bbox_pred = nn.Linear(self.detection_dimension,
+                                            4 * self.n_classes)
 
         # add fully-connected layer for both query and gallery net
         self.REID_feat_net = nn.Linear(self.detection_dimension,
