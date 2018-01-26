@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import json
 import os
 import os.path as osp
@@ -9,8 +13,8 @@ from sklearn.metrics import average_precision_score, precision_recall_curve
 
 import datasets
 from datasets.imdb import imdb
-from fast_rcnn.config import cfg
-from utils import cython_bbox, pickle, unpickle
+from model.utils.config import cfg
+import pickle
 
 
 def _compute_iou(a, b):
@@ -29,9 +33,9 @@ class psdb(imdb):
         super(psdb, self).__init__('psdb_' + image_set)
         self._image_set = image_set
         self._root_dir = self._get_default_path() if root_dir is None \
-            else root_dir
+            else root_dir  # TODO: set unique root for PRW
         self._data_path = osp.join(self._root_dir, 'Image', 'SSM')
-        self._classes = ('__background__', 'person')
+        self._classes = ('__background__', 'person') # TODO: may contain face
         self._image_index = self._load_image_set_index()
         self._probes = self._load_probes()
         self._roidb_handler = self.gt_roidb
@@ -43,6 +47,12 @@ class psdb(imdb):
     def image_path_at(self, i):
         return self.image_path_from_index(self._image_index[i])
 
+    def image_id_at(self, i):
+        """
+        Return the absolute path to image i in the image sequence.
+        """
+        return i
+
     def image_path_from_index(self, index):
         image_path = osp.join(self._data_path, index)
         assert osp.isfile(image_path), \
@@ -50,9 +60,15 @@ class psdb(imdb):
         return image_path
 
     def gt_roidb(self):
+        # TODO: add new cache for PRW to discriminate SYSU
         cache_file = osp.join(self.cache_path, self.name + '_gt_roidb.pkl')
-        if osp.isfile(cache_file):
-            roidb = unpickle(cache_file)
+        if os.path.exists(cache_file):
+            with open(cache_file, 'rb') as fid:
+                try:
+                    roidb = pickle.load(fid)
+                except:
+                    roidb = pickle.load(fid, encoding='bytes')
+            print('{} gt roidb loaded from {}'.format(self.name, cache_file))
             return roidb
 
         # Load all images and build a dict from image to boxes
@@ -74,12 +90,12 @@ class psdb(imdb):
                                                  dtype=np.int32)
 
         def _set_box_pid(boxes, box, pids, pid):
-            for i in xrange(boxes.shape[0]):
+            for i in range(boxes.shape[0]):
                 if np.all(boxes[i] == box):
                     pids[i] = pid
                     return
-            print 'Warning: person {} box {} cannot find in Images'.format(pid,
-                                                                           box)
+            print('Warning: person {} box {} cannot find in Images'.
+                  format(pid, box))
 
         # Load all the train / test persons and label their pids from 0 to N-1
         # Assign pid = -1 for unlabeled background people
@@ -89,11 +105,18 @@ class psdb(imdb):
             train = train['Train'].squeeze()
             for index, item in enumerate(train):
                 scenes = item[0, 0][2].squeeze()
-                for im_name, box in scenes:
-                    im_name = str(im_name[0])
-                    box = box.squeeze().astype(np.int32)
-                    _set_box_pid(name_to_boxes[im_name], box,
-                                 name_to_pids[im_name], index)
+                if len(scenes.dtype) == 2:
+                    for im_name, box in scenes:
+                        im_name = str(im_name[0])
+                        box = box.squeeze().astype(np.int32)
+                        _set_box_pid(name_to_boxes[im_name], box,
+                                     name_to_pids[im_name], index)
+                else:
+                    for im_name, box, __ in scenes:
+                        im_name = str(im_name[0])
+                        box = box.squeeze().astype(np.int32)
+                        _set_box_pid(name_to_boxes[im_name], box,
+                                     name_to_pids[im_name], index)
         else:
             test = loadmat(osp.join(self._root_dir,
                                     'annotation/test/train_test/TestG50.mat'))
@@ -106,12 +129,20 @@ class psdb(imdb):
                              name_to_pids[im_name], index)
                 # gallery
                 gallery = item['Gallery'].squeeze()
-                for im_name, box in gallery:
-                    im_name = str(im_name[0])
-                    if box.size == 0: break
-                    box = box.squeeze().astype(np.int32)
-                    _set_box_pid(name_to_boxes[im_name], box,
-                                 name_to_pids[im_name], index)
+                if len(gallery.dtype) == 2:
+                    for im_name, box in gallery:
+                        im_name = str(im_name[0])
+                        if box.size == 0: break
+                        box = box.squeeze().astype(np.int32)
+                        _set_box_pid(name_to_boxes[im_name], box,
+                                     name_to_pids[im_name], index)
+                else:
+                    for im_name, box, __ in gallery:
+                        im_name = str(im_name[0])
+                        if box.size == 0: break
+                        box = box.squeeze().astype(np.int32)
+                        _set_box_pid(name_to_boxes[im_name], box,
+                                     name_to_pids[im_name], index)
 
         # Construct the gt_roidb
         gt_roidb = []
@@ -132,8 +163,9 @@ class psdb(imdb):
                 'gt_pids': pids,
                 'flipped': False})
 
-        pickle(gt_roidb, cache_file)
-        print "wrote gt roidb to {}".format(cache_file)
+        with open(cache_file, 'wb') as fid:
+            pickle.dump(gt_roidb, fid, pickle.HIGHEST_PROTOCOL)
+        print("wrote gt roidb to {}".format(cache_file))
 
         return gt_roidb
 
@@ -143,7 +175,7 @@ class psdb(imdb):
         gallery_det (list of ndarray): n_det x [x1, x2, y1, y2, score] per img
 
         det_thresh (float): filter out gallery dets whose scores below this
-        iou_thresh (float): treat as true positive if IoU is above this
+        iou_thresh (float): treat as true positive if IoU is above this thresh
         labeled_only (bool): filter out unlabeled background people
         """
         assert self.num_images == len(gallery_det)
@@ -166,23 +198,23 @@ class psdb(imdb):
                 count_gt += num_gt
                 continue
             ious = np.zeros((num_gt, num_det), dtype=np.float32)
-            for i in xrange(num_gt):
-                for j in xrange(num_det):
+            for i in range(num_gt):
+                for j in range(num_det):
                     ious[i, j] = _compute_iou(gt_boxes[i], det[j, :4])
             tfmat = (ious >= iou_thresh)
             # for each det, keep only the largest iou of all the gt
-            for j in xrange(num_det):
+            for j in range(num_det):
                 largest_ind = np.argmax(ious[:, j])
-                for i in xrange(num_gt):
+                for i in range(num_gt):
                     if i != largest_ind:
                         tfmat[i, j] = False
             # for each gt, keep only the largest iou of all the det
-            for i in xrange(num_gt):
+            for i in range(num_gt):
                 largest_ind = np.argmax(ious[i, :])
-                for j in xrange(num_det):
+                for j in range(num_det):
                     if j != largest_ind:
                         tfmat[i, j] = False
-            for j in xrange(num_det):
+            for j in range(num_det):
                 y_score.append(det[j, -1])
                 if tfmat[:, j].any():
                     y_true.append(True)
@@ -196,11 +228,11 @@ class psdb(imdb):
         precision, recall, __ = precision_recall_curve(y_true, y_score)
         recall *= det_rate
 
-        print '{} detection:'.format('labeled only' if labeled_only else
-                                     'all')
-        print '  recall = {:.2%}'.format(det_rate)
+        print('{} detection:'.format('labeled only' if labeled_only else
+                                     'all'))
+        print('  recall = {:.2%}'.format(det_rate))
         if not labeled_only:
-            print '  ap = {:.2%}'.format(ap)
+            print('  ap = {:.2%}'.format(ap))
 
     def evaluate_search(self, gallery_det, gallery_feat, probe_feat,
                         det_thresh=0.5, gallery_size=100, dump_json=None):
@@ -237,7 +269,7 @@ class psdb(imdb):
         accs = []
         topk = [1, 5, 10]
         ret = {'image_root': self._data_path, 'results': []}
-        for i in xrange(len(self.probes)):
+        for i in range(len(self.probes)):
             y_true, y_score = [], []
             imgs, rois = [], []
             count_gt, count_tp = 0, 0
@@ -254,10 +286,7 @@ class psdb(imdb):
             for item in protoc['Gallery'][i].squeeze():
                 gallery_imname = str(item[0][0])
                 # some contain the probe (gt not empty), some not
-                if item[1].size:
-                    gt = item[1][0].astype(np.int32)
-                else:
-                    gt = item[1].astype(np.int32)
+                gt = item[1][0].astype(np.int32)
                 count_gt += (gt.size > 0)
                 # compute distance between probe and gallery dets
                 if gallery_imname not in name_to_det_feat: continue
@@ -325,7 +354,7 @@ class psdb(imdb):
                          'probe_gt': probe_gt,
                          'gallery': []}
             # only save top-10 predictions
-            for k in xrange(10):
+            for k in range(10):
                 new_entry['gallery'].append({
                     'img': str(imgs[inds[k]]),
                     'roi': map(float, list(rois[inds[k]])),
@@ -334,11 +363,11 @@ class psdb(imdb):
                 })
             ret['results'].append(new_entry)
 
-        print 'search ranking:'
-        print '  mAP = {:.2%}'.format(np.mean(aps))
+        print('search ranking:')
+        print('  mAP = {:.2%}'.format(np.mean(aps)))
         accs = np.mean(accs, axis=0)
         for i, k in enumerate(topk):
-            print '  top-{:2d} = {:.2%}'.format(k, accs[i])
+            print('  top-{:2d} = {:.2%}'.format(k, accs[i]))
 
         if dump_json is not None:
             if not osp.isdir(osp.dirname(dump_json)):
@@ -388,16 +417,16 @@ class psdb(imdb):
                     y_true.append(label)
 
         # some statistics
-        print 'classifiction:'
-        print '  number of background clutter =', count_bg
-        print '  number of unlabeled =', count_ul
-        print '  number of labeled =', count_lb
+        print('classifiction:')
+        print('  number of background clutter =', count_bg)
+        print('  number of unlabeled =', count_ul)
+        print('  number of labeled =', count_lb)
 
         # top-k classification accuracies
         correct = np.asarray(y_pred) == np.asarray(y_true)[:, np.newaxis]
         for top_k in [1, 5, 10]:
             acc = correct[:, :top_k].sum(axis=1).mean()
-            print '  top-{} accuracy = {:.2%}'.format(top_k, acc)
+            print('  top-{} accuracy = {:.2%}'.format(top_k, acc))
 
     def _get_default_path(self):
         return osp.join(cfg.DATA_DIR, 'psdb', 'dataset')
@@ -443,6 +472,6 @@ if __name__ == '__main__':
 
     d = psdb('train')
     res = d.roidb
-    from IPython import embed;
+    from IPython import embed
 
     embed()
