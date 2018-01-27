@@ -246,11 +246,16 @@ class resnet(_fasterRCNN):
                                     k in resnet.state_dict()})
 
         # Build resnet.
+        layer3_head = [resnet.layer3[i] for i in range(12)]
+        layer3_head = nn.Sequential(*layer3_head)
+        layer3_tail = [resnet.layer3[i] for i in range(12, 23)]
+        layer3_tail = nn.Sequential(*layer3_tail)
+
         self.RCNN_base = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu,
                                        resnet.maxpool, resnet.layer1,
-                                       resnet.layer2, resnet.layer3)
+                                       resnet.layer2, layer3_head)
 
-        self.RCNN_top = nn.Sequential(resnet.layer4)
+        self.RCNN_top = nn.Sequential(layer3_tail ,resnet.layer4)
 
         # query net does not need cls_score and bbox_pred but we need to define
         # FIXME: perhaps we can fix it by controlling loading trained models
