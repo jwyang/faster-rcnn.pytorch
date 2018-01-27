@@ -46,7 +46,7 @@ def parse_args():
                         default='psdb', type=str)
     parser.add_argument('--net', dest='net',
                         help='vgg16, res101',
-                        default='vgg16', type=str)
+                        default='res101', type=str)
     parser.add_argument('--start_epoch', dest='start_epoch',
                         help='starting epoch',
                         default=1, type=int)
@@ -89,7 +89,7 @@ def parse_args():
                         default="sgd", type=str)
     parser.add_argument('--lr', dest='lr',
                         help='starting learning rate',
-                        default=0.001, type=float)
+                        default=0.0001, type=float)
     parser.add_argument('--lr_decay_step', dest='lr_decay_step',
                         help='step to do learning rate decay, unit is epoch',
                         default=5, type=int)
@@ -328,6 +328,7 @@ if __name__ == '__main__':
         fasterRCNN.cuda()
 
     iters_per_epoch = int(train_size / args.batch_size)
+    all_epoch_loss = 0
 
     for epoch in range(args.start_epoch, args.max_epochs + 1):
         # setting to train mode
@@ -360,6 +361,9 @@ if __name__ == '__main__':
             loss = (rpn_loss.sum() + rcnn_loss.sum() + reid_loss) /\
                    rpn_loss.size(0)
             loss_temp += loss.data[0]
+            all_epoch_loss += loss.data[0]
+            cur_iter = (epoch - 1) * iters_per_epoch + step + 1
+            average_loss = all_epoch_loss / cur_iter
 
             # backward
             optimizer.zero_grad()
@@ -370,8 +374,9 @@ if __name__ == '__main__':
 
             if step % args.disp_interval == 0:
                 end = time.time()
-                if step > 0:
-                    loss_temp /= args.disp_interval
+                # do not use this strategy
+                # if step > 0:
+                #     loss_temp /= args.disp_interval
 
                 if args.mGPUs:
                     loss_rpn_cls = 0
@@ -390,8 +395,9 @@ if __name__ == '__main__':
                     fg_cnt = fasterRCNN.fg_cnt
                     bg_cnt = fasterRCNN.bg_cnt
 
-                print("[session %d][epoch %2d][iter %4d] total loss: %.6f, "
-                      "lr: %.2e" % (args.session, epoch, step, loss_temp, lr))
+                print("[session %d][epoch %2d][iter %4d] average loss: %.6f, "
+                      "lr: %.2e" % (args.session, epoch, step, average_loss,
+                                    lr))
                 print(">>>> fg/bg=(%d/%d), time cost: %.2fs" % (
                     fg_cnt, bg_cnt, end - start))
                 print(">>>> rpn_cls: %.6f" % loss_rpn_cls)
