@@ -16,7 +16,6 @@ import pprint
 import pdb
 import time
 import cv2
-import cPickle
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
@@ -61,11 +60,11 @@ def parse_args():
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
   parser.add_argument('--load_dir', dest='load_dir',
-                      help='directory to load models', default="/srv/share/jyang375/models",
-                      nargs=argparse.REMAINDER)
+                      help='directory to load models',
+                      default="/srv/share/jyang375/models")
   parser.add_argument('--image_dir', dest='image_dir',
-                      help='directory to load images for demo', default="images",
-                      nargs=argparse.REMAINDER)
+                      help='directory to load images for demo',
+                      default="images")
   parser.add_argument('--cuda', dest='cuda',
                       help='whether use CUDA',
                       action='store_true')
