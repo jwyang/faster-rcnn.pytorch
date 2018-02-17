@@ -137,6 +137,11 @@ As pointed out by [ruotianluo/pytorch-faster-rcnn](https://github.com/ruotianluo
   
 More details about setting the architecture can be found [here](https://developer.nvidia.com/cuda-gpus) or [here](http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/)
 
+Install all the python dependencies using pip:
+```
+pip install -r requirements.txt
+```
+
 Compile the cuda dependencies using following simple commands:
 
 ```
