@@ -307,8 +307,9 @@ if __name__ == '__main__':
               cls_boxes = pred_boxes[inds, :]
             else:
               cls_boxes = pred_boxes[inds][:, j * 4:(j + 1) * 4]
-
-            cls_dets = torch.cat((cls_boxes, cls_scores), 1)
+            
+            cls_dets = torch.cat((cls_boxes, cls_scores.unsqueeze(1)), 1)
+            # cls_dets = torch.cat((cls_boxes, cls_scores), 1)
             cls_dets = cls_dets[order]
             keep = nms(cls_dets, cfg.TEST.NMS)
             cls_dets = cls_dets[keep.view(-1).long()]
