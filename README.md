@@ -222,7 +222,7 @@ This project is equally contributed by [Jianwei Yang](https://github.com/jwyang)
 ## Citation
 
     @article{jjfaster2rcnn,
-        Author = {Jianwei Yang and Jiasen Lu, Dhruv Batra, Devi Parikh},
+        Author = {Jianwei Yang and Jiasen Lu and Dhruv Batra and Devi Parikh},
         Title = {A Faster Pytorch Implementation of Faster R-CNN},
         Journal = {https://github.com/jwyang/faster-rcnn.pytorch},
         Year = {2017}
