@@ -30,6 +30,8 @@ During our implementing, we referred the above implementations, especailly [long
 
 * [Feature Pyramid Network (FPN)](https://github.com/jwyang/fpn.pytorch)
 
+* Mask R-CNN (ongoing)
+
 ## Benchmarking
 
 We benchmark our code thoroughly on three datasets: pascal voc, coco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
