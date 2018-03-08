@@ -4,3 +4,4 @@ opencv-python
 scipy
 easydict
 matplotlib
+pyyaml
