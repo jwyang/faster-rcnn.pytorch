@@ -58,7 +58,7 @@ def parse_args():
                       nargs=argparse.REMAINDER)
   parser.add_argument('--load_dir', dest='load_dir',
                       help='directory to load models', default="/srv/share/jyang375/models",
-                      nargs=argparse.REMAINDER)
+                      type=str)
   parser.add_argument('--cuda', dest='cuda',
                       help='whether use CUDA',
                       action='store_true')
