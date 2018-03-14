@@ -202,7 +202,7 @@ If you want to run detection on your own images with a pre-trained model, downlo
 ```
 python demo.py --net vgg16 \
                --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT \
-               --cuda
+               --cuda --load_dir path/to/model/directoy
 ```
 
 Then you will find the detection results in folder $ROOT/images. 
@@ -214,6 +214,15 @@ Below are some detection results:
 <div style="color:#0000FF" align="center">
 <img src="images/img3_det_res101.jpg" width="430"/> <img src="images/img4_det_res101.jpg" width="430"/>
 </div>
+
+You can use a webcam in a real-time demo by running
+```
+python demo.py --net vgg16 \
+               --checksession $SESSION --checkepoch $EPOCH --checkpoint $CHECKPOINT \
+               --cuda --load_dir path/to/model/directoy \
+               --webcam $WEBCAM_ID
+```
+The demo is stopped by clicking the image window and then pressing the 'q' key.
 
 ## Authorship
 
