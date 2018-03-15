@@ -228,7 +228,7 @@ The demo is stopped by clicking the image window and then pressing the 'q' key.
 
 ## Authorship
 
-This project is equally contributed by [Jianwei Yang](https://github.com/jwyang) and [Jiasen Lu](https://github.com/jiasenlu).
+This project is equally contributed by [Jianwei Yang](https://github.com/jwyang) and [Jiasen Lu](https://github.com/jiasenlu), and many others (thanks to them!).
 
 ## Citation
 
