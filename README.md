@@ -26,11 +26,15 @@ During our implementing, we referred the above implementations, especailly [long
 
 * **It is faster**. Based on the above modifications, the training is much faster. We report the training speed on NVIDIA TITAN Xp in the tables below.
 
-## Other Resources
+## Other Implementations
 
 * [Feature Pyramid Network (FPN)](https://github.com/jwyang/fpn.pytorch)
 
 * Mask R-CNN (ongoing)
+
+## Tutorial 
+
+* [Blog](http://www.telesens.co/2018/03/11/object-detection-and-classification-using-r-cnns/) by [ankur6ue](https://github.com/ankur6ue)
 
 ## Benchmarking
 
