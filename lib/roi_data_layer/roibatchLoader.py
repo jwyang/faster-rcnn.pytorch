@@ -180,7 +180,8 @@ class roibatchLoader(data.Dataset):
             trim_size = min(data_height, data_width)
             padding_data = torch.FloatTensor(trim_size, trim_size, 3).zero_()
             padding_data = data[0][:trim_size, :trim_size, :]
-            gt_boxes.clamp_(0, trim_size)
+            # gt_boxes.clamp_(0, trim_size)
+            gt_boxes[:, :4].clamp_(0, trim_size)
             im_info[0, 0] = trim_size
             im_info[0, 1] = trim_size
 
