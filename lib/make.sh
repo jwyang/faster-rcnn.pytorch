@@ -10,8 +10,7 @@ CUDA_ARCH="-gencode arch=compute_30,code=sm_30 \
            -gencode arch=compute_50,code=sm_50 \
            -gencode arch=compute_52,code=sm_52 \
            -gencode arch=compute_60,code=sm_60 \
-           -gencode arch=compute_61,code=sm_61 \
-	   -gencode arch=compute_70,code=sm_70 "
+           -gencode arch=compute_61,code=sm_61"
 
 # compile NMS
 cd model/nms/src
@@ -27,6 +26,15 @@ cd ../../
 cd model/roi_pooling/src
 echo "Compiling roi pooling kernels by nvcc..."
 nvcc -c -o roi_pooling.cu.o roi_pooling_kernel.cu \
+	 -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CUDA_ARCH
+cd ../
+python build.py
+
+# compile roioffset_pooling
+cd ../../
+cd model/roioffset_pooling/src
+echo "Compiling roi offset pooling kernels by nvcc..."
+nvcc -c -o roioffset_pooling.cu.o roioffset_pooling_kernel.cu \
 	 -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CUDA_ARCH
 cd ../
 python build.py
