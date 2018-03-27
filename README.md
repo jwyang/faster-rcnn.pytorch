@@ -221,6 +221,8 @@ Below are some detection results:
 <img src="images/img3_det_res101.jpg" width="430"/> <img src="images/img4_det_res101.jpg" width="430"/>
 </div>
 
+## Webcam Demo
+
 You can use a webcam in a real-time demo by running
 ```
 python demo.py --net vgg16 \
