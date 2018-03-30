@@ -98,7 +98,7 @@ git clone https://github.com/jwyang/faster-rcnn.pytorch.git
 
 Then, create a folder:
 ```
-mkdir data
+cd faster-rcnn.pytorch && mkdir data
 ```
 
 ### prerequisites
