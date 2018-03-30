@@ -98,7 +98,7 @@ git clone https://github.com/jwyang/faster-rcnn.pytorch.git
 
 Then, create a folder:
 ```
-mkdir data
+cd faster-rcnn.pytorch && mkdir data
 ```
 
 ### prerequisites
@@ -131,7 +131,7 @@ Download them and put them into the data/pretrained_model/.
 
 ### Compilation
 
-As pointed out by [ruotianluo/pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn), choose the right `-arch` to compile the cuda code:
+As pointed out by [ruotianluo/pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn), choose the right `-arch` in `make.sh` file, to compile the cuda code:
 
   | GPU model  | Architecture |
   | ------------- | ------------- |
