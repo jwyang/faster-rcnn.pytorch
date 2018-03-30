@@ -133,7 +133,7 @@ class _AnchorTargetLayer(nn.Module):
                 labels[i][disable_inds] = -1
 
 #             num_bg = cfg.TRAIN.RPN_BATCHSIZE - sum_fg[i]
-            num_bg = cfg.TRAIN.RPN_BATCHSIZE - sum_fg[i]
+            num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)[i]
 
             # subsample negative labels if we have too many
             if sum_bg[i] > num_bg:
