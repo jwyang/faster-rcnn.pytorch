@@ -132,6 +132,7 @@ class _AnchorTargetLayer(nn.Module):
                 disable_inds = fg_inds[rand_num[:fg_inds.size(0)-num_fg]]
                 labels[i][disable_inds] = -1
 
+#             num_bg = cfg.TRAIN.RPN_BATCHSIZE - sum_fg[i]
             num_bg = cfg.TRAIN.RPN_BATCHSIZE - sum_fg[i]
 
             # subsample negative labels if we have too many
