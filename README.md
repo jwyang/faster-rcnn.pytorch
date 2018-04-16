@@ -30,7 +30,7 @@ During our implementing, we referred the above implementations, especailly [long
 
 * [Feature Pyramid Network (FPN)](https://github.com/jwyang/fpn.pytorch)
 
-* Mask R-CNN (ongoing)
+* Mask R-CNN (~~ongoing~~from [roytseng-tw](https://github.com/roytseng-tw/mask-rcnn.pytorch))
 
 ## Tutorial 
 
