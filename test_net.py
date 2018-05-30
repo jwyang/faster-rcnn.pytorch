@@ -252,11 +252,11 @@ if __name__ == '__main__':
             if args.class_agnostic:
                 box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS).cuda() \
                            + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS).cuda()
-                box_deltas = box_deltas.view(1, -1, 4)
+                box_deltas = box_deltas.view(args.batch_size, -1, 4)
             else:
                 box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS).cuda() \
                            + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS).cuda()
-                box_deltas = box_deltas.view(1, -1, 4 * len(imdb.classes))
+                box_deltas = box_deltas.view(args.batch_size, -1, 4 * len(imdb.classes))
 
           pred_boxes = bbox_transform_inv(boxes, box_deltas, 1)
           pred_boxes = clip_boxes(pred_boxes, im_info.data, 1)
