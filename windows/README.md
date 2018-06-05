@@ -13,6 +13,6 @@ python setup.py build_ext --inplace
 ```
 - Open windows/faster_rcnn.sln
 - Select release for each project(Debug was not configured)
-- Bulid all project in this solution to Generate
+- Bulid all project in this solution
 
 
