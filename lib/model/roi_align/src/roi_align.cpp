@@ -13,7 +13,7 @@ void ROIAlignBackwardCpu(const float* top_diff, const float spatial_scale, const
                      const int aligned_height, const int aligned_width, const float * bottom_rois,
                      float* top_data);
 
-int roi_align_forward(int aligned_height, int aligned_width, float spatial_scale,
+extern"C" __declspec(dllexport) int roi_align_forward(int aligned_height, int aligned_width, float spatial_scale,
                      THFloatTensor * features, THFloatTensor * rois, THFloatTensor * output)
 {
     //Grab the input tensor
@@ -44,7 +44,7 @@ int roi_align_forward(int aligned_height, int aligned_width, float spatial_scale
     return 1;
 }
 
-int roi_align_backward(int aligned_height, int aligned_width, float spatial_scale,
+extern"C" __declspec(dllexport) int roi_align_backward(int aligned_height, int aligned_width, float spatial_scale,
                        THFloatTensor * top_grad, THFloatTensor * rois, THFloatTensor * bottom_grad)
 {
     //Grab the input tensor

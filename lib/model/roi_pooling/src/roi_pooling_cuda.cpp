@@ -1,10 +1,11 @@
 #include <THC/THC.h>
 #include <math.h>
+#include <ATen/ATen.h>
 #include "roi_pooling_kernel.h"
 
-extern THCState *state;
+THCState *state = at::globalContext().thc_state;
 
-int roi_pooling_forward_cuda(int pooled_height, int pooled_width, float spatial_scale,
+extern"C" __declspec(dllexport) int roi_pooling_forward_cuda(int pooled_height, int pooled_width, float spatial_scale,
                         THCudaTensor * features, THCudaTensor * rois, THCudaTensor * output, THCudaIntTensor * argmax)
 {
     // Grab the input tensor
@@ -46,7 +47,7 @@ int roi_pooling_forward_cuda(int pooled_height, int pooled_width, float spatial_
     return 1;
 }
 
-int roi_pooling_backward_cuda(int pooled_height, int pooled_width, float spatial_scale,
+extern"C" __declspec(dllexport) int roi_pooling_backward_cuda(int pooled_height, int pooled_width, float spatial_scale,
                         THCudaTensor * top_grad, THCudaTensor * rois, THCudaTensor * bottom_grad, THCudaIntTensor * argmax)
 {
     // Grab the input tensor
