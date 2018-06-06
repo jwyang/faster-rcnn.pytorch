@@ -14,3 +14,4 @@ data/*
 /windows/.vs/faster_rcnn/v15
 *.dll
 *.lib
+/.vs/FasterRCNN/v15
