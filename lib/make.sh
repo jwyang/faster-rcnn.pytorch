@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-CUDA_PATH="A:/NVIDIA/GPU Computing Toolkit/CUDA/v9.1"
+CUDA_PATH=/usr/local/cuda/
 
 python setup.py build_ext --inplace
 rm -rf build
@@ -15,8 +15,8 @@ CUDA_ARCH="-gencode arch=compute_30,code=sm_30 \
 # compile NMS
 cd model/nms/src
 echo "Compiling nms kernels by nvcc..."
-#nvcc -c -o nms_cuda_kernel.lib nms_cuda_kernel.cu \
-#     -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CUDA_ARCH
+nvcc -c -o nms_cuda_kernel.cu.o nms_cuda_kernel.cu \
+	 -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CUDA_ARCH
 
 cd ../
 python build.py
@@ -25,8 +25,8 @@ python build.py
 cd ../../
 cd model/roi_pooling/src
 echo "Compiling roi pooling kernels by nvcc..."
-#nvcc -c -o roi_pooling.lib roi_pooling_kernel.cu \
-#     -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CUDA_ARCH
+nvcc -c -o roi_pooling.cu.o roi_pooling_kernel.cu \
+	 -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CUDA_ARCH
 cd ../
 python build.py
 
@@ -34,8 +34,8 @@ python build.py
 cd ../../
 cd model/roi_align/src
 echo "Compiling roi align kernels by nvcc..."
-#nvcc -c -o roi_align_kernel.lib roi_align_kernel.cu \
-#	  -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CUDA_ARCH
+nvcc -c -o roi_align_kernel.cu.o roi_align_kernel.cu \
+	 -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CUDA_ARCH
 cd ../
 python build.py
 
@@ -43,7 +43,7 @@ python build.py
 cd ../../
 cd model/roi_crop/src
 echo "Compiling roi crop kernels by nvcc..."
-#nvcc -c -o roi_crop_cuda_kernel.lib roi_crop_cuda_kernel.cu \
-#     -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CUDA_ARCH
+nvcc -c -o roi_crop_cuda_kernel.cu.o roi_crop_cuda_kernel.cu \
+	 -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CUDA_ARCH
 cd ../
 python build.py

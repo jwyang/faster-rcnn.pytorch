@@ -149,10 +149,8 @@ Install all the python dependencies using pip:
 pip install -r requirements.txt
 ```
 
-if bulid on windows, please click [README.md](./windows/README.md).
-   
-else compile the cuda dependencies using following simple commands:
-   
+Compile the cuda dependencies using following simple commands:
+
 ```
 cd lib
 sh make.sh
