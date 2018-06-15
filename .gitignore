@@ -1,3 +1,17 @@
 data/*
 *.pyc
 *~
+/images - Copy
+*.pyd
+*.ipch
+*.tlog
+*.deps
+*.cache
+*.obj
+*.log
+*.pdb
+/vgg16_caffe.pth
+/windows/.vs/faster_rcnn/v15
+*.dll
+*.lib
+/.vs/FasterRCNN/v15

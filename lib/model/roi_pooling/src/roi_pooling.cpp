@@ -1,7 +1,7 @@
 #include <TH/TH.h>
 #include <math.h>
 
-int roi_pooling_forward(int pooled_height, int pooled_width, float spatial_scale,
+extern"C" __declspec(dllexport) int roi_pooling_forward(int pooled_height, int pooled_width, float spatial_scale,
                         THFloatTensor * features, THFloatTensor * rois, THFloatTensor * output)
 {
     // Grab the input tensor

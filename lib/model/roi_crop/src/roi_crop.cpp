@@ -4,7 +4,7 @@
 
 #define real float
 
-int BilinearSamplerBHWD_updateOutput(THFloatTensor *inputImages, THFloatTensor *grids, THFloatTensor *output)
+extern"C" __declspec(dllexport) int BilinearSamplerBHWD_updateOutput(THFloatTensor *inputImages, THFloatTensor *grids, THFloatTensor *output)
 {
 
   int batchsize = inputImages->size[0];
@@ -102,7 +102,7 @@ int BilinearSamplerBHWD_updateOutput(THFloatTensor *inputImages, THFloatTensor *
 
 
 
-int BilinearSamplerBHWD_updateGradInput(THFloatTensor *inputImages, THFloatTensor *grids, THFloatTensor *gradInputImages,
+extern"C" __declspec(dllexport) int BilinearSamplerBHWD_updateGradInput(THFloatTensor *inputImages, THFloatTensor *grids, THFloatTensor *gradInputImages,
                                         THFloatTensor *gradGrids, THFloatTensor *gradOutput)
 {
   bool onlyGrid=false;
@@ -243,7 +243,7 @@ int BilinearSamplerBHWD_updateGradInput(THFloatTensor *inputImages, THFloatTenso
 }
 
 
-int BilinearSamplerBCHW_updateOutput(THFloatTensor *inputImages, THFloatTensor *grids, THFloatTensor *output)
+extern"C" __declspec(dllexport) int BilinearSamplerBCHW_updateOutput(THFloatTensor *inputImages, THFloatTensor *grids, THFloatTensor *output)
 {
 
   int batchsize = inputImages->size[0];
@@ -347,7 +347,7 @@ int BilinearSamplerBCHW_updateOutput(THFloatTensor *inputImages, THFloatTensor *
 
 
 
-int BilinearSamplerBCHW_updateGradInput(THFloatTensor *inputImages, THFloatTensor *grids, THFloatTensor *gradInputImages,
+extern"C" __declspec(dllexport) int BilinearSamplerBCHW_updateGradInput(THFloatTensor *inputImages, THFloatTensor *grids, THFloatTensor *gradInputImages,
                                         THFloatTensor *gradGrids, THFloatTensor *gradOutput)
 {
   bool onlyGrid=false;

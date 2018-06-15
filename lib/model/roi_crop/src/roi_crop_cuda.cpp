@@ -1,18 +1,19 @@
 #include <THC/THC.h>
 #include <stdbool.h>
+#include <ATen/ATen.h>
 #include <stdio.h>
 #include "roi_crop_cuda_kernel.h"
 
 #define real float
 
 // this symbol will be resolved automatically from PyTorch libs
-extern THCState *state;
+THCState *state = at::globalContext().thc_state;
 
 // Bilinear sampling is done in BHWD (coalescing is not obvious in BDHW)
 // we assume BHWD format in inputImages
 // we assume BHW(YX) format on grids
 
-int BilinearSamplerBHWD_updateOutput_cuda(THCudaTensor *inputImages, THCudaTensor *grids, THCudaTensor *output){
+extern"C" __declspec(dllexport) int BilinearSamplerBHWD_updateOutput_cuda(THCudaTensor *inputImages, THCudaTensor *grids, THCudaTensor *output){
 //  THCState *state = getCutorchState(L);
 //  THCudaTensor *inputImages = (THCudaTensor *)luaT_checkudata(L, 2, "torch.CudaTensor");
 //  THCudaTensor *grids = (THCudaTensor *)luaT_checkudata(L, 3, "torch.CudaTensor");
@@ -51,7 +52,7 @@ int BilinearSamplerBHWD_updateOutput_cuda(THCudaTensor *inputImages, THCudaTenso
   return 1;
 }
 
-int BilinearSamplerBHWD_updateGradInput_cuda(THCudaTensor *inputImages, THCudaTensor *grids, THCudaTensor *gradInputImages,
+extern"C" __declspec(dllexport) int BilinearSamplerBHWD_updateGradInput_cuda(THCudaTensor *inputImages, THCudaTensor *grids, THCudaTensor *gradInputImages,
                                         THCudaTensor *gradGrids, THCudaTensor *gradOutput)
 {
 //  THCState *state = getCutorchState(L);
