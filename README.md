@@ -221,7 +221,7 @@ Then you will find the detection results in folder $ROOT/images.
 Below are some detection results:
 
 <div style="color:#0000FF" align="center">
-<img src="images/img1_det.jpg" height="430"/> <img src="images/img4_det.jpg" width="430"/>
+<img src="images/img1_det.jpg" height="360"/> <img src="images/img4_det.jpg" width="430"/>
 </div>
 
 ## Webcam Demo
