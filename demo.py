@@ -16,7 +16,6 @@ import pprint
 import pdb
 import time
 import cv2
-import cPickle
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
@@ -24,56 +23,78 @@ import torch.optim as optim
 
 import torchvision.transforms as transforms
 import torchvision.datasets as dset
-from PIL import Image
+from scipy.misc import imread
 from roi_data_layer.roidb import combined_roidb
 from roi_data_layer.roibatchLoader import roibatchLoader
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
-from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
 from model.rpn.bbox_transform import clip_boxes
 from model.nms.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
 from model.utils.net_utils import save_net, load_net, vis_detections
 from model.utils.blob import im_list_to_blob
+from model.faster_rcnn.vgg16 import vgg16
+from model.faster_rcnn.resnet import resnet
 import pdb
+
+try:
+    xrange          # Python 2
+except NameError:
+    xrange = range  # Python 3
+
 
 def parse_args():
   """
   Parse input arguments
   """
   parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
+  parser.add_argument('--dataset', dest='dataset',
+                      help='training dataset',
+                      default='pascal_voc', type=str)
   parser.add_argument('--cfg', dest='cfg_file',
                       help='optional config file',
                       default='cfgs/vgg16.yml', type=str)
-  parser.add_argument('--imdb', dest='imdb_name',
-                      help='dataset to train on',
-                      default='voc_2007_trainval', type=str)
-  parser.add_argument('--imdbval', dest='imdbval_name',
-                      help='dataset to validate on',
-                      default='voc_2007_test', type=str)
   parser.add_argument('--net', dest='net',
                       help='vgg16, res50, res101, res152',
-                      default='vgg16', type=str)
+                      default='res101', type=str)
   parser.add_argument('--set', dest='set_cfgs',
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
   parser.add_argument('--load_dir', dest='load_dir',
-                      help='directory to load models', default="models",
-                      nargs=argparse.REMAINDER)
+                      help='directory to load models',
+                      default="/srv/share/jyang375/models")
   parser.add_argument('--image_dir', dest='image_dir',
-                      help='directory to load images', default="data/images",
-                      type=str)  
-  parser.add_argument('--ngpu', dest='ngpu',
-                      help='number of gpu',
-                      default=1, type=int)
+                      help='directory to load images for demo',
+                      default="images")
+  parser.add_argument('--cuda', dest='cuda',
+                      help='whether use CUDA',
+                      action='store_true')
+  parser.add_argument('--mGPUs', dest='mGPUs',
+                      help='whether use multiple GPUs',
+                      action='store_true')
+  parser.add_argument('--cag', dest='class_agnostic',
+                      help='whether perform class_agnostic bbox regression',
+                      action='store_true')
+  parser.add_argument('--parallel_type', dest='parallel_type',
+                      help='which part of model to parallel, 0: all, 1: model before roi pooling',
+                      default=0, type=int)
   parser.add_argument('--checksession', dest='checksession',
                       help='checksession to load model',
-                      default=4, type=int)
+                      default=1, type=int)
   parser.add_argument('--checkepoch', dest='checkepoch',
                       help='checkepoch to load network',
-                      default=6, type=int)
+                      default=1, type=int)
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load network',
-                      default=10000, type=int)
+                      default=10021, type=int)
+  parser.add_argument('--bs', dest='batch_size',
+                      help='batch_size',
+                      default=1, type=int)
+  parser.add_argument('--vis', dest='vis',
+                      help='visualization mode',
+                      action='store_true')
+  parser.add_argument('--webcam_num', dest='webcam_num',
+                      help='webcam ID number',
+                      default=-1, type=int)
 
   args = parser.parse_args()
   return args
@@ -128,6 +149,8 @@ if __name__ == '__main__':
   if args.set_cfgs is not None:
     cfg_from_list(args.set_cfgs)
 
+  cfg.USE_GPU_NMS = args.cuda
+
   print('Using config:')
   pprint.pprint(cfg)
   np.random.seed(cfg.RNG_SEED)
@@ -135,23 +158,44 @@ if __name__ == '__main__':
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
 
-  input_dir = args.load_dir + "/" + args.net
+  input_dir = args.load_dir + "/" + args.net + "/" + args.dataset
   if not os.path.exists(input_dir):
-    raise Exception('There is no input directory for loading network')
+    raise Exception('There is no input directory for loading network from ' + input_dir)
   load_name = os.path.join(input_dir,
     'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
 
-
-  classes = np.asarray(['__background__',
+  pascal_classes = np.asarray(['__background__',
                        'aeroplane', 'bicycle', 'bird', 'boat',
                        'bottle', 'bus', 'car', 'cat', 'chair',
                        'cow', 'diningtable', 'dog', 'horse',
                        'motorbike', 'person', 'pottedplant',
                        'sheep', 'sofa', 'train', 'tvmonitor'])
 
-  fasterRCNN = _fasterRCNN(args.net, classes)
-  checkpoint = torch.load(load_name)
+  # initilize the network here.
+  if args.net == 'vgg16':
+    fasterRCNN = vgg16(pascal_classes, pretrained=False, class_agnostic=args.class_agnostic)
+  elif args.net == 'res101':
+    fasterRCNN = resnet(pascal_classes, 101, pretrained=False, class_agnostic=args.class_agnostic)
+  elif args.net == 'res50':
+    fasterRCNN = resnet(pascal_classes, 50, pretrained=False, class_agnostic=args.class_agnostic)
+  elif args.net == 'res152':
+    fasterRCNN = resnet(pascal_classes, 152, pretrained=False, class_agnostic=args.class_agnostic)
+  else:
+    print("network is not defined")
+    pdb.set_trace()
+
+  fasterRCNN.create_architecture()
+
+  print("load checkpoint %s" % (load_name))
+  if args.cuda > 0:
+    checkpoint = torch.load(load_name)
+  else:
+    checkpoint = torch.load(load_name, map_location=(lambda storage, loc: storage))
   fasterRCNN.load_state_dict(checkpoint['model'])
+  if 'pooling_mode' in checkpoint.keys():
+    cfg.POOLING_MODE = checkpoint['pooling_mode']
+
+
   print('load model successfully!')
 
   # pdb.set_trace()
@@ -165,7 +209,7 @@ if __name__ == '__main__':
   gt_boxes = torch.FloatTensor(1)
 
   # ship to cuda
-  if args.ngpu > 0:
+  if args.cuda > 0:
     im_data = im_data.cuda()
     im_info = im_info.cuda()
     num_boxes = num_boxes.cuda()
@@ -177,10 +221,10 @@ if __name__ == '__main__':
   num_boxes = Variable(num_boxes, volatile=True)
   gt_boxes = Variable(gt_boxes, volatile=True)
 
-  if args.ngpu > 0:
+  if args.cuda > 0:
     cfg.CUDA = True
 
-  if args.ngpu > 0:
+  if args.cuda > 0:
     fasterRCNN.cuda()
 
   fasterRCNN.eval()
@@ -190,21 +234,39 @@ if __name__ == '__main__':
   thresh = 0.05
   vis = True
 
-  imglist = os.listdir(args.image_dir)
-  num_images = len(imglist)
+  webcam_num = args.webcam_num
+  # Set up webcam or get image directories
+  if webcam_num >= 0 :
+    cap = cv2.VideoCapture(webcam_num)
+    num_images = 0
+  else:
+    imglist = os.listdir(args.image_dir)
+    num_images = len(imglist)
 
   print('Loaded Photo: {} images.'.format(num_images))
 
 
-  for i in range(num_images):
+  while (num_images >= 0):
+      total_tic = time.time()
+      if webcam_num == -1:
+        num_images -= 1
 
+      # Get image from the webcam
+      if webcam_num >= 0:
+        if not cap.isOpened():
+          raise RuntimeError("Webcam could not open. Please check connection.")
+        ret, frame = cap.read()
+        im_in = np.array(frame)
       # Load the demo image
-      im_file = os.path.join(args.image_dir, imglist[i])
-      # im = cv2.imread(im_file)
-      im = np.array(Image.open(im_file))
-      if len(im.shape) == 2:
-        im = im[:,:,np.newaxis]
-        im = np.concatenate((im,im,im), axis=2)
+      else:
+        im_file = os.path.join(args.image_dir, imglist[num_images])
+        # im = cv2.imread(im_file)
+        im_in = np.array(imread(im_file))
+      if len(im_in.shape) == 2:
+        im_in = im_in[:,:,np.newaxis]
+        im_in = np.concatenate((im_in,im_in,im_in), axis=2)
+      # rgb -> bgr
+      im = im_in[:,:,::-1]
 
       blobs, im_scales = _get_image_blob(im)
       assert len(im_scales) == 1, "Only single-image batch implemented"
@@ -221,58 +283,95 @@ if __name__ == '__main__':
       num_boxes.data.resize_(1).zero_()
 
       # pdb.set_trace()
-
-
       det_tic = time.time()
-      rois, cls_prob, bbox_pred, rpn_loss, rcnn_loss = \
-          fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+
+      rois, cls_prob, bbox_pred, \
+      rpn_loss_cls, rpn_loss_box, \
+      RCNN_loss_cls, RCNN_loss_bbox, \
+      rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
 
       scores = cls_prob.data
-      boxes = rois[:, :, 1:5] / im_scales[0]
+      boxes = rois.data[:, :, 1:5]
 
       if cfg.TEST.BBOX_REG:
           # Apply bounding-box regression deltas
           box_deltas = bbox_pred.data
           if cfg.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED:
           # Optionally normalize targets by a precomputed mean and stdev
-                box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS).cuda() \
-                           + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS).cuda()
+            if args.class_agnostic:
+                if args.cuda > 0:
+                    box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS).cuda() \
+                               + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS).cuda()
+                else:
+                    box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS) \
+                               + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS)
+
                 box_deltas = box_deltas.view(1, -1, 4)
+            else:
+                if args.cuda > 0:
+                    box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS).cuda() \
+                               + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS).cuda()
+                else:
+                    box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS) \
+                               + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS)
+                box_deltas = box_deltas.view(1, -1, 4 * len(pascal_classes))
+
           pred_boxes = bbox_transform_inv(boxes, box_deltas, 1)
           pred_boxes = clip_boxes(pred_boxes, im_info.data, 1)
       else:
           # Simply repeat the boxes, once for each class
           pred_boxes = np.tile(boxes, (1, scores.shape[1]))
 
-      scores = scores.squeeze().cpu().numpy()
-      pred_boxes = pred_boxes.squeeze().cpu().numpy()
-      # _t['im_detect'].tic()
+      pred_boxes /= im_scales[0]
+
+      scores = scores.squeeze()
+      pred_boxes = pred_boxes.squeeze()
       det_toc = time.time()
       detect_time = det_toc - det_tic
-
       misc_tic = time.time()
-
       if vis:
           im2show = np.copy(im)
-
-      for j in xrange(1, 21):
-          inds = np.where(scores[:, j] > thresh)[0]
-          cls_scores = scores[inds, j]
-          cls_boxes = pred_boxes[inds, :]
-          cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
-              .astype(np.float32, copy=False)
-          keep = nms(cls_dets, cfg.TEST.NMS)
-          cls_dets = cls_dets[keep, :]
-          if vis:
-              im2show = vis_detections(im2show, classes[j], cls_dets)
+      for j in xrange(1, len(pascal_classes)):
+          inds = torch.nonzero(scores[:,j]>thresh).view(-1)
+          # if there is det
+          if inds.numel() > 0:
+            cls_scores = scores[:,j][inds]
+            _, order = torch.sort(cls_scores, 0, True)
+            if args.class_agnostic:
+              cls_boxes = pred_boxes[inds, :]
+            else:
+              cls_boxes = pred_boxes[inds][:, j * 4:(j + 1) * 4]
+            
+            cls_dets = torch.cat((cls_boxes, cls_scores.unsqueeze(1)), 1)
+            # cls_dets = torch.cat((cls_boxes, cls_scores), 1)
+            cls_dets = cls_dets[order]
+            keep = nms(cls_dets, cfg.TEST.NMS, force_cpu=not cfg.USE_GPU_NMS)
+            cls_dets = cls_dets[keep.view(-1).long()]
+            if vis:
+              im2show = vis_detections(im2show, pascal_classes[j], cls_dets.cpu().numpy(), 0.5)
 
       misc_toc = time.time()
       nms_time = misc_toc - misc_tic
 
-      sys.stdout.write('im_detect: {:d}/{:d} {:.3f}s {:.3f}s   \r' \
-          .format(i + 1, num_images, detect_time, nms_time))
-      sys.stdout.flush()
+      if webcam_num == -1:
+          sys.stdout.write('im_detect: {:d}/{:d} {:.3f}s {:.3f}s   \r' \
+                           .format(num_images + 1, len(imglist), detect_time, nms_time))
+          sys.stdout.flush()
 
-      if vis:
-          cv2.imshow('test', im2show)
-          cv2.waitKey(0)
+      if vis and webcam_num == -1:
+          # cv2.imshow('test', im2show)
+          # cv2.waitKey(0)
+          result_path = os.path.join(args.image_dir, imglist[num_images][:-4] + "_det.jpg")
+          cv2.imwrite(result_path, im2show)
+      else:
+          im2showRGB = cv2.cvtColor(im2show, cv2.COLOR_BGR2RGB)
+          cv2.imshow("frame", im2showRGB)
+          total_toc = time.time()
+          total_time = total_toc - total_tic
+          frame_rate = 1 / total_time
+          print('Frame rate:', frame_rate)
+          if cv2.waitKey(1) & 0xFF == ord('q'):
+              break
+  if webcam_num >= 0:
+      cap.release()
+      cv2.destroyAllWindows()

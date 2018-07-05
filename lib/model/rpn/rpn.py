@@ -1,11 +1,12 @@
+from __future__ import absolute_import
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
 from model.utils.config import cfg
-from proposal_layer import _ProposalLayer
-from anchor_target_layer import _AnchorTargetLayer
+from .proposal_layer import _ProposalLayer
+from .anchor_target_layer import _AnchorTargetLayer
 from model.utils.net_utils import _smooth_l1_loss
 
 import numpy as np
@@ -20,24 +21,25 @@ class _RPN(nn.Module):
         
         self.din = din  # get depth of input feature map, e.g., 512
         self.anchor_scales = cfg.ANCHOR_SCALES
+        self.anchor_ratios = cfg.ANCHOR_RATIOS
         self.feat_stride = cfg.FEAT_STRIDE[0]
 
         # define the convrelu layers processing input feature map
         self.RPN_Conv = nn.Conv2d(self.din, 512, 3, 1, 1, bias=True)
 
         # define bg/fg classifcation score layer
-        self.nc_score_out = len(self.anchor_scales) * 3 * 2 # 2(bg/fg) * 9 (anchors)
+        self.nc_score_out = len(self.anchor_scales) * len(self.anchor_ratios) * 2 # 2(bg/fg) * 9 (anchors)
         self.RPN_cls_score = nn.Conv2d(512, self.nc_score_out, 1, 1, 0)
 
         # define anchor box offset prediction layer
-        self.nc_bbox_out = len(self.anchor_scales) * 3 * 4 # 4(coords) * 9 (anchors)
+        self.nc_bbox_out = len(self.anchor_scales) * len(self.anchor_ratios) * 4 # 4(coords) * 9 (anchors)
         self.RPN_bbox_pred = nn.Conv2d(512, self.nc_bbox_out, 1, 1, 0)
 
         # define proposal layer
-        self.RPN_proposal = _ProposalLayer(self.feat_stride, self.anchor_scales)
+        self.RPN_proposal = _ProposalLayer(self.feat_stride, self.anchor_scales, self.anchor_ratios)
 
         # define anchor target layer
-        self.RPN_anchor_target = _AnchorTargetLayer(self.feat_stride, self.anchor_scales)
+        self.RPN_anchor_target = _AnchorTargetLayer(self.feat_stride, self.anchor_scales, self.anchor_ratios)
 
         self.rpn_loss_cls = 0
         self.rpn_loss_box = 0

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 # --------------------------------------------------------
 # Faster R-CNN
 # Copyright (c) 2015 Microsoft
@@ -14,25 +15,31 @@ import numpy as np
 import numpy.random as npr
 
 from model.utils.config import cfg
-from generate_anchors import generate_anchors
-from bbox_transform import clip_boxes, bbox_overlaps_batch, bbox_transform_batch
+from .generate_anchors import generate_anchors
+from .bbox_transform import clip_boxes, bbox_overlaps_batch, bbox_transform_batch
 
 import pdb
 
 DEBUG = False
+
+try:
+    long        # Python 2
+except NameError:
+    long = int  # Python 3
+
 
 class _AnchorTargetLayer(nn.Module):
     """
         Assign anchors to ground-truth targets. Produces anchor classification
         labels and bounding-box regression targets.
     """
-    def __init__(self, feat_stride, scales):
+    def __init__(self, feat_stride, scales, ratios):
         super(_AnchorTargetLayer, self).__init__()
 
         self._feat_stride = feat_stride
         self._scales = scales
         anchor_scales = scales
-        self._anchors = torch.from_numpy(generate_anchors(scales=np.array(anchor_scales))).float()
+        self._anchors = torch.from_numpy(generate_anchors(scales=np.array(anchor_scales), ratios=np.array(ratios))).float()
         self._num_anchors = self._anchors.size(0)
 
         # allow boxes to sit over the edge by a small amount
@@ -117,15 +124,16 @@ class _AnchorTargetLayer(nn.Module):
             # subsample positive labels if we have too many
             if sum_fg[i] > num_fg:
                 fg_inds = torch.nonzero(labels[i] == 1).view(-1)
-                # torch.randperm seems has a bug on multi-gpu setting that cause the segfault. 
+                # torch.randperm seems has a bug on multi-gpu setting that cause the segfault.
                 # See https://github.com/pytorch/pytorch/issues/1868 for more details.
-                # use numpy instead.                
+                # use numpy instead.
                 #rand_num = torch.randperm(fg_inds.size(0)).type_as(gt_boxes).long()
                 rand_num = torch.from_numpy(np.random.permutation(fg_inds.size(0))).type_as(gt_boxes).long()
                 disable_inds = fg_inds[rand_num[:fg_inds.size(0)-num_fg]]
                 labels[i][disable_inds] = -1
 
-            num_bg = cfg.TRAIN.RPN_BATCHSIZE - sum_fg[i]
+#           num_bg = cfg.TRAIN.RPN_BATCHSIZE - sum_fg[i]
+            num_bg = cfg.TRAIN.RPN_BATCHSIZE - torch.sum((labels == 1).int(), 1)[i]
 
             # subsample negative labels if we have too many
             if sum_bg[i] > num_bg:

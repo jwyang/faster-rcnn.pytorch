@@ -1,14 +1,10 @@
-# --------------------------------------------------------
-# Fast R-CNN
-# Copyright (c) 2015 Microsoft
-# Licensed under The MIT License [see LICENSE for details]
-# Written by Ross Girshick
-# --------------------------------------------------------
+from __future__ import absolute_import
 
 import numpy as np
+import torch
 
-def py_cpu_nms(dets, thresh):
-    """Pure Python NMS baseline."""
+def nms_cpu(dets, thresh):
+    dets = dets.numpy()
     x1 = dets[:, 0]
     y1 = dets[:, 1]
     x2 = dets[:, 2]
@@ -20,12 +16,12 @@ def py_cpu_nms(dets, thresh):
 
     keep = []
     while order.size > 0:
-        i = order[0]
+        i = order.item(0)
         keep.append(i)
         xx1 = np.maximum(x1[i], x1[order[1:]])
         yy1 = np.maximum(y1[i], y1[order[1:]])
-        xx2 = np.minimum(x2[i], x2[order[1:]])
-        yy2 = np.minimum(y2[i], y2[order[1:]])
+        xx2 = np.maximum(x2[i], x2[order[1:]])
+        yy2 = np.maximum(y2[i], y2[order[1:]])
 
         w = np.maximum(0.0, xx2 - xx1 + 1)
         h = np.maximum(0.0, yy2 - yy1 + 1)
@@ -35,4 +31,6 @@ def py_cpu_nms(dets, thresh):
         inds = np.where(ovr <= thresh)[0]
         order = order[inds + 1]
 
-    return keep
+    return torch.IntTensor(keep)
+
+

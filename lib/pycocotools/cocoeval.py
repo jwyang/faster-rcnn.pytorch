@@ -1,11 +1,19 @@
+from __future__ import print_function
+from __future__ import absolute_import
 __author__ = 'tsungyi'
 
 import numpy as np
 import datetime
 import time
 from collections import defaultdict
-import mask
+from . import mask
 import copy
+
+try:
+    string_types = (str, unicode)  # Python 2
+except NameError:
+    string_types = (str, )         # Python 3
+
 
 class COCOeval:
     # Interface for evaluating detection on the Microsoft COCO dataset.
@@ -91,7 +99,7 @@ class COCOeval:
                 t = coco.imgs[obj['image_id']]
                 if type(obj['segmentation']) == list:
                     if type(obj['segmentation'][0]) == dict:
-                        print 'debug'
+                        print('debug')
                     obj['segmentation'] = mask.frPyObjects(obj['segmentation'],t['height'],t['width'])
                     if len(obj['segmentation']) == 1:
                         obj['segmentation'] = obj['segmentation'][0]
@@ -102,7 +110,7 @@ class COCOeval:
                 elif type(obj['segmentation']) == dict and type(obj['segmentation']['counts']) == list:
                     obj['segmentation'] = mask.frPyObjects([obj['segmentation']],t['height'],t['width'])[0]
                 elif type(obj['segmentation']) == dict and \
-                     type(obj['segmentation']['counts'] == unicode or type(obj['segmentation']['counts']) == str):
+                     type(obj['segmentation']['counts']) in string_types:
                     pass
                 else:
                     raise Exception('segmentation format not supported.')
@@ -132,7 +140,7 @@ class COCOeval:
         :return: None
         '''
         tic = time.time()
-        print 'Running per image evaluation...      '
+        print('Running per image evaluation...      ')
         p = self.params
         p.imgIds = list(np.unique(p.imgIds))
         if p.useCats:
@@ -158,7 +166,7 @@ class COCOeval:
              ]
         self._paramsEval = copy.deepcopy(self.params)
         toc = time.time()
-        print 'DONE (t=%0.2fs).'%(toc-tic)
+        print('DONE (t=%0.2fs).'%(toc-tic))
 
     def computeIoU(self, imgId, catId):
         p = self.params
@@ -212,7 +220,7 @@ class COCOeval:
 
         # sort dt highest score first, sort gt ignore last
         # gt = sorted(gt, key=lambda x: x['_ignore'])
-        gtind = [ind for (ind, g) in sorted(enumerate(gt), key=lambda (ind, g): g['_ignore']) ]
+        gtind = [ind for (ind, g) in sorted(enumerate(gt), key=lambda ind_g: ind_g[1]['_ignore']) ]
 
         gt = [gt[ind] for ind in gtind]
         dt = sorted(dt, key=lambda x: -x['score'])[0:maxDet]
@@ -277,10 +285,10 @@ class COCOeval:
         :param p: input params for evaluation
         :return: None
         '''
-        print 'Accumulating evaluation results...   '
+        print('Accumulating evaluation results...   ')
         tic = time.time()
         if not self.evalImgs:
-            print 'Please run evaluate() first'
+            print('Please run evaluate() first')
         # allows input customized parameters
         if p is None:
             p = self.params
@@ -371,7 +379,7 @@ class COCOeval:
             'recall':   recall,
         }
         toc = time.time()
-        print 'DONE (t=%0.2fs).'%( toc-tic )
+        print('DONE (t=%0.2fs).'%( toc-tic ))
 
     def summarize(self):
         '''
@@ -406,7 +414,7 @@ class COCOeval:
                 mean_s = -1
             else:
                 mean_s = np.mean(s[s>-1])
-            print iStr.format(titleStr, typeStr, iouStr, areaStr, maxDetsStr, '%.3f'%(float(mean_s)))
+            print(iStr.format(titleStr, typeStr, iouStr, areaStr, maxDetsStr, '%.3f'%(float(mean_s))))
             return mean_s
 
         if not self.eval:

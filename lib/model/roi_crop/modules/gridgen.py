@@ -2,7 +2,7 @@ from torch.nn.modules.module import Module
 import torch
 from torch.autograd import Variable
 import numpy as np
-from ..functions.gridgen import AffineGridGenFunction, CylinderGridGenFunction
+from ..functions.gridgen import AffineGridGenFunction
 
 import pyximport
 pyximport.install(setup_args={"include_dirs":np.get_include()},

@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 from model.utils.config import cfg
-from model.faster_rcnn.faster_rcnn_cascade import _fasterRCNN
+from model.faster_rcnn.faster_rcnn import _fasterRCNN
 
 import torch
 import torch.nn as nn
@@ -115,6 +115,8 @@ class ResNet(nn.Module):
     self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
     self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
     self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+    # it is slightly better whereas slower to set stride = 1
+    # self.layer4 = self._make_layer(block, 512, layers[3], stride=1)
     self.avgpool = nn.AvgPool2d(7)
     self.fc = nn.Linear(512 * block.expansion, num_classes)
 
@@ -216,11 +218,13 @@ def resnet152(pretrained=False):
   return model
 
 class resnet(_fasterRCNN):
-  def __init__(self, classes, num_layers=101, pretrained=False):
+  def __init__(self, classes, num_layers=101, pretrained=False, class_agnostic=False):
     self.model_path = 'data/pretrained_model/resnet101_caffe.pth'
     self.dout_base_model = 1024
     self.pretrained = pretrained
-    _fasterRCNN.__init__(self, classes)    
+    self.class_agnostic = class_agnostic
+
+    _fasterRCNN.__init__(self, classes, class_agnostic)
 
   def _init_modules(self):
     resnet = resnet101()
@@ -231,15 +235,18 @@ class resnet(_fasterRCNN):
       resnet.load_state_dict({k:v for k,v in state_dict.items() if k in resnet.state_dict()})
 
     # Build resnet.
-    self.RCNN_base = nn.Sequential(resnet.conv1, resnet.bn1,resnet.relu, 
+    self.RCNN_base = nn.Sequential(resnet.conv1, resnet.bn1,resnet.relu,
       resnet.maxpool,resnet.layer1,resnet.layer2,resnet.layer3)
 
     self.RCNN_top = nn.Sequential(resnet.layer4)
 
     self.RCNN_cls_score = nn.Linear(2048, self.n_classes)
-    self.RCNN_bbox_pred = nn.Linear(2048, 4)
+    if self.class_agnostic:
+      self.RCNN_bbox_pred = nn.Linear(2048, 4)
+    else:
+      self.RCNN_bbox_pred = nn.Linear(2048, 4 * self.n_classes)
 
-    # Fix blocks 
+    # Fix blocks
     for p in self.RCNN_base[0].parameters(): p.requires_grad=False
     for p in self.RCNN_base[1].parameters(): p.requires_grad=False
 
@@ -272,10 +279,10 @@ class resnet(_fasterRCNN):
         classname = m.__class__.__name__
         if classname.find('BatchNorm') != -1:
           m.eval()
-          
+
       self.RCNN_base.apply(set_bn_eval)
       self.RCNN_top.apply(set_bn_eval)
-     
+
   def _head_to_tail(self, pool5):
     fc7 = self.RCNN_top(pool5).mean(3).mean(2)
     return fc7

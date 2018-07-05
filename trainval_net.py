@@ -32,7 +32,6 @@ from model.utils.net_utils import weights_normal_init, save_net, load_net, \
 
 from model.faster_rcnn.vgg16 import vgg16
 from model.faster_rcnn.resnet import resnet
-import pdb
 
 def parse_args():
   """
@@ -50,7 +49,7 @@ def parse_args():
                       default=1, type=int)
   parser.add_argument('--epochs', dest='max_epochs',
                       help='number of epochs to train',
-                      default=10, type=int)
+                      default=20, type=int)
   parser.add_argument('--disp_interval', dest='disp_interval',
                       help='number of iterations to display',
                       default=100, type=int)
@@ -60,24 +59,33 @@ def parse_args():
 
   parser.add_argument('--save_dir', dest='save_dir',
                       help='directory to save models', default="/srv/share/jyang375/models",
-                      nargs=argparse.REMAINDER)
-  parser.add_argument('--num_workers', dest='num_workers',
+                      type=str)
+  parser.add_argument('--nw', dest='num_workers',
                       help='number of worker to load data',
-                      default=0, type=int)                        
+                      default=0, type=int)
   parser.add_argument('--cuda', dest='cuda',
                       help='whether use CUDA',
                       action='store_true')
+  parser.add_argument('--ls', dest='large_scale',
+                      help='whether use large imag scale',
+                      action='store_true')                      
   parser.add_argument('--mGPUs', dest='mGPUs',
                       help='whether use multiple GPUs',
                       action='store_true')
   parser.add_argument('--bs', dest='batch_size',
                       help='batch_size',
                       default=1, type=int)
+  parser.add_argument('--cag', dest='class_agnostic',
+                      help='whether perform class_agnostic bbox regression',
+                      action='store_true')
 
 # config optimization
   parser.add_argument('--o', dest='optimizer',
                       help='training optimizer',
                       default="sgd", type=str)
+  parser.add_argument('--lr', dest='lr',
+                      help='starting learning rate',
+                      default=0.001, type=float)
   parser.add_argument('--lr_decay_step', dest='lr_decay_step',
                       help='step to do learning rate decay, unit is epoch',
                       default=5, type=int)
@@ -114,14 +122,15 @@ def parse_args():
 
 class sampler(Sampler):
   def __init__(self, train_size, batch_size):
-    num_data = train_size    
-    self.num_per_batch = int(num_data / batch_size)
+    self.num_data = train_size
+    self.num_per_batch = int(train_size / batch_size)
     self.batch_size = batch_size
     self.range = torch.arange(0,batch_size).view(1, batch_size).long()
     self.leftover_flag = False
-    if num_data % batch_size:
-      self.leftover = torch.arange(self.num_per_batch*batch_size, num_data).long()
+    if train_size % batch_size:
+      self.leftover = torch.arange(self.num_per_batch*batch_size, train_size).long()
       self.leftover_flag = True
+
   def __iter__(self):
     rand_num = torch.randperm(self.num_per_batch).view(-1,1) * self.batch_size
     self.rand_num = rand_num.expand(self.num_per_batch, self.batch_size) + self.range
@@ -134,7 +143,7 @@ class sampler(Sampler):
     return iter(self.rand_num_view)
 
   def __len__(self):
-    return num_data
+    return self.num_data
 
 if __name__ == '__main__':
 
@@ -147,31 +156,31 @@ if __name__ == '__main__':
     from model.utils.logger import Logger
     # Set the logger
     logger = Logger('./logs')
-  
+
   if args.dataset == "pascal_voc":
       args.imdb_name = "voc_2007_trainval"
       args.imdbval_name = "voc_2007_test"
-      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]', 'MAX_NUM_GT_BOXES', '20']
   elif args.dataset == "pascal_voc_0712":
       args.imdb_name = "voc_2007_trainval+voc_2012_trainval"
       args.imdbval_name = "voc_2007_test"
-      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+      args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]', 'MAX_NUM_GT_BOXES', '20']
   elif args.dataset == "coco":
       args.imdb_name = "coco_2014_train+coco_2014_valminusminival"
       args.imdbval_name = "coco_2014_minival"
-      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]', 'MAX_NUM_GT_BOXES', '50']
   elif args.dataset == "imagenet":
       args.imdb_name = "imagenet_train"
       args.imdbval_name = "imagenet_val"
-      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]', 'MAX_NUM_GT_BOXES', '30']
   elif args.dataset == "vg":
       # train sizes: train, smalltrain, minitrain
       # train scale: ['150-50-20', '150-50-50', '500-150-80', '750-250-150', '1750-700-450', '1600-400-20']
       args.imdb_name = "vg_150-50-50_minitrain"
       args.imdbval_name = "vg_150-50-50_minival"
-      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
+      args.set_cfgs = ['ANCHOR_SCALES', '[4, 8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]', 'MAX_NUM_GT_BOXES', '50']
 
-  args.cfg_file = "cfgs/{}.yml".format(args.net)
+  args.cfg_file = "cfgs/{}_ls.yml".format(args.net) if args.large_scale else "cfgs/{}.yml".format(args.net)
 
   if args.cfg_file is not None:
     cfg_from_file(args.cfg_file)
@@ -195,7 +204,7 @@ if __name__ == '__main__':
 
   print('{:d} roidb entries'.format(len(roidb)))
 
-  output_dir = args.save_dir + "/" + args.net
+  output_dir = args.save_dir + "/" + args.net + "/" + args.dataset
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
@@ -232,13 +241,13 @@ if __name__ == '__main__':
 
   # initilize the network here.
   if args.net == 'vgg16':
-    fasterRCNN = vgg16(imdb.classes, pretrained=True)
+    fasterRCNN = vgg16(imdb.classes, pretrained=True, class_agnostic=args.class_agnostic)
   elif args.net == 'res101':
-    fasterRCNN = resnet(imdb.classes, 101, pretrained=True)
+    fasterRCNN = resnet(imdb.classes, 101, pretrained=True, class_agnostic=args.class_agnostic)
   elif args.net == 'res50':
-    fasterRCNN = resnet(imdb.classes, 50, pretrained=True)
+    fasterRCNN = resnet(imdb.classes, 50, pretrained=True, class_agnostic=args.class_agnostic)
   elif args.net == 'res152':
-    fasterRCNN = resnet(imdb.classes, 152, pretrained=True)
+    fasterRCNN = resnet(imdb.classes, 152, pretrained=True, class_agnostic=args.class_agnostic)
   else:
     print("network is not defined")
     pdb.set_trace()
@@ -246,6 +255,10 @@ if __name__ == '__main__':
   fasterRCNN.create_architecture()
 
   lr = cfg.TRAIN.LEARNING_RATE
+  lr = args.lr
+  #tr_momentum = cfg.TRAIN.MOMENTUM
+  #tr_momentum = args.momentum
+
   params = []
   for key, value in dict(fasterRCNN.named_parameters()).items():
     if value.requires_grad:
@@ -271,7 +284,9 @@ if __name__ == '__main__':
     args.start_epoch = checkpoint['epoch']
     fasterRCNN.load_state_dict(checkpoint['model'])
     optimizer.load_state_dict(checkpoint['optimizer'])
-    lr = optimizer.param_groups[0]['lr']    
+    lr = optimizer.param_groups[0]['lr']
+    if 'pooling_mode' in checkpoint.keys():
+      cfg.POOLING_MODE = checkpoint['pooling_mode']
     print("loaded checkpoint %s" % (load_name))
 
   if args.mGPUs:
@@ -280,58 +295,66 @@ if __name__ == '__main__':
   if args.cuda:
     fasterRCNN.cuda()
 
-  for epoch in range(args.start_epoch, args.max_epochs):
+  iters_per_epoch = int(train_size / args.batch_size)
+
+  for epoch in range(args.start_epoch, args.max_epochs + 1):
     # setting to train mode
     fasterRCNN.train()
     loss_temp = 0
     start = time.time()
 
-    if epoch % args.lr_decay_step == 0:
+    if epoch % (args.lr_decay_step + 1) == 0:
         adjust_learning_rate(optimizer, args.lr_decay_gamma)
         lr *= args.lr_decay_gamma
 
     data_iter = iter(dataloader)
-    for step in range(int(train_size / args.batch_size)):
-      data = data_iter.next()
+    for step in range(iters_per_epoch):
+      data = next(data_iter)
       im_data.data.resize_(data[0].size()).copy_(data[0])
       im_info.data.resize_(data[1].size()).copy_(data[1])
       gt_boxes.data.resize_(data[2].size()).copy_(data[2])
       num_boxes.data.resize_(data[3].size()).copy_(data[3])
 
       fasterRCNN.zero_grad()
-      _, cls_prob, bbox_pred, rpn_loss, rcnn_loss = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
-      loss = (rpn_loss.sum() + rcnn_loss.sum()) / rpn_loss.size(0)
+      rois, cls_prob, bbox_pred, \
+      rpn_loss_cls, rpn_loss_box, \
+      RCNN_loss_cls, RCNN_loss_bbox, \
+      rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+
+      loss = rpn_loss_cls.mean() + rpn_loss_box.mean() \
+           + RCNN_loss_cls.mean() + RCNN_loss_bbox.mean()
       loss_temp += loss.data[0]
-      
+
       # backward
       optimizer.zero_grad()
-      loss.backward()                                                                                              
-      clip_gradient(fasterRCNN, 10.)
+      loss.backward()
+      if args.net == "vgg16":
+          clip_gradient(fasterRCNN, 10.)
       optimizer.step()
 
       if step % args.disp_interval == 0:
         end = time.time()
         if step > 0:
-          loss_temp /= args.disp_interval       
-        
-        if args.mGPUs:
-          loss_rpn_cls = 0
-          loss_rpn_box = 0
-          loss_rcnn_cls = 0
-          loss_rcnn_box = 0
-          fg_cnt = 0
-          bg_cnt = 0
-        else:
-          loss_rpn_cls = fasterRCNN.RCNN_rpn.rpn_loss_cls.data[0]
-          loss_rpn_box = fasterRCNN.RCNN_rpn.rpn_loss_box.data[0]
-          loss_rcnn_cls = fasterRCNN.RCNN_loss_cls.data[0]
-          loss_rcnn_box = fasterRCNN.RCNN_loss_bbox.data[0]
-          fg_cnt = fasterRCNN.fg_cnt
-          bg_cnt = fasterRCNN.bg_cnt
+          loss_temp /= args.disp_interval
 
-        print("[session %d][epoch %2d][iter %4d] loss: %.4f, lr: %.2e" \
-                                % (args.session, epoch, step, loss_temp, lr))
-        print("\t\t\tfg/bg=(%d/%d), time cost: %f" % (fg_cnt, bg_cnt, end-start))        
+        if args.mGPUs:
+          loss_rpn_cls = rpn_loss_cls.mean().data[0]
+          loss_rpn_box = rpn_loss_box.mean().data[0]
+          loss_rcnn_cls = RCNN_loss_cls.mean().data[0]
+          loss_rcnn_box = RCNN_loss_bbox.mean().data[0]
+          fg_cnt = torch.sum(rois_label.data.ne(0))
+          bg_cnt = rois_label.data.numel() - fg_cnt
+        else:
+          loss_rpn_cls = rpn_loss_cls.data[0]
+          loss_rpn_box = rpn_loss_box.data[0]
+          loss_rcnn_cls = RCNN_loss_cls.data[0]
+          loss_rcnn_box = RCNN_loss_bbox.data[0]
+          fg_cnt = torch.sum(rois_label.data.ne(0))
+          bg_cnt = rois_label.data.numel() - fg_cnt
+
+        print("[session %d][epoch %2d][iter %4d/%4d] loss: %.4f, lr: %.2e" \
+                                % (args.session, epoch, step, iters_per_epoch, loss_temp, lr))
+        print("\t\t\tfg/bg=(%d/%d), time cost: %f" % (fg_cnt, bg_cnt, end-start))
         print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" \
                       % (loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box))
         if args.use_tfboard:
@@ -354,7 +377,9 @@ if __name__ == '__main__':
         'session': args.session,
         'epoch': epoch + 1,
         'model': fasterRCNN.module.state_dict(),
-        "optimizer": optimizer.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'pooling_mode': cfg.POOLING_MODE,
+        'class_agnostic': args.class_agnostic,
       }, save_name)
     else:
       save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
@@ -362,7 +387,9 @@ if __name__ == '__main__':
         'session': args.session,
         'epoch': epoch + 1,
         'model': fasterRCNN.state_dict(),
-        "optimizer": optimizer.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'pooling_mode': cfg.POOLING_MODE,
+        'class_agnostic': args.class_agnostic,
       }, save_name)
     print('save model: {}'.format(save_name))
 

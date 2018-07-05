@@ -1,3 +1,4 @@
+from __future__ import print_function
 # --------------------------------------------------------
 # Fast R-CNN
 # Copyright (c) 2015 Microsoft
@@ -13,9 +14,14 @@ import xml.dom.minidom as minidom
 import numpy as np
 import scipy.sparse
 import scipy.io as sio
-import cPickle
 import subprocess
 import pdb
+import pickle
+try:
+    xrange          # Python 2
+except NameError:
+    xrange = range  # Python 3
+
 
 class imagenet(imdb):
     def __init__(self, image_set, devkit_path, data_path):
@@ -150,15 +156,15 @@ class imagenet(imdb):
         cache_file = os.path.join(self.cache_path, self.name + '_gt_roidb.pkl')
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
-                roidb = cPickle.load(fid)
-            print '{} gt roidb loaded from {}'.format(self.name, cache_file)
+                roidb = pickle.load(fid)
+            print('{} gt roidb loaded from {}'.format(self.name, cache_file))
             return roidb
 
         gt_roidb = [self._load_imagenet_annotation(index)
                     for index in self.image_index]
         with open(cache_file, 'wb') as fid:
-            cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
-        print 'wrote gt roidb to {}'.format(cache_file)
+            pickle.dump(gt_roidb, fid, pickle.HIGHEST_PROTOCOL)
+        print('wrote gt roidb to {}'.format(cache_file))
 
         return gt_roidb
 
