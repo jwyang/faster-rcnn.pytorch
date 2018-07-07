@@ -83,9 +83,6 @@ def parse_args():
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load network',
                       default=10021, type=int)
-  parser.add_argument('--bs', dest='batch_size',
-                      help='batch_size',
-                      default=1, type=int)
   parser.add_argument('--vis', dest='vis',
                       help='visualization mode',
                       action='store_true')
@@ -216,7 +213,7 @@ if __name__ == '__main__':
   output_dir = get_output_dir(imdb, save_name)
   dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
                         imdb.num_classes, training=False, normalize = False)
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
                             shuffle=False, num_workers=0,
                             pin_memory=True)
 
