@@ -28,8 +28,6 @@ from model.rpn.bbox_transform import clip_boxes
 from model.nms.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
 from model.utils.net_utils import save_net, load_net, vis_detections
-from model.faster_rcnn.vgg16 import vgg16
-from model.faster_rcnn.resnet import resnet
 
 import pdb
 
@@ -44,6 +42,7 @@ def parse_args():
   Parse input arguments
   """
   parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
+  parser.add_argument('--arch', dest='arch', default='rcnn', choices=['rcnn', 'rfcn'])
   parser.add_argument('--dataset', dest='dataset',
                       help='training dataset',
                       default='pascal_voc', type=str)
@@ -99,6 +98,13 @@ weight_decay = cfg.TRAIN.WEIGHT_DECAY
 if __name__ == '__main__':
 
   args = parse_args()
+
+  if args.arch == 'rcnn':
+      from model.faster_rcnn.vgg16 import vgg16
+      from model.faster_rcnn.resnet import resnet
+  elif args.arch == 'rfcn':
+      from model.rfcn.vgg16 import vgg16
+      from model.rfcn.resnet_atrous import resnet
 
   print('Called with args:')
   print(args)
