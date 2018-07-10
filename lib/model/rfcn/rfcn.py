@@ -1,25 +1,23 @@
-import random
+import torch
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-import torchvision.models as models
-from torch.autograd import Variable
-import numpy as np
-from model.utils.config import cfg
-from model.rpn.rpn import _RPN
-from model.rpn.proposal_target_layer_cascade import _ProposalTargetLayer
-from model.utils.net_utils import _smooth_l1_loss, _affine_grid_gen
+
 from model.psroi_pooling.modules.psroi_pool import PSRoIPool
+from model.rpn.proposal_target_layer_cascade import _ProposalTargetLayer
+from model.rpn.rpn import _RPN
+from model.utils.config import cfg
+from model.utils.net_utils import _smooth_l1_loss
+
 
 class _RFCN(nn.Module):
     """ faster RCNN """
-    def __init__(self, classes, class_agnostic, k=7):
+    def __init__(self, classes, class_agnostic):
         super(_RFCN, self).__init__()
         self.classes = classes
         self.n_classes = len(classes)
         self.class_agnostic = class_agnostic
-        self.k = k
         # loss
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
@@ -86,7 +84,7 @@ class _RFCN(nn.Module):
             bbox_pred_select = torch.gather(bbox_pred_view, 1, rois_label.view(rois_label.size(0), 1, 1).expand(rois_label.size(0), 1, 4))
             bbox_pred = bbox_pred_select.squeeze(1)
 
-        cls_prob = F.softmax(cls_score)
+        cls_prob = F.softmax(cls_score, dim=1)
 
         RCNN_loss_cls = 0
         RCNN_loss_bbox = 0
