@@ -7,30 +7,23 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import _init_paths
-import os
-import numpy as np
 import argparse
-import pprint
+import os
 import pdb
+import pprint
 import time
-
+import _init_paths
+import numpy as np
 import torch
-from torch.autograd import Variable
 import torch.nn as nn
-import torch.optim as optim
-
-import torchvision.transforms as transforms
+from torch.autograd import Variable
 from torch.utils.data.sampler import Sampler
 
-from roi_data_layer.roidb import combined_roidb
+from model.utils.config import cfg, cfg_from_file, cfg_from_list
+from model.utils.net_utils import adjust_learning_rate, save_checkpoint, clip_gradient
 from roi_data_layer.roibatchLoader import roibatchLoader
-from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
-from model.utils.net_utils import weights_normal_init, save_net, load_net, \
-    adjust_learning_rate, save_checkpoint, clip_gradient
+from roi_data_layer.roidb import combined_roidb
 
-import model.faster_rcnn as faster_rcnn
-import model.rfcn as rfcn
 
 def parse_args():
     """
@@ -149,6 +142,13 @@ if __name__ == '__main__':
 
     args = parse_args()
 
+    if args.arch == 'rcnn':
+        from model.faster_rcnn.vgg16 import vgg16
+        from model.faster_rcnn.resnet import resnet
+    elif args.arch == 'rfcn':
+        from model.rfcn.vgg16 import vgg16
+        from model.rfcn.resnet_atrous import resnet
+
     print('Called with args:')
     print(args)
 
@@ -240,24 +240,14 @@ if __name__ == '__main__':
         cfg.CUDA = True
 
     # initilize the network here.
-    if args.arch == 'rcnn':
-        if args.net == 'vgg16':
-            model = faster_rcnn.vgg16(imdb.classes, pretrained=True, class_agnostic=args.class_agnostic)
-        elif args.net == 'res101':
-            model = faster_rcnn.resnet(imdb.classes, 101, pretrained=True, class_agnostic=args.class_agnostic)
-        elif args.net == 'res50':
-            model = faster_rcnn.resnet(imdb.classes, 50, pretrained=True, class_agnostic=args.class_agnostic)
-        elif args.net == 'res152':
-            model = faster_rcnn.resnet(imdb.classes, 152, pretrained=True, class_agnostic=args.class_agnostic)
-    elif args.arch == 'rfcn':
-        if args.net == 'vgg16':
-            model = rfcn.vgg16(imdb.classes, pretrained=True, class_agnostic=args.class_agnostic)
-        elif args.net == 'res101':
-            model = rfcn.resnet(imdb.classes, 101, pretrained=True, class_agnostic=args.class_agnostic)
-        elif args.net == 'res50':
-            model = rfcn.resnet(imdb.classes, 50, pretrained=True, class_agnostic=args.class_agnostic)
-        elif args.net == 'res152':
-            model = rfcn.resnet(imdb.classes, 152, pretrained=True, class_agnostic=args.class_agnostic)
+    if args.net == 'vgg16':
+        model = vgg16(imdb.classes, pretrained=True, class_agnostic=args.class_agnostic)
+    elif args.net == 'res101':
+        model = resnet(imdb.classes, 101, pretrained=True, class_agnostic=args.class_agnostic)
+    elif args.net == 'res50':
+        model = resnet(imdb.classes, 50, pretrained=True, class_agnostic=args.class_agnostic)
+    elif args.net == 'res152':
+        model = resnet(imdb.classes, 152, pretrained=True, class_agnostic=args.class_agnostic)
     else:
         print("network is not defined")
         pdb.set_trace()

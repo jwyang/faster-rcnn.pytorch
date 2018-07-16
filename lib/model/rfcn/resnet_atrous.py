@@ -66,14 +66,14 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, dilate=1):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, stride=stride, bias=False) # change
         self.bn1 = nn.BatchNorm2d(planes)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, # change
-                               padding=1, bias=False)
+                               padding=dilate, bias=False, dilation=dilate)
         self.bn2 = nn.BatchNorm2d(planes)
-        self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False)
+        self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False, dilation=dilate)
         self.bn3 = nn.BatchNorm2d(planes * 4)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
@@ -114,7 +114,7 @@ class ResNet(nn.Module):
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=1)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=1, dilate=[2, 2, 2])
         # it is slightly better whereas slower to set stride = 1
         # self.layer4 = self._make_layer(block, 512, layers[3], stride=1)
         self.avgpool = nn.AvgPool2d(7)
@@ -128,7 +128,7 @@ class ResNet(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
-    def _make_layer(self, block, planes, blocks, stride=1):
+    def _make_layer(self, block, planes, blocks, stride=1, dilate=None):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
@@ -141,7 +141,12 @@ class ResNet(nn.Module):
         layers.append(block(self.inplanes, planes, stride, downsample))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
+            if dilate:
+                l = math.ceil(blocks / len(dilate))
+                r = dilate[i // l]
+                layers.append(block(self.inplanes, planes, dilate=r))
+            else:
+                layers.append(block(self.inplanes, planes))
 
         return nn.Sequential(*layers)
 
@@ -220,7 +225,7 @@ def resnet152(pretrained=False):
 class resnet(_RFCN):
     def __init__(self, classes, num_layers=101, pretrained=False, class_agnostic=False):
         self.num_layers = num_layers
-        self.dout_base_model = 2048
+        self.dout_base_model = 1024
         self.pretrained = pretrained
         self.class_agnostic = class_agnostic
 
@@ -230,8 +235,8 @@ class resnet(_RFCN):
         resnet = eval('resnet{}()'.format(self.num_layers))
         model_path = 'data/pretrained_model/resnet{}_caffe.pth'.format(self.num_layers)
 
-        if self.pretrained == True:
-            print("Loading pretrained weights from %s" %(model_path))
+        if self.pretrained:
+            print("Loading pretrained weights from %s" % model_path)
             state_dict = torch.load(model_path)
             resnet.load_state_dict({k:v for k,v in state_dict.items() if k in resnet.state_dict()})
 
@@ -244,17 +249,25 @@ class resnet(_RFCN):
             resnet.layer1,
             resnet.layer2,
             resnet.layer3,
-            resnet.layer4
+        )
+
+        self.RCNN_conv_1x1 = nn.Conv2d(in_channels=2048, out_channels=1024,
+                  kernel_size=1, stride=1, padding=0, bias=False)
+
+        self.RCNN_conv_new = nn.Sequential(
+            resnet.layer4,
+            self.RCNN_conv_1x1,
+            nn.ReLU()
         )
 
         if self.class_agnostic:
-            self.RCNN_bbox_base = nn.Conv2d(in_channels=2048, out_channels= 4 * 2 * cfg.POOLING_SIZE * cfg.POOLING_SIZE,
+            self.RCNN_bbox_base = nn.Conv2d(in_channels=1024, out_channels=4 * 2 * cfg.POOLING_SIZE * cfg.POOLING_SIZE,
                                             kernel_size=1, stride=1, padding=0, bias=False)
         else:
-            self.RCNN_bbox_base = nn.Conv2d(in_channels=2048, out_channels= 4 * self.n_classes * cfg.POOLING_SIZE * cfg.POOLING_SIZE,
+            self.RCNN_bbox_base = nn.Conv2d(in_channels=1024, out_channels=4 * self.n_classes * cfg.POOLING_SIZE * cfg.POOLING_SIZE,
                                             kernel_size=1, stride=1, padding=0, bias=False)
 
-        self.RCNN_cls_base = nn.Conv2d(in_channels=2048, out_channels=self.n_classes * cfg.POOLING_SIZE * cfg.POOLING_SIZE,
+        self.RCNN_cls_base = nn.Conv2d(in_channels=1024, out_channels=self.n_classes * cfg.POOLING_SIZE * cfg.POOLING_SIZE,
                                        kernel_size=1, stride=1, padding=0, bias=False)
 
         # Fix blocks
@@ -275,6 +288,7 @@ class resnet(_RFCN):
                 for p in m.parameters(): p.requires_grad=False
 
         self.RCNN_base.apply(set_bn_fix)
+        self.RCNN_conv_new.apply(set_bn_fix)
 
     def train(self, mode=True):
         # Override train so that the training mode is set as we want
@@ -282,8 +296,8 @@ class resnet(_RFCN):
         if mode:
             # Set fixed blocks to be in eval mode
             self.RCNN_base.eval()
-            self.RCNN_base[5].train()
-            self.RCNN_base[6].train()
+            for fix_layer in range(6, 3 + cfg.RESNET.FIXED_BLOCKS, -1):
+                self.RCNN_base[fix_layer].train()
 
             def set_bn_eval(m):
                 classname = m.__class__.__name__
@@ -291,3 +305,16 @@ class resnet(_RFCN):
                     m.eval()
 
             self.RCNN_base.apply(set_bn_eval)
+            self.RCNN_conv_new.apply(set_bn_eval)
+
+if __name__ == '__main__':
+    import torch
+    import numpy as np
+    from torch.autograd import Variable
+
+    input = torch.randn(3, 3, 600, 800)
+
+    model = resnet101().cuda()
+    input = Variable(input.cuda())
+    out = model(input)
+    print(out.size())

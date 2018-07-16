@@ -12,7 +12,7 @@ from model.utils.net_utils import _smooth_l1_loss
 
 
 class _RFCN(nn.Module):
-    """ faster RCNN """
+    """ R-FCN """
     def __init__(self, classes, class_agnostic):
         super(_RFCN, self).__init__()
         self.classes = classes
@@ -67,6 +67,8 @@ class _RFCN(nn.Module):
             rpn_loss_bbox = 0
 
         rois = Variable(rois)
+        base_feat = self.RCNN_conv_new(base_feat)
+
         # do roi pooling based on predicted rois
         cls_feat = self.RCNN_cls_base(base_feat)
         pooled_feat_cls = self.RCNN_psroi_pool_cls(cls_feat, rois.view(-1, 5))
@@ -118,6 +120,7 @@ class _RFCN(nn.Module):
         normal_init(self.RCNN_rpn.RPN_Conv, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_rpn.RPN_cls_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_rpn.RPN_bbox_pred, 0, 0.01, cfg.TRAIN.TRUNCATED)
+        normal_init(self.RCNN_conv_1x1, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_cls_base, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_bbox_base, 0, 0.001, cfg.TRAIN.TRUNCATED)
 
