@@ -2,26 +2,20 @@ CUDA_PATH="/usr/local/cuda/"
 CUDA_ARCH="-gencode arch=compute_61,code=sm_61"
 ROOT=`pwd`
 
+all: build_ext nms roi_pooling roi_align roi_crop psroi_pooling
+	ls
+
 build_ext:
 	python setup.py build_ext --inplace
 	rm -rf build
 
-all: build_ext nms roi_pooling roi_align roi_crop psroi_pooling
-	ls
-
-#clean:
-#    rm model/nms/src/*.o
-#    rm model/roi_pooling/src/*.o
-#    rm model/roi_align/src/*.o
-#    rm model/roi_crop/src/*.o
-#    rm model/psroi_pooling/src/cuda/*.o
-
-nms: build_ext
+nms:
 	# compile NMS
 	cd model/nms/src; \
 	echo "Compiling nms kernels by nvcc..."; \
 	nvcc -c -o nms_cuda_kernel.cu.o nms_cuda_kernel.cu \
 		 -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CUDA_ARCH
+
 
 #cd ../
 #python build.py
@@ -61,3 +55,11 @@ nms: build_ext
 #	 -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CUDA_ARCH
 #cd ../../
 #python build.py
+
+#clean:
+#    rm model/nms/src/*.o
+#    rm model/roi_pooling/src/*.o
+#    rm model/roi_align/src/*.o
+#    rm model/roi_crop/src/*.o
+#    rm model/psroi_pooling/src/cuda/*.o
+
