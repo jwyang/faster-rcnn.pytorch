@@ -55,7 +55,7 @@ def parse_args():
                         type=str)
     parser.add_argument('--nw', dest='num_workers',
                         help='number of worker to load data',
-                        default=0, type=int)
+                        default=4, type=int)
     parser.add_argument('--cuda', dest='cuda',
                         help='whether use CUDA',
                         action='store_true')
@@ -298,6 +298,7 @@ if __name__ == '__main__':
     iters_per_epoch = int(train_size / args.batch_size)
 
     for epoch in range(args.start_epoch, args.max_epochs + 1):
+        dataset.resize_batch()
         # setting to train mode
         model.train()
         loss_temp = 0

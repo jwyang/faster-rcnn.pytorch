@@ -233,6 +233,7 @@ if __name__ == '__main__':
 
     fasterRCNN.eval()
     empty_array = np.transpose(np.array([[],[],[],[],[]]), (1,0))
+    dataset.resize_batch()
     for i in range(num_images):
 
         data = next(data_iter)

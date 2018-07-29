@@ -16,18 +16,17 @@ from scipy.misc import imread
 from model.utils.config import cfg
 from model.utils.blob import prep_im_for_blob, im_list_to_blob
 import pdb
-def get_minibatch(roidb, num_classes):
+
+def get_minibatch(roidb, num_classes, target_size):
   """Given a roidb, construct a minibatch sampled from it."""
   num_images = len(roidb)
   # Sample random scales to use for each image in this batch
-  random_scale_inds = npr.randint(0, high=len(cfg.TRAIN.SCALES),
-                  size=num_images)
   assert(cfg.TRAIN.BATCH_SIZE % num_images == 0), \
     'num_images ({}) must divide BATCH_SIZE ({})'. \
     format(num_images, cfg.TRAIN.BATCH_SIZE)
 
   # Get the input image blob, formatted for caffe
-  im_blob, im_scales = _get_image_blob(roidb, random_scale_inds)
+  im_blob, im_scales = _get_image_blob(roidb, target_size)
 
   blobs = {'data': im_blob}
 
@@ -53,7 +52,7 @@ def get_minibatch(roidb, num_classes):
 
   return blobs
 
-def _get_image_blob(roidb, scale_inds):
+def _get_image_blob(roidb, target_size):
   """Builds an input blob from the images in the roidb at the specified
   scales.
   """
@@ -74,8 +73,7 @@ def _get_image_blob(roidb, scale_inds):
 
     if roidb[i]['flipped']:
       im = im[:, ::-1, :]
-    target_size = cfg.TRAIN.SCALES[scale_inds[i]]
-    im, im_scale = prep_im_for_blob(im, cfg.PIXEL_MEANS, target_size,
+    im, im_scale = prep_im_for_blob(im, cfg.PIXEL_MEANS, target_size[i],
                     cfg.TRAIN.MAX_SIZE)
     im_scales.append(im_scale)
     processed_ims.append(im)

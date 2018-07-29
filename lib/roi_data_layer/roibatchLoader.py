@@ -36,6 +36,8 @@ class roibatchLoader(data.Dataset):
 
     # given the ratio_list, we want to make the ratio same for each batch.
     self.ratio_list_batch = torch.Tensor(self.data_size).zero_()
+    self.target_size_batch = torch.Tensor(self.data_size).zero_()
+
     num_batch = int(np.ceil(len(ratio_index) / batch_size))
     for i in range(num_batch):
         left_idx = i*batch_size
@@ -53,6 +55,18 @@ class roibatchLoader(data.Dataset):
 
         self.ratio_list_batch[left_idx:(right_idx+1)] = target_ratio
 
+  def resize_batch(self):
+      num_batch = int(np.ceil(len(self.ratio_index) / self.batch_size))
+      for i in range(num_batch):
+          left_idx = i * self.batch_size
+          right_idx = min((i + 1) * self.batch_size - 1, self.data_size - 1)
+
+          if self.training:
+              scale_inds = np.random.randint(0, high=len(cfg.TRAIN.SCALES), size=1)
+              target_size = cfg.TRAIN.SCALES[scale_inds[0]]
+          else:
+              target_size = cfg.TEST.SCALES[0]
+          self.target_size_batch[left_idx:(right_idx + 1)] = target_size
 
   def __getitem__(self, index):
     if self.training:
@@ -64,7 +78,9 @@ class roibatchLoader(data.Dataset):
     # here we set the anchor index to the last one
     # sample in this group
     minibatch_db = [self._roidb[index_ratio]]
-    blobs = get_minibatch(minibatch_db, self._num_classes)
+    target_size = [self.target_size_batch[index]]
+
+    blobs = get_minibatch(minibatch_db, self._num_classes, target_size)
     data = torch.from_numpy(blobs['data'])
     im_info = torch.from_numpy(blobs['im_info'])
     # we need to random shuffle the bounding box.
