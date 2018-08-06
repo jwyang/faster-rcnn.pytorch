@@ -21,7 +21,7 @@ class _RFCN(nn.Module):
         self.RCNN_loss_cls = 0
         self.RCNN_loss_bbox = 0
 
-        self.box_num_classes = 2 if class_agnostic else self.n_classes
+        self.box_num_classes = 1 if class_agnostic else self.n_classes
 
         # define rpn
         self.RCNN_rpn = _RPN(self.dout_base_model)
@@ -35,13 +35,22 @@ class _RFCN(nn.Module):
         self.pooling = nn.AvgPool2d(kernel_size=cfg.POOLING_SIZE, stride=cfg.POOLING_SIZE)
         self.grid_size = cfg.POOLING_SIZE * 2 if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE
 
+    def detect_loss(self, cls_score, rois_label, bbox_pred, rois_target, rois_inside_ws, rois_outside_ws):
+        # classification loss
+        RCNN_loss_cls = F.cross_entropy(cls_score, rois_label)
+
+        # bounding box regression L1 loss
+        RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
+
+        return RCNN_loss_cls, RCNN_loss_bbox
+
     def ohem_detect_loss(self, cls_score, rois_label, bbox_pred, rois_target, rois_inside_ws, rois_outside_ws):
 
         def log_sum_exp(x):
             x_max = x.data.max()
             return torch.log(torch.sum(torch.exp(x - x_max), dim=1, keepdim=True)) + x_max
 
-        num_hard = cfg.TRAIN.BATCH_SIZE
+        num_hard = cfg.TRAIN.BATCH_SIZE * 2
         pos_idx = rois_label > 0
         num_pos = pos_idx.int().sum()
 
@@ -125,7 +134,8 @@ class _RFCN(nn.Module):
         RCNN_loss_bbox = 0
 
         if self.training:
-            RCNN_loss_cls, RCNN_loss_bbox = self.ohem_detect_loss(cls_score, rois_label, bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
+            loss_func = self.ohem_detect_loss if cfg.TRAIN.OHEM else self.detect_loss
+            RCNN_loss_cls, RCNN_loss_bbox = loss_func(cls_score, rois_label, bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
 
         cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
         bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)

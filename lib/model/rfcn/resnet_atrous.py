@@ -233,7 +233,7 @@ class resnet(_RFCN):
 
     def _init_modules(self):
         resnet = eval('resnet{}()'.format(self.num_layers))
-        model_path = 'data/pretrained_model/resnet{}_caffe.pth'.format(self.num_layers)
+        model_path = 'data/pretrained_model/resnet{}_rcnn.pth'.format(self.num_layers)
 
         if self.pretrained:
             print("Loading pretrained weights from %s" % model_path)
@@ -261,7 +261,7 @@ class resnet(_RFCN):
         )
 
         if self.class_agnostic:
-            self.RCNN_bbox_base = nn.Conv2d(in_channels=1024, out_channels=4 * 2 * cfg.POOLING_SIZE * cfg.POOLING_SIZE,
+            self.RCNN_bbox_base = nn.Conv2d(in_channels=1024, out_channels=4 * cfg.POOLING_SIZE * cfg.POOLING_SIZE,
                                             kernel_size=1, stride=1, padding=0, bias=False)
         else:
             self.RCNN_bbox_base = nn.Conv2d(in_channels=1024, out_channels=4 * self.n_classes * cfg.POOLING_SIZE * cfg.POOLING_SIZE,

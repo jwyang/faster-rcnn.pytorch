@@ -65,6 +65,9 @@ def parse_args():
     parser.add_argument('--mGPUs', dest='mGPUs',
                         help='whether use multiple GPUs',
                         action='store_true')
+    parser.add_argument('--ohem', dest='ohem',
+                        help='Use online hard example mining for training',
+                        action='store_true')
     parser.add_argument('--bs', dest='batch_size',
                         help='batch_size',
                         default=1, type=int)
