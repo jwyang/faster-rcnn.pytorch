@@ -42,11 +42,7 @@ class _ProposalTargetLayer(nn.Module):
         # Include ground-truth boxes in the set of candidate rois
         all_rois = torch.cat([all_rois, gt_boxes_append], 1)
 
-        if cfg.TRAIN.OHEM:
-            rois_per_image = 1500
-        else:
-            num_images = 1
-            rois_per_image = int(cfg.TRAIN.BATCH_SIZE / num_images)
+        rois_per_image = 300 if cfg.TRAIN.OHEM else cfg.TRAIN.BATCH_SIZE
 
         fg_rois_per_image = int(np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))
         fg_rois_per_image = 1 if fg_rois_per_image == 0 else fg_rois_per_image

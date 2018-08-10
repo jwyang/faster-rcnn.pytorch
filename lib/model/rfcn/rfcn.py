@@ -50,7 +50,7 @@ class _RFCN(nn.Module):
             x_max = x.data.max()
             return torch.log(torch.sum(torch.exp(x - x_max), dim=1, keepdim=True)) + x_max
 
-        num_hard = cfg.TRAIN.BATCH_SIZE * 2
+        num_hard = cfg.TRAIN.BATCH_SIZE * self.batch_size
         pos_idx = rois_label > 0
         num_pos = pos_idx.int().sum()
 
@@ -67,8 +67,6 @@ class _RFCN(nn.Module):
         loss_c[pos_idx] = 100. # include all positive samples
         _, topk_idx = torch.topk(loss_c.view(-1), num_hard)
         loss_cls = F.cross_entropy(cls_score[topk_idx], rois_label[topk_idx], weight=weight)
-        # print(rois_label[topk_idx].cpu().data.numpy())
-        # print(cls_score[topk_idx].max(1)[1].cpu().data.numpy())
 
         # bounding box regression L1 loss
         pos_idx = pos_idx.unsqueeze(1).expand_as(bbox_pred)
@@ -84,6 +82,7 @@ class _RFCN(nn.Module):
         im_info = im_info.data
         gt_boxes = gt_boxes.data
         num_boxes = num_boxes.data
+        self.batch_size = im_data.size(0)
 
         # feed image data to base model to obtain base feature map
         base_feat = self.RCNN_base(im_data)
