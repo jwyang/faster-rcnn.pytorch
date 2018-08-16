@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('--dataset', dest='dataset',
                         help='training dataset',
                         default='pascal_voc', type=str)
-    parser.add_argument('--arch', dest='arch', default='rcnn', choices=['rcnn', 'rfcn'])
+    parser.add_argument('--arch', dest='arch', default='rcnn', choices=['rcnn', 'rfcn', 'couplenet'])
     parser.add_argument('--net', dest='net',
                         help='vgg16, res101',
                         default='vgg16', type=str)
@@ -149,8 +149,9 @@ if __name__ == '__main__':
         from model.faster_rcnn.vgg16 import vgg16
         from model.faster_rcnn.resnet import resnet
     elif args.arch == 'rfcn':
-        from model.rfcn.vgg16 import vgg16
         from model.rfcn.resnet_atrous import resnet
+    elif args.arch == 'couplenet':
+        from model.couplenet.resnet_atrous import resnet
 
     print('Called with args:')
     print(args)
@@ -207,7 +208,7 @@ if __name__ == '__main__':
 
     print('{:d} roidb entries'.format(len(roidb)))
 
-    output_dir = args.save_dir + "/" + args.net + "/" + args.dataset
+    output_dir = os.path.join(args.save_dir, args.arch, args.net, args.dataset)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 

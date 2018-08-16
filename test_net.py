@@ -42,7 +42,7 @@ def parse_args():
     Parse input arguments
     """
     parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
-    parser.add_argument('--arch', dest='arch', default='rcnn', choices=['rcnn', 'rfcn'])
+    parser.add_argument('--arch', dest='arch', default='rcnn', choices=['rcnn', 'rfcn', 'couplenet'])
     parser.add_argument('--dataset', dest='dataset',
                         help='training dataset',
                         default='pascal_voc', type=str)
@@ -103,8 +103,9 @@ if __name__ == '__main__':
         from model.faster_rcnn.vgg16 import vgg16
         from model.faster_rcnn.resnet import resnet
     elif args.arch == 'rfcn':
-        from model.rfcn.vgg16 import vgg16
         from model.rfcn.resnet_atrous import resnet
+    elif args.arch == 'couplenet':
+        from model.couplenet.resnet_atrous import resnet
 
     print('Called with args:')
     print(args)
@@ -150,7 +151,7 @@ if __name__ == '__main__':
 
     print('{:d} roidb entries'.format(len(roidb)))
 
-    input_dir = args.load_dir + "/" + args.net + "/" + args.dataset
+    input_dir = args.load_dir + "/" + args.arch + "/" + args.net + "/" + args.dataset
     if not os.path.exists(input_dir):
         raise Exception('There is no input directory for loading network from ' + input_dir)
     load_name = os.path.join(input_dir,
