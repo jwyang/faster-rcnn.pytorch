@@ -20,7 +20,7 @@ This repo has following modification compare to [jwyang/faster-rcnn.pytorch](htt
 - **Implement multi-scale training:** As the original paper says, each image is randomly reized to differenct resolutions (400, 500, 600, 700, 800) when training, and during test time, we use fix input size(600). These make 1.2 mAP gain in our experiments.
 - **Implement OHEM:** in this repo, we implement Online Hard Example Mining(OHEM) method in the paper, set `OHEM: False` in `cfgs/res101.yml` for using OHEM. Unluckly, it cause a bit performance degration in my experiments
 
-![R-FCN2](/Users/prince/Downloads/R-FCN2.jpg)
+![](http://oodo7tmt3.bkt.clouddn.com/blog_20180817160334.jpg)
 
 ## CoupleNet
 
