@@ -86,7 +86,7 @@ Thanks to [Remi](https://github.com/Cadene) for providing the pretrained detecti
 
 - [x] Support both python2 and python3 (great thanks to [cclauss](https://github.com/cclauss)).
 - [x] Add deformable pooling layer as an alternative way for roi pooling (mainly supported by [Xander](https://github.com/xanderchf)).
-- [ ] Support pytorch-0.4.0 or higher.
+- [ ] Support pytorch-0.4.1 or higher.
 - [ ] ~~Run systematical experiments on PASCAL VOC 07/12, COCO, ImageNet, Visual Genome (VG) with different settings.~~
 - [ ] ~~Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.~~
 
@@ -106,7 +106,7 @@ cd faster-rcnn.pytorch && mkdir data
 ### prerequisites
 
 * Python 2.7 or 3.6
-* Pytorch 0.2.0, 0.3.0 (**now it does not support 0.4.0**)
+* Pytorch no later than 0.4.0 (**now it does not support 0.4.1 or higher**)
 * CUDA 8.0 or higher
 
 ### Data Preparation
