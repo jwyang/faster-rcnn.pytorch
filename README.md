@@ -30,7 +30,7 @@ During our implementing, we referred the above implementations, especailly [long
 
 * [Feature Pyramid Network (FPN)](https://github.com/jwyang/fpn.pytorch)
 
-* [Mask R-CNN](https://github.com/roytseng-tw/mask-rcnn.pytorch) (~~ongoing~~ already implemented by [roytseng-tw](https://github.com/roytseng-tw)
+* [Mask R-CNN](https://github.com/roytseng-tw/mask-rcnn.pytorch) (~~ongoing~~ already implemented by [roytseng-tw](https://github.com/roytseng-tw))
 
 ## Tutorial
 
@@ -85,7 +85,8 @@ Thanks to [Remi](https://github.com/Cadene) for providing the pretrained detecti
 ### What we are going to do
 
 - [x] Support both python2 and python3 (great thanks to [cclauss](https://github.com/cclauss)).
-- [ ] Add deformable pooling layer as an alternative way for roi pooling (mainly supported by [Xander](https://github.com/xanderchf))
+- [x] Add deformable pooling layer as an alternative way for roi pooling (mainly supported by [Xander](https://github.com/xanderchf)).
+- [ ] Support pytorch-0.4.0 or higher.
 - [ ] ~~Run systematical experiments on PASCAL VOC 07/12, COCO, ImageNet, Visual Genome (VG) with different settings.~~
 - [ ] ~~Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.~~
 
@@ -105,7 +106,7 @@ cd faster-rcnn.pytorch && mkdir data
 ### prerequisites
 
 * Python 2.7 or 3.6
-* Pytorch 0.2.0 or higher
+* Pytorch 0.2.0, 0.3.0 (**now it does not support 0.4.0**)
 * CUDA 8.0 or higher
 
 ### Data Preparation

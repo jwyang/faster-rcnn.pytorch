@@ -58,7 +58,7 @@ def parse_args():
                       default=10000, type=int)
 
   parser.add_argument('--save_dir', dest='save_dir',
-                      help='directory to save models', default="/srv/share/jyang375/models",
+                      help='directory to save models', default="models",
                       type=str)
   parser.add_argument('--nw', dest='num_workers',
                       help='number of worker to load data',
@@ -371,26 +371,16 @@ if __name__ == '__main__':
         loss_temp = 0
         start = time.time()
 
-    if args.mGPUs:
-      save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
-      save_checkpoint({
-        'session': args.session,
-        'epoch': epoch + 1,
-        'model': fasterRCNN.module.state_dict(),
-        'optimizer': optimizer.state_dict(),
-        'pooling_mode': cfg.POOLING_MODE,
-        'class_agnostic': args.class_agnostic,
-      }, save_name)
-    else:
-      save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
-      save_checkpoint({
-        'session': args.session,
-        'epoch': epoch + 1,
-        'model': fasterRCNN.state_dict(),
-        'optimizer': optimizer.state_dict(),
-        'pooling_mode': cfg.POOLING_MODE,
-        'class_agnostic': args.class_agnostic,
-      }, save_name)
+    
+    save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
+    save_checkpoint({
+      'session': args.session,
+      'epoch': epoch + 1,
+      'model': fasterRCNN.module.state_dict() if args.mGPUs else fasterRCNN.state_dict(),
+      'optimizer': optimizer.state_dict(),
+      'pooling_mode': cfg.POOLING_MODE,
+      'class_agnostic': args.class_agnostic,
+    }, save_name)
     print('save model: {}'.format(save_name))
 
     end = time.time()
