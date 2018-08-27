@@ -183,12 +183,6 @@ int BilinearSamplerBHWD_updateGradInput(THFloatTensor *inputImages, THFloatTenso
         real bottomLeftDotProduct = 0;
         real bottomRightDotProduct = 0;
 
-        real v=0;
-        real inTopLeft=0;
-        real inTopRight=0;
-        real inBottomLeft=0;
-        real inBottomRight=0;
-
         // we are careful with the boundaries
         bool topLeftIsIn = xInTopLeft >= 0 && xInTopLeft <= inputImages_width-1 && yInTopLeft >= 0 && yInTopLeft <= inputImages_height-1;
         bool topRightIsIn = xInTopLeft+1 >= 0 && xInTopLeft+1 <= inputImages_width-1 && yInTopLeft >= 0 && yInTopLeft <= inputImages_height-1;
@@ -433,12 +427,6 @@ int BilinearSamplerBCHW_updateGradInput(THFloatTensor *inputImages, THFloatTenso
         real topRightDotProduct = 0;
         real bottomLeftDotProduct = 0;
         real bottomRightDotProduct = 0;
-
-        real v=0;
-        real inTopLeft=0;
-        real inTopRight=0;
-        real inBottomLeft=0;
-        real inBottomRight=0;
 
         // we are careful with the boundaries
         bool topLeftIsIn = xInTopLeft >= 0 && xInTopLeft <= inputImages_width-1 && yInTopLeft >= 0 && yInTopLeft <= inputImages_height-1;
