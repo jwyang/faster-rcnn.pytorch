@@ -26,7 +26,7 @@ During our implementing, we referred the above implementations, especailly [long
 
 * **It is faster**. Based on the above modifications, the training is much faster. We report the training speed on NVIDIA TITAN Xp in the tables below.
 
-### What we are going to do
+### What we are doing and going to do
 
 - [x] Support both python2 and python3 (great thanks to [cclauss](https://github.com/cclauss)).
 - [x] Add deformable pooling layer (mainly supported by [Xander](https://github.com/xanderchf)).
