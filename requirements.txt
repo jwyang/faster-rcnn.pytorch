@@ -5,3 +5,4 @@ scipy
 easydict
 matplotlib
 pyyaml
+tensorboardX
