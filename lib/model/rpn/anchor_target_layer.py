@@ -154,8 +154,8 @@ class _AnchorTargetLayer(nn.Module):
 
         if cfg.TRAIN.RPN_POSITIVE_WEIGHT < 0:
             num_examples = torch.sum(labels[i] >= 0)
-            positive_weights = 1.0 / num_examples
-            negative_weights = 1.0 / num_examples
+            positive_weights = 1.0 / num_examples.item()
+            negative_weights = 1.0 / num_examples.item()
         else:
             assert ((cfg.TRAIN.RPN_POSITIVE_WEIGHT > 0) &
                     (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))
