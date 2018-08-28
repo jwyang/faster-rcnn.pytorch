@@ -380,8 +380,5 @@ if __name__ == '__main__':
     }, save_name)
     print('save model: {}'.format(save_name))
 
-    end = time.time()
-    print(end - start)
-
-    if args.use_tfboard:
-      logger.close()
+  if args.use_tfboard:
+    logger.close()
