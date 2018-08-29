@@ -11,8 +11,8 @@ int nms_cuda(THCudaIntTensor *keep_out, THCudaTensor *boxes_host,
 	nms_cuda_compute(THCudaIntTensor_data(state, keep_out), 
 		         THCudaIntTensor_data(state, num_out), 
       	                 THCudaTensor_data(state, boxes_host), 
-		         boxes_host->size[0], 
-		         boxes_host->size[1],
+		         THCudaTensor_size(state, boxes_host, 0),
+		         THCudaTensor_size(state, boxes_host, 1),
 		         nms_overlap_thresh);
 
 	return 1;
