@@ -130,12 +130,8 @@ class _ProposalTargetLayer(nn.Module):
         offset = torch.arange(0, batch_size)*gt_boxes.size(1)
         offset = offset.view(-1, 1).type_as(gt_assignment) + gt_assignment
 
-<<<<<<< HEAD
-        labels = gt_boxes[:,:,4].contiguous().view(-1).index((offset.view(-1), )).view(batch_size, -1)
-=======
         labels = gt_boxes[:,:,4].contiguous().view(-1).index((offset.view(-1),)).view(batch_size, -1)
->>>>>>> bdb96be25f9ff67d614afa999c78a7c195598ff2
-
+        
         labels_batch = labels.new(batch_size, rois_per_image).zero_()
         rois_batch  = all_rois.new(batch_size, rois_per_image, 5).zero_()
         gt_rois_batch = all_rois.new(batch_size, rois_per_image, 5).zero_()
