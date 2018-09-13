@@ -198,3 +198,6 @@ caffe2.egg-info
 # Atom/Watchman required file
 .watchmanconfig
 
+# cython generated files
+lib/model/utils/bbox.c
+lib/pycocotools/_mask.c

@@ -95,7 +95,7 @@ class _fasterRCNN(nn.Module):
 
         # compute object classification probability
         cls_score = self.RCNN_cls_score(pooled_feat)
-        cls_prob = F.softmax(cls_score)
+        cls_prob = F.softmax(cls_score, 1)
 
         RCNN_loss_cls = 0
         RCNN_loss_bbox = 0

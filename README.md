@@ -26,11 +26,21 @@ During our implementing, we referred the above implementations, especailly [long
 
 * **It is faster**. Based on the above modifications, the training is much faster. We report the training speed on NVIDIA TITAN Xp in the tables below.
 
+### What we are doing and going to do
+
+- [x] Support both python2 and python3 (great thanks to [cclauss](https://github.com/cclauss)).
+- [x] Add deformable pooling layer (mainly supported by [Xander](https://github.com/xanderchf)).
+- [x] Support pytorch-0.4.0.
+- [x] Support tensorboardX.
+- [ ] Support pytorch-0.4.1 or higher.
+
 ## Other Implementations
 
 * [Feature Pyramid Network (FPN)](https://github.com/jwyang/fpn.pytorch)
 
-* Mask R-CNN (~~ongoing~~ already implemented by [roytseng-tw](https://github.com/roytseng-tw/mask-rcnn.pytorch))
+* [Mask R-CNN](https://github.com/roytseng-tw/mask-rcnn.pytorch) (~~ongoing~~ already implemented by [roytseng-tw](https://github.com/roytseng-tw))
+
+* [Graph R-CNN](https://github.com/jwyang/graph-rcnn.pytorch) (extension to scene graph generation)
 
 ## Tutorial
 
@@ -82,13 +92,6 @@ Thanks to [Remi](https://github.com/Cadene) for providing the pretrained detecti
 * Click the links in the above tables to download our pre-trained faster r-cnn models.
 * If not mentioned, the GPU we used is NVIDIA Titan X Pascal (12GB).
 
-### What we are going to do
-
-- [x] Support both python2 and python3 (great thanks to [cclauss](https://github.com/cclauss)).
-- [ ] Add deformable pooling layer as an alternative way for roi pooling (mainly supported by [Xander](https://github.com/xanderchf))
-- [ ] ~~Run systematical experiments on PASCAL VOC 07/12, COCO, ImageNet, Visual Genome (VG) with different settings.~~
-- [ ] ~~Write a detailed report about the new stuffs in our implementations, and the quantitative results in our experiments.~~
-
 ## Preparation
 
 
@@ -105,7 +108,7 @@ cd faster-rcnn.pytorch && mkdir data
 ### prerequisites
 
 * Python 2.7 or 3.6
-* Pytorch 0.2.0 or higher
+* Pytorch 0.4.0 (**now it does not support 0.4.1 or higher**)
 * CUDA 8.0 or higher
 
 ### Data Preparation
