@@ -150,8 +150,8 @@ class _ProposalTargetLayer(nn.Module):
             if fg_num_rois > 0 and bg_num_rois > 0:
                 # sampling fg
                 fg_rois_per_this_image = min(fg_rois_per_image, fg_num_rois)
-                
-                # torch.randperm seems has a bug on multi-gpu setting that cause the segfault. 
+
+                # torch.randperm seems has a bug on multi-gpu setting that cause the segfault.
                 # See https://github.com/pytorch/pytorch/issues/1868 for more details.
                 # use numpy instead.
                 #rand_num = torch.randperm(fg_num_rois).long().cuda()
@@ -161,8 +161,8 @@ class _ProposalTargetLayer(nn.Module):
                 # sampling bg
                 bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
 
-                # Seems torch.rand has a bug, it will generate very large number and make an error. 
-                # We use numpy rand instead. 
+                # Seems torch.rand has a bug, it will generate very large number and make an error.
+                # We use numpy rand instead.
                 #rand_num = (torch.rand(bg_rois_per_this_image) * bg_num_rois).long().cuda()
                 rand_num = np.floor(np.random.rand(bg_rois_per_this_image) * bg_num_rois)
                 rand_num = torch.from_numpy(rand_num).type_as(gt_boxes).long()
@@ -187,7 +187,7 @@ class _ProposalTargetLayer(nn.Module):
                 fg_rois_per_this_image = 0
             else:
                 raise ValueError("bg_num_rois = 0 and fg_num_rois = 0, this should not happen!")
-                
+
             # The indices that we're selecting (both fg and bg)
             keep_inds = torch.cat([fg_inds, bg_inds], 0)
 

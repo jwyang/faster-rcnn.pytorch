@@ -40,6 +40,8 @@ During our implementing, we referred the above implementations, especailly [long
 
 * [Mask R-CNN](https://github.com/roytseng-tw/mask-rcnn.pytorch) (~~ongoing~~ already implemented by [roytseng-tw](https://github.com/roytseng-tw))
 
+* [Graph R-CNN](https://github.com/jwyang/graph-rcnn.pytorch) (extension to scene graph generation)
+
 ## Tutorial
 
 * [Blog](http://www.telesens.co/2018/03/11/object-detection-and-classification-using-r-cnns/) by [ankur6ue](https://github.com/ankur6ue)
