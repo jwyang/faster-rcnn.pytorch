@@ -48,7 +48,7 @@ During our implementing, we referred the above implementations, especailly [long
 
 ## Benchmarking
 
-We benchmark our code thoroughly on three datasets: pascal voc, coco and imagenet-200, using two different network architecture: vgg16 and resnet101. Below are the results:
+We benchmark our code thoroughly on three datasets: pascal voc, coco and visual genome, using two different network architecture: vgg16 and resnet101. Below are the results:
 
 1). PASCAL VOC 2007 (Train/Test: 07trainval/07test, scale=600, ROI Align)
 
