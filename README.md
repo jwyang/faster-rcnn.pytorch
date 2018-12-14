@@ -2,6 +2,8 @@
 
 ## Introduction
 
+### Good news! This repo supports pytorch-1.0 now!!! We borrowed some code and techniques from [maskrcnn-benchmark](https://github.com/facebookresearch/maskrcnn-benchmark).
+
 This project is a *faster* pytorch implementation of faster R-CNN, aimed to accelerating the training of faster R-CNN object detection models. Recently, there are a number of good implementations:
 
 * [rbgirshick/py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn), developed based on Pycaffe + Numpy
@@ -32,7 +34,7 @@ During our implementing, we referred the above implementations, especailly [long
 - [x] Add deformable pooling layer (mainly supported by [Xander](https://github.com/xanderchf)).
 - [x] Support pytorch-0.4.0.
 - [x] Support tensorboardX.
-- [ ] Support pytorch-0.4.1 or higher.
+- [x] Support pytorch-1.0 (go to pytorch-1.0 branch).
 
 ## Other Implementations
 
