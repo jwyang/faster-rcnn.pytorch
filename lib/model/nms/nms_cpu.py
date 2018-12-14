@@ -20,8 +20,8 @@ def nms_cpu(dets, thresh):
         keep.append(i)
         xx1 = np.maximum(x1[i], x1[order[1:]])
         yy1 = np.maximum(y1[i], y1[order[1:]])
-        xx2 = np.maximum(x2[i], x2[order[1:]])
-        yy2 = np.maximum(y2[i], y2[order[1:]])
+        xx2 = np.minimum(x2[i], x2[order[1:]])
+        yy2 = np.minimum(y2[i], y2[order[1:]])
 
         w = np.maximum(0.0, xx2 - xx1 + 1)
         h = np.maximum(0.0, yy2 - yy1 + 1)
@@ -32,5 +32,3 @@ def nms_cpu(dets, thresh):
         order = order[inds + 1]
 
     return torch.IntTensor(keep)
-
-
