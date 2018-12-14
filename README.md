@@ -32,7 +32,7 @@ During our implementing, we referred the above implementations, especailly [long
 
 - [x] Support both python2 and python3 (great thanks to [cclauss](https://github.com/cclauss)).
 - [x] Add deformable pooling layer (mainly supported by [Xander](https://github.com/xanderchf)).
-- [x] Support pytorch-0.4.0 ((go to master branch)).
+- [x] Support pytorch-0.4.0 (go to master branch).
 - [x] Support tensorboardX.
 - [x] Support pytorch-1.0.
 
