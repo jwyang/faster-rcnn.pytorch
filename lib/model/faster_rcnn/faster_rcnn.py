@@ -37,8 +37,8 @@ class _fasterRCNN(nn.Module):
         # self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
         # self.RCNN_roi_align = RoIAlignAvg(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
 
-        self.RCNN_roi_pool = ROIPool(cfg.POOLING_SIZE, 1.0/16.0)
-        self.RCNN_roi_align = ROIAlign(cfg.POOLING_SIZE, 1.0/16.0, 0.0)
+        self.RCNN_roi_pool = ROIPool((cfg.POOLING_SIZE, cfg.POOLING_SIZE), 1.0/16.0)
+        self.RCNN_roi_align = ROIAlign((cfg.POOLING_SIZE, cfg.POOLING_SIZE), 1.0/16.0, 0)
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
         batch_size = im_data.size(0)
@@ -73,7 +73,7 @@ class _fasterRCNN(nn.Module):
         rois = Variable(rois)
         # do roi pooling based on predicted rois
 
-	if cfg.POOLING_MODE == 'align':
+        if cfg.POOLING_MODE == 'align':
             pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
         elif cfg.POOLING_MODE == 'pool':
             pooled_feat = self.RCNN_roi_pool(base_feat, rois.view(-1,5))
