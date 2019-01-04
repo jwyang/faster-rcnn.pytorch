@@ -108,7 +108,7 @@ cd faster-rcnn.pytorch && mkdir data
 ### prerequisites
 
 * Python 2.7 or 3.6
-* Pytorch 0.4.0 (**now it does not support 0.4.1 or higher**)
+* Pytorch 1.0 (for Pytorch 0.4.0 go to master branch)
 * CUDA 8.0 or higher
 
 ### Data Preparation
@@ -134,18 +134,6 @@ Download them and put them into the data/pretrained_model/.
 **If you want to use pytorch pre-trained models, please remember to transpose images from BGR to RGB, and also use the same data transformer (minus mean and normalize) as used in pretrained model.**
 
 ### Compilation
-
-As pointed out by [ruotianluo/pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn), choose the right `-arch` in `make.sh` file, to compile the cuda code:
-
-  | GPU model  | Architecture |
-  | ------------- | ------------- |
-  | TitanX (Maxwell/Pascal) | sm_52 |
-  | GTX 960M | sm_50 |
-  | GTX 1080 (Ti) | sm_61 |
-  | Grid K520 (AWS g2.2xlarge) | sm_30 |
-  | Tesla K80 (AWS p2.xlarge) | sm_37 |
-
-More details about setting the architecture can be found [here](https://developer.nvidia.com/cuda-gpus) or [here](http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/)
 
 Install all the python dependencies using pip:
 ```
