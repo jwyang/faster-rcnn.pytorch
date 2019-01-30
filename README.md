@@ -113,6 +113,8 @@ cd faster-rcnn.pytorch && mkdir data
 * Python 2.7 or 3.6
 * Pytorch 1.0 (for Pytorch 0.4.0 go to master branch)
 * CUDA 10.0 or higher
+* Visual Studio 2017
+* Windows 10
 
 ### Data Preparation
 
@@ -146,7 +148,6 @@ pip install -r requirements.txt
 Install Visual Studio 2017. Be sure to set VS2017 compiler on mode X64
 
 ```
-cd lib
 "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
 ```
 
