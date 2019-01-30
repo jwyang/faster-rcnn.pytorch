@@ -12,6 +12,10 @@
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n; \
        i += blockDim.x * gridDim.x)
 
+/* added function */
+int ceil_div_2(int a, int b){
+  return (a + b - 1) / b;
+}
 
 template <typename T>
 __global__ void RoIPoolFForward(const int nthreads, const T* bottom_data,
@@ -126,7 +130,8 @@ std::tuple<at::Tensor, at::Tensor> ROIPool_forward_cuda(const at::Tensor& input,
 
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
-  dim3 grid(std::min(THCCeilDiv(output_size, 512L), 4096L));
+  dim3 grid(std::min(ceil_div_2((int)output_size, 512), 4096));
+  // dim3 grid(std::min(THCCeilDiv(output_size, 512L), 4096L));
   dim3 block(512);
 
   if (output.numel() == 0) {
@@ -173,7 +178,8 @@ at::Tensor ROIPool_backward_cuda(const at::Tensor& grad,
 
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
-  dim3 grid(std::min(THCCeilDiv(grad.numel(), 512L), 4096L));
+  dim3 grid(std::min(ceil_div_2((int)grad.numel(), 512), 4096));
+  //dim3 grid(std::min(THCCeilDiv(grad.numel(), 512L), 4096L));
   dim3 block(512);
 
   // handle possibly empty gradients
