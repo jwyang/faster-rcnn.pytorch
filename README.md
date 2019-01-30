@@ -4,6 +4,8 @@
 
 ### Good news! This repo supports pytorch-1.0 now!!! We borrowed some code and techniques from [maskrcnn-benchmark](https://github.com/facebookresearch/maskrcnn-benchmark).
 
+### Now it compiles and runs on WINDOWS 10 using Visual Studio 2017
+
 This project is a *faster* pytorch implementation of faster R-CNN, aimed to accelerating the training of faster R-CNN object detection models. Recently, there are a number of good implementations:
 
 * [rbgirshick/py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn), developed based on Pycaffe + Numpy
@@ -109,7 +111,7 @@ cd faster-rcnn.pytorch && mkdir data
 
 * Python 2.7 or 3.6
 * Pytorch 1.0 (for Pytorch 0.4.0 go to master branch)
-* CUDA 8.0 or higher
+* CUDA 10.0 or higher
 
 ### Data Preparation
 
@@ -140,8 +142,14 @@ Install all the python dependencies using pip:
 pip install -r requirements.txt
 ```
 
-Compile the cuda dependencies using following simple commands:
+Install Visual Studio 2017. Be sure to set VS2017 compiler on mode X64
 
+```
+cd lib
+"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
+```
+
+Compile the cuda dependencies using following simple commands:
 ```
 cd lib
 python setup.py build develop
