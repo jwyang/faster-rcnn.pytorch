@@ -36,7 +36,8 @@ During our implementing, we referred the above implementations, especailly [long
 - [x] Add deformable pooling layer (mainly supported by [Xander](https://github.com/xanderchf)).
 - [x] Support pytorch-0.4.0 (go to master branch).
 - [x] Support tensorboardX.
-- [x] Support pytorch-1.0 (this branch).
+- [x] Support pytorch-1.0.
+- [x] Support pytorch-1.0 in Windows (this branch).
 
 ## Other Implementations
 
