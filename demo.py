@@ -321,7 +321,8 @@ if __name__ == '__main__':
           pred_boxes = clip_boxes(pred_boxes, im_info.data, 1)
       else:
           # Simply repeat the boxes, once for each class
-          pred_boxes = np.tile(boxes, (1, scores.shape[1]))
+          _ = torch.from_numpy(np.tile(boxes, (1, scores.shape[1])))
+          pred_boxes = _.cuda() if args.cuda > 0 else _
 
       pred_boxes /= im_scales[0]
 
