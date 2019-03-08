@@ -147,6 +147,8 @@ class sampler(Sampler):
 
 if __name__ == '__main__':
 
+  overallstarttime = time.time()
+
   args = parse_args()
 
   print('Called with args:')
@@ -382,3 +384,20 @@ if __name__ == '__main__':
 
   if args.use_tfboard:
     logger.close()
+
+  overallendtime = time.time()
+
+  print("START Time " + str(overallstarttime))
+  print("END Time " + str(overallendtime))
+
+  grandtotal_secs = overallendtime - overallstarttime
+  print("TOTAL RUNTIME WAS " + str(grandtotal_secs) + " seconds .. or ")
+
+  day = grandtotal_secs // (24 * 3600)
+  time = grandtotal_secs % (24 * 3600)
+  hour = time // 3600
+  time %= 3600
+  minutes = time // 60
+  time %= 60
+  seconds = time
+  print("d:h:m:s -> %d:%d:%d:%d" % (day, hour, minutes, seconds))
