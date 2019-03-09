@@ -111,7 +111,7 @@ def parse_args():
   parser.add_argument('--checkpoint', dest='checkpoint',
                       help='checkpoint to load model',
                       default=0, type=int)
-# log and diaplay
+# log and display
   parser.add_argument('--use_tfb', dest='use_tfboard',
                       help='whether use tensorboard',
                       action='store_true')
