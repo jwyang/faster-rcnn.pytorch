@@ -61,7 +61,7 @@ def parse_args():
                       help='directory to save models', default="models",
                       type=str)
   parser.add_argument('--nw', dest='num_workers',
-                      help='number of worker to load data',
+                      help='number of workers to load data',
                       default=0, type=int)
   parser.add_argument('--cuda', dest='cuda',
                       help='whether use CUDA',
@@ -76,7 +76,7 @@ def parse_args():
                       help='batch_size',
                       default=1, type=int)
   parser.add_argument('--cag', dest='class_agnostic',
-                      help='whether perform class_agnostic bbox regression',
+                      help='whether to perform class_agnostic bbox regression',
                       action='store_true')
 
 # config optimization
