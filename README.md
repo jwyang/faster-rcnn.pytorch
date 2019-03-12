@@ -24,7 +24,7 @@ During our implementing, we referred the above implementations, especailly [long
 
 * **It supports three pooling methods**. We integrate three pooling methods: roi pooing, roi align and roi crop. More importantly, we modify all of them to support multi-image batch training.
 
-* **It is memory efficient**. We limit the image aspect ratio, and group images with similar aspect ratios into a minibatch. As such, we can train resnet101 and VGG16 with batchsize = 4 (4 images) on a sigle Titan X (12 GB). When training with 8 GPU, the maximum batchsize for each GPU is 3 (Res101), totally 24.
+* **It is memory efficient**. We limit the image aspect ratio, and group images with similar aspect ratios into a minibatch. As such, we can train resnet101 and VGG16 with batchsize = 4 (4 images) on a single Titan X (12 GB). When training with 8 GPU, the maximum batchsize for each GPU is 3 (Res101), totaling 24.
 
 * **It is faster**. Based on the above modifications, the training is much faster. We report the training speed on NVIDIA TITAN Xp in the tables below.
 
@@ -50,7 +50,7 @@ During our implementing, we referred the above implementations, especailly [long
 
 ## Benchmarking
 
-We benchmark our code thoroughly on three datasets: pascal voc, coco and visual genome, using two different network architecture: vgg16 and resnet101. Below are the results:
+We benchmark our code thoroughly on three datasets: pascal voc, coco and visual genome, using two different network architectures: vgg16 and resnet101. Below are the results:
 
 1). PASCAL VOC 2007 (Train/Test: 07trainval/07test, scale=600, ROI Align)
 
