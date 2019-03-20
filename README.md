@@ -14,7 +14,7 @@ This project is a *faster* pytorch implementation of faster R-CNN, aimed to acce
 
 * [ruotianluo/pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn), developed based on Pytorch + TensorFlow + Numpy
 
-During our implementing, we referred the above implementations, especailly [longcw/faster_rcnn_pytorch](https://github.com/longcw/faster_rcnn_pytorch). However, our implementation has several unique and new features compared with the above implementations:
+During our implementing, we referred the above implementations, especially [longcw/faster_rcnn_pytorch](https://github.com/longcw/faster_rcnn_pytorch). However, our implementation has several unique and new features compared with the above implementations:
 
 * **It is pure Pytorch code**. We convert all the numpy implementations to pytorch!
 
