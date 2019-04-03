@@ -263,11 +263,12 @@ if __name__ == '__main__':
         im_file = os.path.join(args.image_dir, imglist[num_images])
         # im = cv2.imread(im_file)
         im_in = np.array(imread(im_file))
-      if len(im_in.shape) == 2:
-        im_in = im_in[:,:,np.newaxis]
-        im_in = np.concatenate((im_in,im_in,im_in), axis=2)
-      # rgb -> bgr
-      im = im_in[:,:,::-1]
+        if len(im_in.shape) == 2:
+          im_in = im_in[:,:,np.newaxis]
+          im_in = np.concatenate((im_in,im_in,im_in), axis=2)
+        # rgb -> bgr
+        im_in = im_in[:,:,::-1]
+      im = im_in
 
       blobs, im_scales = _get_image_blob(im)
       assert len(im_scales) == 1, "Only single-image batch implemented"
@@ -366,8 +367,7 @@ if __name__ == '__main__':
           result_path = os.path.join(args.image_dir, imglist[num_images][:-4] + "_det.jpg")
           cv2.imwrite(result_path, im2show)
       else:
-          im2showRGB = cv2.cvtColor(im2show, cv2.COLOR_BGR2RGB)
-          cv2.imshow("frame", im2showRGB)
+          cv2.imshow("frame", im2show)
           total_toc = time.time()
           total_time = total_toc - total_tic
           frame_rate = 1 / total_time
