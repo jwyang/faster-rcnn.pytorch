@@ -35,7 +35,7 @@ class vgg16(_fasterRCNN):
     vgg.classifier = nn.Sequential(*list(vgg.classifier._modules.values())[:-1])
 
     # not using the last maxpool layer
-    self.RCNN_base = nn.Sequential(*list(vgg.features._modules.values())[:-1])
+    self.RCNN_base = nn.Sequential(*list(vgg.features._modules.values())[:-1])  #[:-1]是去掉最后个元素的意思
 
     # Fix the layers before conv3:
     for layer in range(10):
@@ -47,9 +47,10 @@ class vgg16(_fasterRCNN):
 
     # not using the last maxpool layer
     self.RCNN_cls_score = nn.Linear(4096, self.n_classes)
-
+        
     if self.class_agnostic:
-      self.RCNN_bbox_pred = nn.Linear(4096, 4)
+       #important!!!!!!!!!
+      self.RCNN_bbox_pred = nn.Linear(4096, 4) #LINEAR is full connection layer, 4096 is input , 4 is output，相当于最后一个全联接层1000个输出那一项去掉。
     else:
       self.RCNN_bbox_pred = nn.Linear(4096, 4 * self.n_classes)      
 
