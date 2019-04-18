@@ -262,6 +262,9 @@ if __name__ == '__main__':
       else:
         params += [{'params':[value],'lr':lr, 'weight_decay': cfg.TRAIN.WEIGHT_DECAY}]
 
+  if args.cuda:
+    fasterRCNN.cuda()
+      
   if args.optimizer == "adam":
     lr = lr * 0.1
     optimizer = torch.optim.Adam(params)
@@ -285,9 +288,6 @@ if __name__ == '__main__':
 
   if args.mGPUs:
     fasterRCNN = nn.DataParallel(fasterRCNN)
-
-  if args.cuda:
-    fasterRCNN.cuda()
 
   iters_per_epoch = int(train_size / args.batch_size)
 
