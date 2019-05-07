@@ -97,7 +97,7 @@ Thanks to [Remi](https://github.com/Cadene) for providing the pretrained detecti
 
 First of all, clone the code
 ```
-git clone https://github.com/jwyang/faster-rcnn.pytorch.git
+git clone -b pytorch-1.0 https://github.com/jwyang/faster-rcnn.pytorch.git
 ```
 
 Then, create a folder:
