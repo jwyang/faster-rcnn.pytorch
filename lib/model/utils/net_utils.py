@@ -38,13 +38,13 @@ def clip_gradient(model, clip_norm):
     """Computes a gradient clipping coefficient based on gradient norm."""
     totalnorm = 0
     for p in model.parameters():
-        if p.requires_grad:
-            modulenorm = p.grad.data.norm()
+        if p.requires_grad and p.grad is not None:
+            modulenorm = p.grad.norm()
             totalnorm += modulenorm ** 2
     totalnorm = torch.sqrt(totalnorm).item()
     norm = (clip_norm / max(totalnorm, clip_norm))
     for p in model.parameters():
-        if p.requires_grad:
+        if p.requires_grad and p.grad is not None:
             p.grad.mul_(norm)
 
 def vis_detections(im, class_name, dets, thresh=0.8):
