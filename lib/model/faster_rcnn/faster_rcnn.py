@@ -19,7 +19,7 @@ from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer, _affine_gri
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
     def __init__(self, classes, class_agnostic):
-        super(_fasterRCNN, self).__init__()
+        super(_fasterRCNN, self).__init__() #继承Module的舒适化
         self.classes = classes
         self.n_classes = len(classes)
         self.class_agnostic = class_agnostic
@@ -33,7 +33,7 @@ class _fasterRCNN(nn.Module):
         self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
         self.RCNN_roi_align = RoIAlignAvg(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
 
-        self.grid_size = cfg.POOLING_SIZE * 2 if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE
+        self.grid_size = cfg.POOLING_SIZE * 2 if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE #def larger(num1, num2): return num1 if num1 > num2 else num2, this variable may be declare in other place
         self.RCNN_roi_crop = _RoICrop()
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
@@ -77,13 +77,13 @@ class _fasterRCNN(nn.Module):
             pooled_feat = self.RCNN_roi_crop(base_feat, Variable(grid_yx).detach())
             if cfg.CROP_RESIZE_WITH_MAX_POOL:
                 pooled_feat = F.max_pool2d(pooled_feat, 2, 2)
-        elif cfg.POOLING_MODE == 'align':
+        elif cfg.POOLING_MODE == 'align': #this is the most common ROI Pooling method.
             pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
         elif cfg.POOLING_MODE == 'pool':
             pooled_feat = self.RCNN_roi_pool(base_feat, rois.view(-1,5))
 
         # feed pooled features to top model
-        pooled_feat = self._head_to_tail(pooled_feat)
+        pooled_feat = self._head_to_tail(pooled_feat)   #problem1
 
         # compute bbox offset
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)
