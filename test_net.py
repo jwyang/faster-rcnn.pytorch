@@ -1,5 +1,5 @@
 # --------------------------------------------------------
-# Tensorflow Faster R-CNN
+# Pytorch Multi-GPU Faster R-CNN
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Jiasen Lu, Jianwei Yang, based on code from Ross Girshick
 # --------------------------------------------------------
@@ -15,7 +15,9 @@ import argparse
 import pprint
 import pdb
 import time
+
 import cv2
+
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
@@ -31,8 +33,6 @@ from model.rpn.bbox_transform import bbox_transform_inv
 from model.utils.net_utils import save_net, load_net, vis_detections
 from model.faster_rcnn.vgg16 import vgg16
 from model.faster_rcnn.resnet import resnet
-
-import pdb
 
 try:
     xrange          # Python 2
