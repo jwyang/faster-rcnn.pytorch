@@ -245,7 +245,8 @@ def bbox_overlaps_batch(anchors, gt_boxes):
             torch.max(boxes[:,:,:,1], query_boxes[:,:,:,1]) + 1)
         ih[ih < 0] = 0
         ua = anchors_area + gt_boxes_area - (iw * ih)
-
+        
+        # Intersection (iw * ih) divided by Union (ua)
         overlaps = iw * ih / ua
 
         # mask the overlap here.
