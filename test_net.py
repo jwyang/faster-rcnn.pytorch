@@ -105,6 +105,9 @@ if __name__ == '__main__':
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
   np.random.seed(cfg.RNG_SEED)
+  torch.manual_seed(cfg.RNG_SEED)
+  torch.cuda.manual_seed_all(cfg.RNG_SEED)
+  
   if args.dataset == "pascal_voc":
       args.imdb_name = "voc_2007_trainval"
       args.imdbval_name = "voc_2007_test"
