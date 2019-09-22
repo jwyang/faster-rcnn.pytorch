@@ -1,5 +1,16 @@
 # A *Faster* Pytorch Implementation of Faster R-CNN
 
+Fork From [jwyang/faster-rcnn.pytorch](https://github.com/jwyang/faster-rcnn.pytorch)
+
+## ATTENTION!!!
+2019.09.19  
+- fix random-seed bugs
+
+2019.09.22
+- fix 'int' object has no attribute astyle in `lib/roi_data_layer/roibatchLoader.py`
+- now you can train not only pascal_voc2007, but also pascal_voc07+12 by '--dataset pascal_voc_0712'
+- upload pascal_voc_0712 Imagesets offered by [YuwenXiong/py-R-FCN](https://github.com/YuwenXiong/py-R-FCN)
+
 ## Introduction
 
 ### :boom: Good news! This repo supports pytorch-1.0 now!!! We borrowed some code and techniques from [maskrcnn-benchmark](https://github.com/facebookresearch/maskrcnn-benchmark). Just go to pytorch-1.0 branch!
