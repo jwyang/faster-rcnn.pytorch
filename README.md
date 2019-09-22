@@ -5,6 +5,7 @@ Fork From [jwyang/faster-rcnn.pytorch](https://github.com/jwyang/faster-rcnn.pyt
 ## ATTENTION!!!
 2019.09.19  
 - fix random-seed bugs
+
 2019.09.22
 - fix 'int' object has no attribute astyle in `lib/roi_data_layer/roibatchLoader.py`
 - now you can train not only pascal_voc2007, but also pascal_voc07+12 by '--dataset pascal_voc_0712'
