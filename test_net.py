@@ -114,7 +114,7 @@ if __name__ == '__main__':
       args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
   elif args.dataset == "pascal_voc_0712":
       args.imdb_name = "voc_0712_trainval"
-      args.imdbval_name = "voc_2007_test"
+      args.imdbval_name = "voc_0712_test"
       args.set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32]', 'ANCHOR_RATIOS', '[0.5,1,2]']
   elif args.dataset == "coco":
       args.imdb_name = "coco_2014_train+coco_2014_valminusminival"
