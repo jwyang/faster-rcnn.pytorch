@@ -7,3 +7,4 @@ easydict
 matplotlib
 pyyaml
 tensorboardX
+torch==0.4
