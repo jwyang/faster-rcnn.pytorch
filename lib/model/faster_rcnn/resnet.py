@@ -223,11 +223,21 @@ class resnet(_fasterRCNN):
     self.dout_base_model = 1024
     self.pretrained = pretrained
     self.class_agnostic = class_agnostic
+    self.num_layers = num_layers
 
     _fasterRCNN.__init__(self, classes, class_agnostic)
 
   def _init_modules(self):
     resnet = resnet101()
+
+    if self.num_layers == 18:
+        resnet = resnet18()
+    if self.num_layers == 34:
+        resnet = resnet34()     
+    if self.num_layers == 50:
+        resnet = resnet50()
+    if self.num_layers == 152:
+        resnet = resnet152()
 
     if self.pretrained == True:
       print("Loading pretrained weights from %s" %(self.model_path))
