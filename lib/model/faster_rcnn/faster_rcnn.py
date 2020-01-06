@@ -53,7 +53,7 @@ class _fasterRCNN(nn.Module):
         # feed base feature map tp RPN to obtain rois
         rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
 
-        # if it is training phrase, then use ground trubut bboxes for refining
+        # if it is training phrase, then use ground truth bboxes for refining
         if self.training:
             roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes)
             rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws = roi_data
@@ -103,7 +103,6 @@ class _fasterRCNN(nn.Module):
             # bounding box regression L1 loss
             RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
 
-
         cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
         bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
 
@@ -112,7 +111,7 @@ class _fasterRCNN(nn.Module):
     def _init_weights(self):
         def normal_init(m, mean, stddev, truncated=False):
             """
-            weight initalizer: truncated normal and random normal.
+            weight initializer: truncated normal and random normal.
             """
             # x is a parameter
             if truncated:
