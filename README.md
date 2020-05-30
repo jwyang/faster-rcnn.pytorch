@@ -1,5 +1,15 @@
 # A *Faster* Pytorch Implementation of Faster R-CNN
 
+## Write at the beginning
+
+This repo was initaited about two years ago, developed as the first open-sourced object detection code which supports multi-gpu training. It has been integrating tremendous efforts from many people. However, we have seen many high-quality repos emerged in the last years, such as:
+
+* [maskrcnn-benchmark](https://github.com/facebookresearch/maskrcnn-benchmark)
+* [detectron2](https://github.com/facebookresearch/detectron2)
+* [mmdetection](https://github.com/open-mmlab/mmdetection)
+
+At this point, I think this repo is out-of-data in terms of the pipeline and coding style, and will not maintain actively. Though you can still use this repo as a playground, I highly recommed you move to the above repos and delve into west world of object detection!
+
 ## Introduction
 
 ### :boom: Good news! This repo supports pytorch-1.0 now!!! We borrowed some code and techniques from [maskrcnn-benchmark](https://github.com/facebookresearch/maskrcnn-benchmark). Just go to pytorch-1.0 branch!
