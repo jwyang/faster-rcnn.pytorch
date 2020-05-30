@@ -8,7 +8,7 @@ This repo was initaited about two years ago, developed as the first open-sourced
 * [detectron2](https://github.com/facebookresearch/detectron2)
 * [mmdetection](https://github.com/open-mmlab/mmdetection)
 
-At this point, I think this repo is out-of-data in terms of the pipeline and coding style, and will not maintain actively. Though you can still use this repo as a playground, I highly recommend you move to the above repos to delve into west world of object detection!
+**At this point, I think this repo is out-of-data in terms of the pipeline and coding style, and will not maintain actively. Though you can still use this repo as a playground, I highly recommend you move to the above repos to delve into west world of object detection!**
 
 ## Introduction
 
