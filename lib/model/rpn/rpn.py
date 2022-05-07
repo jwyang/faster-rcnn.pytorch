@@ -20,20 +20,20 @@ class _RPN(nn.Module):
         super(_RPN, self).__init__()
         
         self.din = din  # get depth of input feature map, e.g., 512
-        self.anchor_scales = cfg.ANCHOR_SCALES
-        self.anchor_ratios = cfg.ANCHOR_RATIOS
-        self.feat_stride = cfg.FEAT_STRIDE[0]
+        self.anchor_scales = cfg.ANCHOR_SCALES  # [8,16,32]
+        self.anchor_ratios = cfg.ANCHOR_RATIOS  # [0.5,1,2]
+        self.feat_stride = cfg.FEAT_STRIDE[0]  # 16
 
         # define the convrelu layers processing input feature map
         self.RPN_Conv = nn.Conv2d(self.din, 512, 3, 1, 1, bias=True)
 
-        # define bg/fg classifcation score layer
-        self.nc_score_out = len(self.anchor_scales) * len(self.anchor_ratios) * 2 # 2(bg/fg) * 9 (anchors)
-        self.RPN_cls_score = nn.Conv2d(512, self.nc_score_out, 1, 1, 0)
+        # define bg(background)/fg(foreground) classification score layer
+        self.nc_score_out = len(self.anchor_scales) * len(self.anchor_ratios) * 2  # 18 = 9 (anchors) * 2 (bg/fg)
+        self.RPN_cls_score = nn.Conv2d(512, self.nc_score_out, 1, 1, 0)  # (B, C, h, w)->(B, 18, h, w)
 
         # define anchor box offset prediction layer
-        self.nc_bbox_out = len(self.anchor_scales) * len(self.anchor_ratios) * 4 # 4(coords) * 9 (anchors)
-        self.RPN_bbox_pred = nn.Conv2d(512, self.nc_bbox_out, 1, 1, 0)
+        self.nc_bbox_out = len(self.anchor_scales) * len(self.anchor_ratios) * 4  # 9 (anchors) * 4(coords: x1, y1,  x2, y2)
+        self.RPN_bbox_pred = nn.Conv2d(512, self.nc_bbox_out, 1, 1, 0)  # (B, C, h, w)->(B, 36, h, w)
 
         # define proposal layer
         self.RPN_proposal = _ProposalLayer(self.feat_stride, self.anchor_scales, self.anchor_ratios)
@@ -56,24 +56,30 @@ class _RPN(nn.Module):
         return x
 
     def forward(self, base_feat, im_info, gt_boxes, num_boxes):
-
+        """
+        :param base_feat: torch.size(B,C,h,w)
+        :param im_info:
+        :param gt_boxes:
+        :param num_boxes:
+        :return:
+        """
         batch_size = base_feat.size(0)
 
         # return feature map after convrelu layer
         rpn_conv1 = F.relu(self.RPN_Conv(base_feat), inplace=True)
         # get rpn classification score
-        rpn_cls_score = self.RPN_cls_score(rpn_conv1)
+        rpn_cls_score = self.RPN_cls_score(rpn_conv1)  # (B, 18, h, w)
 
-        rpn_cls_score_reshape = self.reshape(rpn_cls_score, 2)
+        rpn_cls_score_reshape = self.reshape(rpn_cls_score, 2)  # (B, 2, 9*h, w)
         rpn_cls_prob_reshape = F.softmax(rpn_cls_score_reshape, 1)
-        rpn_cls_prob = self.reshape(rpn_cls_prob_reshape, self.nc_score_out)
+        rpn_cls_prob = self.reshape(rpn_cls_prob_reshape, self.nc_score_out)  # (B, 18, h, w)
 
         # get rpn offsets to the anchor boxes
-        rpn_bbox_pred = self.RPN_bbox_pred(rpn_conv1)
+        rpn_bbox_pred = self.RPN_bbox_pred(rpn_conv1)  # (B, 36, h, w)
 
         # proposal layer
         cfg_key = 'TRAIN' if self.training else 'TEST'
-
+        # rois: (B, post_nms_topN, 5) 5: [B_index, x1, y1, x2, y2] after NMS
         rois = self.RPN_proposal((rpn_cls_prob.data, rpn_bbox_pred.data,
                                  im_info, cfg_key))
 
@@ -87,7 +93,7 @@ class _RPN(nn.Module):
             rpn_data = self.RPN_anchor_target((rpn_cls_score.data, gt_boxes, im_info, num_boxes))
 
             # compute classification loss
-            rpn_cls_score = rpn_cls_score_reshape.permute(0, 2, 3, 1).contiguous().view(batch_size, -1, 2)
+            rpn_cls_score = rpn_cls_score_reshape.permute(0, 2, 3, 1).contiguous().view(batch_size, -1, 2)  # (B, 9*h*w, 2)
             rpn_label = rpn_data[0].view(batch_size, -1)
 
             rpn_keep = Variable(rpn_label.view(-1).ne(-1).nonzero().view(-1))

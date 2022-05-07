@@ -28,7 +28,7 @@ class _ProposalLayer(nn.Module):
     Outputs object detection proposals by applying estimated bounding-box
     transformations to a set of regular boxes (called "anchors").
     """
-
+    # feat_stride = 16, scales = [8,16,32], ratios = [0.5,1,2]
     def __init__(self, feat_stride, scales, ratios):
         super(_ProposalLayer, self).__init__()
 
@@ -47,7 +47,14 @@ class _ProposalLayer(nn.Module):
         #     top[1].reshape(1, 1, 1, 1)
 
     def forward(self, input):
-
+        '''
+        :param input: (rpn_cls_prob.data, rpn_bbox_pred.data, im_info, cfg_key)
+        :rpn_cls_prob.data: (B, 18, h, w)
+        :rpn_bbox_pred.data: (B, 36, h, w)
+        :im_info
+        :cfg_key
+        :return:
+        '''
         # Algorithm:
         #
         # for each (H, W) location i
@@ -64,19 +71,19 @@ class _ProposalLayer(nn.Module):
 
         # the first set of _num_anchors channels are bg probs
         # the second set are the fg probs
-        scores = input[0][:, self._num_anchors:, :, :]
+        scores = input[0][:, self._num_anchors:, :, :]  # (B, 9, h, w)
         bbox_deltas = input[1]
         im_info = input[2]
         cfg_key = input[3]
 
-        pre_nms_topN  = cfg[cfg_key].RPN_PRE_NMS_TOP_N
-        post_nms_topN = cfg[cfg_key].RPN_POST_NMS_TOP_N
-        nms_thresh    = cfg[cfg_key].RPN_NMS_THRESH
-        min_size      = cfg[cfg_key].RPN_MIN_SIZE
+        pre_nms_topN  = cfg[cfg_key].RPN_PRE_NMS_TOP_N  # 6000
+        post_nms_topN = cfg[cfg_key].RPN_POST_NMS_TOP_N  # 300
+        nms_thresh    = cfg[cfg_key].RPN_NMS_THRESH  # 0.7
+        min_size      = cfg[cfg_key].RPN_MIN_SIZE  # 8
 
         batch_size = bbox_deltas.size(0)
 
-        feat_height, feat_width = scores.size(2), scores.size(3)
+        feat_height, feat_width = scores.size(2), scores.size(3)  # h, w
         shift_x = np.arange(0, feat_width) * self._feat_stride
         shift_y = np.arange(0, feat_height) * self._feat_stride
         shift_x, shift_y = np.meshgrid(shift_x, shift_y)
@@ -84,29 +91,29 @@ class _ProposalLayer(nn.Module):
                                   shift_x.ravel(), shift_y.ravel())).transpose())
         shifts = shifts.contiguous().type_as(scores).float()
 
-        A = self._num_anchors
-        K = shifts.size(0)
+        A = self._num_anchors  # 9
+        K = shifts.size(0)  # ceil(800/16)*ceil(600/16) = h*w = 50*38
 
         self._anchors = self._anchors.type_as(scores)
         # anchors = self._anchors.view(1, A, 4) + shifts.view(1, K, 4).permute(1, 0, 2).contiguous()
-        anchors = self._anchors.view(1, A, 4) + shifts.view(K, 1, 4)
-        anchors = anchors.view(1, K * A, 4).expand(batch_size, K * A, 4)
+        anchors = self._anchors.view(1, A, 4) + shifts.view(K, 1, 4)  #
+        anchors = anchors.view(1, K * A, 4).expand(batch_size, K * A, 4)  # (B, 9*50*38, 4)
 
         # Transpose and reshape predicted bbox transformations to get them
         # into the same order as the anchors:
 
-        bbox_deltas = bbox_deltas.permute(0, 2, 3, 1).contiguous()
-        bbox_deltas = bbox_deltas.view(batch_size, -1, 4)
+        bbox_deltas = bbox_deltas.permute(0, 2, 3, 1).contiguous()  # (B, h, w, 36)
+        bbox_deltas = bbox_deltas.view(batch_size, -1, 4)  # (B, h*w*9, 4)
 
         # Same story for the scores:
-        scores = scores.permute(0, 2, 3, 1).contiguous()
-        scores = scores.view(batch_size, -1)
+        scores = scores.permute(0, 2, 3, 1).contiguous()  # (B, h, w, 9)
+        scores = scores.view(batch_size, -1)  # (B, h*w*9)
 
         # Convert anchors into proposals via bbox transformations
-        proposals = bbox_transform_inv(anchors, bbox_deltas, batch_size)
+        proposals = bbox_transform_inv(anchors, bbox_deltas)
 
         # 2. clip predicted boxes to image
-        proposals = clip_boxes(proposals, im_info, batch_size)
+        proposals = clip_boxes(proposals, im_info, batch_size)  # (B, 9*50*38, 4) [x1, y1, x2, y2]
         # proposals = clip_boxes_batch(proposals, im_info, batch_size)
 
         # assign the score to 0 if it's non keep.
@@ -150,7 +157,7 @@ class _ProposalLayer(nn.Module):
 
             if post_nms_topN > 0:
                 keep_idx_i = keep_idx_i[:post_nms_topN]
-            proposals_single = proposals_single[keep_idx_i, :]
+            proposals_single = proposals_single[keep_idx_i, :]  # (post_nms_topN, 4)
             scores_single = scores_single[keep_idx_i, :]
 
             # padding 0 at the end.
