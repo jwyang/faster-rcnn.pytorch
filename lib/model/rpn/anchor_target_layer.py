@@ -34,6 +34,11 @@ class _AnchorTargetLayer(nn.Module):
         labels and bounding-box regression targets.
     """
     def __init__(self, feat_stride, scales, ratios):
+        '''
+        :param feat_stride: 16
+        :param scales: [8,16,32]
+        :param ratios: [0.5,1,2]
+        '''
         super(_AnchorTargetLayer, self).__init__()
 
         self._feat_stride = feat_stride
@@ -53,7 +58,7 @@ class _AnchorTargetLayer(nn.Module):
         #   apply predicted bbox deltas at cell i to each of the 9 anchors
         # filter out-of-image anchors
 
-        rpn_cls_score = input[0]
+        rpn_cls_score = input[0]  # (B, 18, h, w)
         gt_boxes = input[1]
         im_info = input[2]
         num_boxes = input[3]
@@ -74,7 +79,7 @@ class _AnchorTargetLayer(nn.Module):
         A = self._num_anchors
         K = shifts.size(0)
 
-        self._anchors = self._anchors.type_as(gt_boxes) # move to specific gpu.
+        self._anchors = self._anchors.type_as(gt_boxes)  # move to specific gpu.
         all_anchors = self._anchors.view(1, A, 4) + shifts.view(K, 1, 4)
         all_anchors = all_anchors.view(K * A, 4)
 

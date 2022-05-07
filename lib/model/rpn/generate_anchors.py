@@ -26,22 +26,22 @@ import pdb
 #       -79  -167    96   184
 #      -167  -343   184   360
 
-#array([[ -83.,  -39.,  100.,   56.],
-#       [-175.,  -87.,  192.,  104.],
-#       [-359., -183.,  376.,  200.],
-#       [ -55.,  -55.,   72.,   72.],
-#       [-119., -119.,  136.,  136.],
-#       [-247., -247.,  264.,  264.],
-#       [ -35.,  -79.,   52.,   96.],
-#       [ -79., -167.,   96.,  184.],
-#       [-167., -343.,  184.,  360.]])
+# array([[ -83.,  -39.,  100.,   56.],
+#        [-175.,  -87.,  192.,  104.],
+#        [-359., -183.,  376.,  200.],
+#        [ -55.,  -55.,   72.,   72.],
+#        [-119., -119.,  136.,  136.],
+#        [-247., -247.,  264.,  264.],
+#        [ -35.,  -79.,   52.,   96.],
+#        [ -79., -167.,   96.,  184.],
+#        [-167., -343.,  184.,  360.]])
 
 try:
     xrange          # Python 2
 except NameError:
     xrange = range  # Python 3
 
-
+# scales = np.array([8,16,32]), ratios = np.array([0.5,1,2])
 def generate_anchors(base_size=16, ratios=[0.5, 1, 2],
                      scales=2**np.arange(3, 6)):
     """
@@ -49,17 +49,30 @@ def generate_anchors(base_size=16, ratios=[0.5, 1, 2],
     scales wrt a reference (0, 0, 15, 15) window.
     """
 
-    base_anchor = np.array([1, 1, base_size, base_size]) - 1
-    ratio_anchors = _ratio_enum(base_anchor, ratios)
+    base_anchor = np.array([1, 1, base_size, base_size]) - 1  # base_anchor = np.array([0, 0, 15, 15])
+    ratio_anchors = _ratio_enum(base_anchor, ratios)  # ratios = ratios = np.array([0.5,1,2])
     anchors = np.vstack([_scale_enum(ratio_anchors[i, :], scales)
                          for i in xrange(ratio_anchors.shape[0])])
+    return anchors
+
+def _ratio_enum(anchor, ratios):
+    """
+    Enumerate a set of anchors for each aspect ratio wrt an anchor.
+    """
+    # anchor = np.array([0, 0, 15, 15]), ratios = ratios = np.array([0.5,1,2])
+    w, h, x_ctr, y_ctr = _whctrs(anchor)  # 16, 16, 7.5, 7.5
+    size = w * h
+    size_ratios = size / ratios  # np.array([512, 256, 128])
+    ws = np.round(np.sqrt(size_ratios))  # np.array([23, 16, 11])
+    hs = np.round(ws * ratios)  # np.array([12, 16, 22])
+    anchors = _mkanchors(ws, hs, x_ctr, y_ctr)
     return anchors
 
 def _whctrs(anchor):
     """
     Return width, height, x center, and y center for an anchor (window).
     """
-
+    # anchor = np.array([0, 0, 15, 15])
     w = anchor[2] - anchor[0] + 1
     h = anchor[3] - anchor[1] + 1
     x_ctr = anchor[0] + 0.5 * (w - 1)
@@ -72,26 +85,15 @@ def _mkanchors(ws, hs, x_ctr, y_ctr):
     (x_ctr, y_ctr), output a set of anchors (windows).
     """
 
-    ws = ws[:, np.newaxis]
-    hs = hs[:, np.newaxis]
+    ws = ws[:, np.newaxis]  # np.array([[23], [16], [11]])
+    hs = hs[:, np.newaxis]  # np.array([[12], [16], [22]])
     anchors = np.hstack((x_ctr - 0.5 * (ws - 1),
                          y_ctr - 0.5 * (hs - 1),
                          x_ctr + 0.5 * (ws - 1),
                          y_ctr + 0.5 * (hs - 1)))
     return anchors
 
-def _ratio_enum(anchor, ratios):
-    """
-    Enumerate a set of anchors for each aspect ratio wrt an anchor.
-    """
 
-    w, h, x_ctr, y_ctr = _whctrs(anchor)
-    size = w * h
-    size_ratios = size / ratios
-    ws = np.round(np.sqrt(size_ratios))
-    hs = np.round(ws * ratios)
-    anchors = _mkanchors(ws, hs, x_ctr, y_ctr)
-    return anchors
 
 def _scale_enum(anchor, scales):
     """
