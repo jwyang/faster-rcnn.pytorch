@@ -86,7 +86,7 @@ class _AnchorTargetLayer(nn.Module):
                 (all_anchors[:, 3] < long(im_info[0][0]) + self._allowed_border))
 
         inds_inside = torch.nonzero(keep).view(-1)
-
+        print(f'select num inside:{inds_inside}')
         # keep only inside anchors
         anchors = all_anchors[inds_inside, :]
 

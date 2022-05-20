@@ -13,6 +13,13 @@ import numpy as np
 import pdb
 
 def bbox_transform(ex_rois, gt_rois):
+    '''
+    计算两个N * 4的矩阵之间的相关回归矩阵。
+    本质上是在求解每一个anchor相对于它的对应gt box的（dx, dy, dw, dh）的四个回归值，返回结果的shape为[N, 4]。
+    :param ex_rois: shape为[N, 4]的数组，一般传入的anchors的信息。
+    :param gt_rois: shape为[N, 4]的数组，一般传入的gt boxes(ground truth boxes)的信息。每一个gt roi都与一个ex roi相对应。
+    :return: 本质上是在求解每一个anchor相对于它的对应gt box的（dx, dy, dw, dh）的四个回归值，返回结果的shape为[N, 4]。
+    '''
     ex_widths = ex_rois[:, 2] - ex_rois[:, 0] + 1.0
     ex_heights = ex_rois[:, 3] - ex_rois[:, 1] + 1.0
     ex_ctr_x = ex_rois[:, 0] + 0.5 * ex_widths
